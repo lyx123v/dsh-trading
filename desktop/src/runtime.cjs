@@ -6,6 +6,7 @@
  */
 
 const fs = require('node:fs');
+const { createHash } = require('node:crypto');
 const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
@@ -72,6 +73,33 @@ function readStampFile(stampFile) {
   }
 }
 
+/** Hash the staged profile contents, independent of file timestamps and location. */
+function profileSeedFingerprint(seedDir) {
+  const hash = createHash('sha256');
+  const visit = (dir, relativeDir) => {
+    for (const name of fs.readdirSync(dir).sort()) {
+      const file = path.join(dir, name);
+      const relative = relativeDir ? relativeDir + '/' + name : name;
+      const stat = fs.lstatSync(file);
+      if (stat.isDirectory()) visit(file, relative);
+      else if (stat.isFile()) {
+        const contents = fs.readFileSync(file);
+        hash.update(relative + '\0' + contents.length + '\0');
+        hash.update(contents);
+      } else {
+        throw new Error('profile seed contains an unsupported entry: ' + relative);
+      }
+    }
+  };
+  visit(seedDir, '');
+  return hash.digest('hex');
+}
+
+/** Include plugin content in seed identity; older runtime stamps remain readable. */
+function runtimeSeedStamp(stamp) {
+  return stamp === undefined ? 'unknown' : [stamp.node, stamp.host, stamp.profileHash ?? stamp.webAll].join(' / ');
+}
+
 /**
  * Decide how the live web profile relates to the bundled seed.
  * @param {string} profileDir - $DSH_HOME/profiles/web.
@@ -103,7 +131,7 @@ function applyProfileSeed(seedDir, profileDir, action, stamp, extra) {
   fs.cpSync(seedDir, profileDir, {
     recursive: true,
     dereference: true,
-    filter: (source) => action !== 'reseed' || !keep(path.basename(source)),
+    filter: (source) => action !== 'reseed' || !keep(path.relative(seedDir, source)),
   });
   const marker = { stamp, seededAt: new Date().toISOString(), ...extra };
   fs.writeFileSync(path.join(profileDir, SEED_MARKER), JSON.stringify(marker, null, 2) + '\n');
@@ -457,6 +485,8 @@ module.exports = {
   normalizeProfileCohort,
   resolveDshHome,
   readStampFile,
+  profileSeedFingerprint,
+  runtimeSeedStamp,
   profileAction,
   applyProfileSeed,
   probeGui,
@@ -467,4 +497,3 @@ module.exports = {
   formatHostExitDiagnostic,
   toNodeImportSpecifier,
 };
-

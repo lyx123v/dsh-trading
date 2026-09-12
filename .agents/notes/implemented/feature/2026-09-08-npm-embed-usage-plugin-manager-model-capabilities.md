@@ -73,7 +73,9 @@ dsh-web 源码 `lib/` 逐字节一致（npm pack 后 diff 全等，供应链核�
   垫片不改变 profile 语义，只恢复官方 CLI 的可发现路径。
 - 新增外部信任面：`@linxin666` scope 三包随 profile 安装闭包执行（依赖仅
   schemastery / yaml）；升级通道 = npm caret，上游破格升版需人工评估 cohort 一致性。
-- **已知独立问题（本变更无关，需单独跟进）**：`@dshtrading/base/presets` 的
+- **后续已修复（2026-09-12）**：版本升级、内置子列表与下述启动问题见
+  [内置插件升级闭环](../bug-fix/2026-09-12-builtin-plugin-inventory-and-upgrade.md)。
+  原始实证：`@dshtrading/base/presets` 的
   `inject: { loader: { await: true } }` 在本机当前环境下自锁——loader 服务的就绪检查
   把 presets 自身未完成的 init 也计入待办，于是永远不就绪，宿主 100% CPU 挂起、不打印
   启动 URL。A/B 证据：把 base patch 换回 HEAD 版本（不含本变更三行）的干净 profile

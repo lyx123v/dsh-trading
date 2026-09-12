@@ -31,7 +31,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { hostCliShimPath, writeHostCliShims } = require('../src/runtime.cjs');
+const { hostCliShimPath, writeHostCliShims, profileSeedFingerprint } = require('../src/runtime.cjs');
 
 const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(desktopDir, '..');
@@ -307,6 +307,7 @@ function main() {
     pnpm: readBundledPnpmVersion(),
     host: HOST_PACKAGE + '@' + hostVersion,
     trading: DIRECT_TRADING_PACKAGES.join(', '),
+    profileHash: profileSeedFingerprint(path.join(stagingRoot, 'profile-trading')),
     builtAt: new Date().toISOString(),
   };
   fs.mkdirSync(stagingRoot, { recursive: true });

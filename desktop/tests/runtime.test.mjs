@@ -12,6 +12,8 @@ const {
   hostCliShimPath,
   writeHostCliShims,
   resolveDshHome,
+  profileSeedFingerprint,
+  runtimeSeedStamp,
   profileAction,
   applyProfileSeed,
   parseShasums,
@@ -56,6 +58,59 @@ test('profileAction seeds missing, leaves user-managed, reseeds stale', () => {
   fs.writeFileSync(path.join(profile, SEED_MARKER), JSON.stringify({ stamp: 's1' }));
   assert.equal(profileAction(profile, 's1'), 'leave', 'current stamp is up to date');
   assert.equal(profileAction(profile, 's2'), 'reseed', 'moved stamp triggers reseed');
+});
+
+test('bundled plugin updates reseed managed profiles without changing the host version', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-plugin-seed-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const seed = path.join(dir, 'seed');
+  const profile = path.join(dir, 'profile');
+  const plugin = path.join(seed, 'node_modules', '@linxin666', 'dsh-client-ui-plugin-manager');
+  fs.mkdirSync(plugin, { recursive: true });
+  fs.writeFileSync(path.join(seed, 'package.json'), '{"name":"dsh-profile-trading-web"}');
+  fs.writeFileSync(path.join(seed, 'cordis.patch.yml'), '[]\n');
+  fs.writeFileSync(path.join(plugin, 'package.json'), '{"version":"0.3.17"}');
+  fs.writeFileSync(path.join(plugin, 'index.js'), 'old plugin');
+  const runtime = { node: 'node@24', host: 'dsh@0.1.5-rc.1' };
+  const initialHash = profileSeedFingerprint(seed);
+  const initial = runtimeSeedStamp({ ...runtime, profileHash: initialHash });
+  applyProfileSeed(seed, profile, 'seed', initial, {});
+  fs.writeFileSync(path.join(profile, 'cordis.patch.yml'), '- id: user-setting\n');
+
+  const copy = path.join(dir, 'copy');
+  fs.cpSync(seed, copy, { recursive: true });
+  fs.utimesSync(path.join(copy, 'package.json'), new Date(0), new Date(0));
+  assert.equal(profileSeedFingerprint(copy), initialHash, 'copy location and timestamps do not affect identity');
+  assert.equal(runtimeSeedStamp({ ...runtime, profileHash: initialHash, builtAt: 'later' }), initial);
+  assert.equal(profileAction(profile, initial), 'leave');
+
+  fs.writeFileSync(path.join(plugin, 'package.json'), '{"version":"0.3.20"}');
+  fs.writeFileSync(path.join(plugin, 'index.js'), 'bundle children supported');
+  const updated = runtimeSeedStamp({ ...runtime, profileHash: profileSeedFingerprint(seed) });
+  assert.notEqual(updated, initial);
+  assert.equal(profileAction(profile, updated), 'reseed');
+  applyProfileSeed(seed, profile, 'reseed', updated, {});
+  assert.equal(fs.readFileSync(path.join(profile, 'node_modules', '@linxin666', 'dsh-client-ui-plugin-manager', 'package.json'), 'utf8'), '{"version":"0.3.20"}');
+  assert.equal(fs.readFileSync(path.join(profile, 'cordis.patch.yml'), 'utf8'), '- id: user-setting\n');
+  assert.equal(profileAction(profile, updated), 'leave');
+
+  fs.writeFileSync(path.join(plugin, 'index.js'), 'same-version rebuild');
+  assert.notEqual(runtimeSeedStamp({ ...runtime, profileHash: profileSeedFingerprint(seed) }), updated);
+  fs.rmSync(path.join(profile, SEED_MARKER));
+  assert.equal(profileAction(profile, initial), 'leave', 'user-managed profiles remain untouched');
+});
+
+test('runtimeSeedStamp accepts legacy stamps and upgrades their managed profiles', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-legacy-seed-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  assert.equal(runtimeSeedStamp(undefined), 'unknown');
+  assert.equal(runtimeSeedStamp({ node: 'n', host: 'h', webAll: 'legacy' }), 'n / h / legacy');
+  const legacy = runtimeSeedStamp({ node: 'n', host: 'h', trading: 'base' });
+  assert.equal(legacy, 'n / h / ');
+  fs.writeFileSync(path.join(dir, 'package.json'), '{}');
+  fs.writeFileSync(path.join(dir, SEED_MARKER), JSON.stringify({ stamp: legacy }));
+  const current = runtimeSeedStamp({ node: 'n', host: 'h', profileHash: 'profile-content' });
+  assert.equal(profileAction(dir, current), 'reseed');
 });
 
 test('normalizeProfileCohort relinks core packages onto the bundled runtime', () => {
@@ -112,6 +167,7 @@ test('applyProfileSeed keeps the user patch layer on reseed', () => {
   fs.writeFileSync(path.join(seed, 'package.json'), '{"name":"dsh-profile-web"}');
   fs.writeFileSync(path.join(seed, 'cordis.patch.yml'), '[]\n');
   fs.writeFileSync(path.join(seed, 'node_modules', 'pkg', 'index.js'), 'v1');
+  fs.writeFileSync(path.join(seed, 'node_modules', 'pkg', 'cordis.patch.yml'), '- insert: [{ id: bundled-v1 }]\n');
 
   applyProfileSeed(seed, profile, 'seed', 's1', { appVersion: '0.1.0' });
   assert.equal(fs.readFileSync(path.join(profile, 'node_modules', 'pkg', 'index.js'), 'utf8'), 'v1');
@@ -119,10 +175,12 @@ test('applyProfileSeed keeps the user patch layer on reseed', () => {
   // User edits the patch layer; the seed moves to a new node_modules payload.
   fs.writeFileSync(path.join(profile, 'cordis.patch.yml'), '- insert: []\n');
   fs.writeFileSync(path.join(seed, 'node_modules', 'pkg', 'index.js'), 'v2');
+  fs.writeFileSync(path.join(seed, 'node_modules', 'pkg', 'cordis.patch.yml'), '- insert: [{ id: bundled-v2 }]\n');
 
   applyProfileSeed(seed, profile, 'reseed', 's2', { appVersion: '0.1.1' });
   assert.equal(fs.readFileSync(path.join(profile, 'node_modules', 'pkg', 'index.js'), 'utf8'), 'v2');
   assert.equal(fs.readFileSync(path.join(profile, 'cordis.patch.yml'), 'utf8'), '- insert: []\n', 'user patch survives');
+  assert.equal(fs.readFileSync(path.join(profile, 'node_modules', 'pkg', 'cordis.patch.yml'), 'utf8'), '- insert: [{ id: bundled-v2 }]\n', 'bundled patches must be copied on reseed');
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, SEED_MARKER), 'utf8')).stamp, 's2');
 });
 
@@ -205,4 +263,3 @@ test('toNodeImportSpecifier converts paths to valid file URLs safe for --import'
     assert.equal(posixSpec, 'file:///Applications/App/loader.mjs');
   }
 });
-

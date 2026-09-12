@@ -194,9 +194,8 @@
     # order 20 相邻不冲突）。市场无关共享行，归 base 所有（铁律 #1）。
     # 凭据须用户在设置面板显式配置，未配置时各渠道空闲待命，insert 不改变
     # 交易会话数据安全面。包名解析依赖本包 dependencies 里的
-    # @xmanrui/dsh-im（进 profile 安装闭包，S3 坑 3 同款）。^4.11.0：落地
-    # 时刻 4.12/4.13 尚在 pnpm minimumReleaseAge 24h 冷却期内，caret 待其
-    # 出冷却后 pnpm update 自然跟进（session-archive 同款选版纪律）。
+    # @xmanrui/dsh-im（进 profile 安装闭包，S3 坑 3 同款）。版本由 base 的
+    # package.json 与工作区 lockfile 统一管理，升级后需刷新用户 profile。
     # 注意：本行即内置安装，勿再对 profile 执行 `dsh plugin add
     # @xmanrui/dsh-im`——其自带 patch（id xmanrui-dsh-im）会与本行重复
     # 挂载同一插件，设置面二次注册。
@@ -216,8 +215,8 @@
     # 改回 always/change，属用户可见项）；账本随 DSH_HOME=~/.dsh-trading 隔离，
     # 不污染宿主 ~/.dsh。市场无关共享行，归 base 所有（铁律 #1）。
     # 包名解析依赖本包 dependencies 里的 @linxin666/dsh-usage（进 profile 安装
-    # 闭包，S3 坑 3 同款）。^0.3.17：落地时刻 0.3.18 尚在 pnpm minimumReleaseAge
-    # 24h 冷却期内，caret 待其出冷却后 pnpm update 自然跟进（session-archive 同款）。
+    # 闭包，S3 坑 3 同款）。版本由 base 的 package.json 与工作区 lockfile
+    # 统一管理，升级后需刷新用户 profile。
     # 行安全（issue #88）：host 半硬 inject webServer，headless 宿主缺服务即
     # 永久 pending → 启动即崩；按提供方行条件禁用（见文件头「条件禁用行」）。
     - id: dsh-trading-usage
@@ -230,6 +229,8 @@
     # @linxin666/dsh-client-ui-plugin-manager）：官方「插件」设置区的
     # Plugin manager 标签页（settings.plugins.tab order 20），npm/git 安装、
     # 启用开关、更新校验、卸载、安装冲突回滚与「让 agent 修」修复会话。
+    # 0.3.20 起管理列表展示 bundle 的子行，内置 IM/使用统计/会话管理在
+    # base 下可见；无需把这些包再次加入 profile bundles。
     # 双通道：官方 installer 通道存在时走 /plugin-installer RPC；npm 发布版
     # web 运行时无该通道，由本包 host 半挂 loopback 网关、派生官方 dsh CLI
     # 写入 profile（唯一写者）。CLI 解析顺序 = 宿主 PATH → 宿主入口向上

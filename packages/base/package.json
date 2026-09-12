@@ -64,11 +64,11 @@
     "@dshtrading/router": "workspace:^",
     "@dshtrading/strategies": "workspace:^",
     "@dshtrading/watchlist": "workspace:^",
-    "@linxin666/dsh-client-ui-model-capabilities": "^0.3.18",
-    "@linxin666/dsh-client-ui-plugin-manager": "^0.3.17",
-    "@linxin666/dsh-session-archive": "^0.3.16",
-    "@linxin666/dsh-usage": "^0.3.17",
-    "@xmanrui/dsh-im": "^4.11.0"
+    "@linxin666/dsh-client-ui-model-capabilities": "^0.3.20",
+    "@linxin666/dsh-client-ui-plugin-manager": "^0.3.20",
+    "@linxin666/dsh-session-archive": "^0.3.20",
+    "@linxin666/dsh-usage": "^0.3.20",
+    "@xmanrui/dsh-im": "^4.20.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",

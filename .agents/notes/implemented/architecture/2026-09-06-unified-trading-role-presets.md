@@ -28,7 +28,7 @@ master persona 编排四步（2026-09-06 编排升级）：①资金持仓先行
 
 角色按安装市场稳定合成，静态证据纪律置于 persona，实时业务数据不写入组合。定向测试覆盖16种市场子集、顺序稳定、realm保留、仅一个persona、实际kit工具注册、只读行情执行、路由变化、不可用降级、幂等、卸载市场刷新、修改戳保护、旧目录迁移和symlink拒绝；master 断言三个委派实例、交易员 persona 内嵌、一次性子代理边界三现，以及台账先行（holdings_list/holdings_stage）与技能调度（dynamic-capabilities、strategy_backtest、knowledge-curation）关键词。role-skills provider 以独立测试覆盖双技能清单、正文可读与未知技能拒绝；dynamic-capabilities 资产本已随 base 分发但此前未注册进技能面，属补齐而非新增资产（content-insight.md 仍不注册：其脚本与引用资源未随包分发，注册会形成不可执行技能）。
 
-源码级检查确认 loader Entry.disabled 包含祖先禁用；安装器使用 SDK 原生 inject.loader.await 拦截配置，在导入与嵌套 include 任务稳定后读取市场，避免 apply 内等待自身任务死锁。真实 standingKeyFor/新会话挂载未在本轮子任务验证，仍需宿主验收。共享 host 动态能力仍存在，因此“不挂订单工具”不是独立安全沙箱。newsRegistry 改为每次注册独立 token，注销仅删除自身注册，最后注册退出时恢复前一聚合器；相同函数的多角色注册不再互相注销，测试覆盖重复dispose及恢复。未改已安装目录或运行中宿主。
+源码级检查确认 loader Entry.disabled 包含祖先禁用。最初使用的 SDK 原生 inject.loader.await 拦截配置随后实测会将安装器自身异步初始化计入待办；现改为普通 loader 注入，按已登记的启用市场行显式导入贡献，见 [2026-09-12 启动修正](../bug-fix/2026-09-12-builtin-plugin-inventory-and-upgrade.md)。真实 standingKeyFor/新会话挂载未在本轮子任务验证，仍需宿主验收。共享 host 动态能力仍存在，因此“不挂订单工具”不是独立安全沙箱。newsRegistry 改为每次注册独立 token，注销仅删除自身注册，最后注册退出时恢复前一聚合器；相同函数的多角色注册不再互相注销，测试覆盖重复dispose及恢复。未改已安装目录或运行中宿主。
 
 master 委派边界如实声明：fork 子代理继承会话工具面（含下单工具可见），专员 persona 约束职责，与「角色分工不是独立安全沙箱」同一信任口径；委派工具仅 master 预设挂载，其他角色与默认会话不可见（宿主默认委派行 disabled）。子代理结论经 master 交叉核对，最终交付物是整合结论而非子代理原文；交易员子代理同样只产计划文本，实际下单只发生在大师会话的审批闸门之后。
 

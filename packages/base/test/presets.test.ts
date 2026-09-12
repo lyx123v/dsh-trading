@@ -1,8 +1,11 @@
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { composePresets, connectorRowsOf, installFromLoader, installPresets, isUnmodifiedManaged, MARKETS, stamp, inject, Config } from '../src/presets.js'
+import { composePresets, connectorRowsOf, installFromLoader, installPresets, isUnmodifiedManaged, MARKETS, stamp, Config } from '../src/presets.js'
 import { getPresetContribution as crypto } from '../../crypto/src/index.js'
 import { getPresetContribution as us } from '../../us/src/index.js'
 import { getPresetContribution as cn } from '../../cn/src/index.js'
@@ -13,10 +16,49 @@ async function root() { const dir = await mkdtemp(join(tmpdir(), 'trading-roles-
 afterEach(async () => { await Promise.all(dirs.splice(0).map(dir => rm(dir, { recursive: true, force: true }))) })
 const contributions = () => Promise.all([crypto(), us(), cn(), hk()])
 
-it('uses native loader stable-tree intercept and accepts empty config', () => {
-  expect(inject).toEqual({ loader: { await: true } })
+it('accepts empty config', () => {
   expect(Config({})).toEqual({})
 })
+
+it('boots through the real loader with asynchronous preset installation', async () => {
+  const presetRoot = await root()
+  const script = `
+    import { createRequire } from 'node:module';
+    import { pathToFileURL } from 'node:url';
+    import { readFile } from 'node:fs/promises';
+    import { join } from 'node:path';
+    import { Context } from '@deepseek-ai/cordis';
+    import * as presets from ${JSON.stringify(new URL('../src/presets.ts', import.meta.url).href)};
+    const require = createRequire(import.meta.url);
+    const cordisRequire = createRequire(require.resolve('@deepseek-ai/cordis'));
+    const { Loader } = await import(pathToFileURL(cordisRequire.resolve('@deepseek-ai/cordis-plugin-loader')).href);
+    const ctx = new Context();
+    await ctx.plugin(Loader);
+    const loader = ctx.get('loader');
+    const market = {
+      apply() {},
+      async getPresetContribution() { return ${JSON.stringify(await crypto())}; },
+    };
+    loader.import = async name => name === '@dshtrading/base/presets' ? presets : market;
+    await Promise.all([
+      loader.create({ id: 'presets', name: '@dshtrading/base/presets', config: { presetRoot: ${JSON.stringify(presetRoot)} } }),
+      loader.create({ id: 'crypto', name: '@dshtrading/crypto' }),
+      loader.create({ id: 'us', name: '@dshtrading/us', disabled: true }),
+    ]);
+    await loader.await();
+    const text = await readFile(join(${JSON.stringify(presetRoot)}, 'trader', 'agent.cordis.yml'), 'utf8');
+    console.log(JSON.stringify({ crypto: text.includes('@dshtrading/kit-crypto'), us: text.includes('@dshtrading/kit-us') }));
+    await ctx.fiber.dispose();
+  `
+  const tsx = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href
+  const child = spawnSync(process.execPath, ['--import', tsx, '--input-type=module', '-e', script], {
+    encoding: 'utf8',
+    timeout: 6000,
+  })
+  expect(child.error, child.stderr).toBeUndefined()
+  expect(child.status, child.stderr).toBe(0)
+  expect(JSON.parse(child.stdout.trim())).toEqual({ crypto: true, us: false })
+}, 10000)
 
 it('composes all 16 installed-market subsets deterministically, preserving connector realms for trader and master', async () => {
   const all = await contributions()

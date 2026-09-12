@@ -21,6 +21,7 @@ const {
   resolveRuntimePaths,
   resolveDshHome,
   readStampFile,
+  runtimeSeedStamp,
   profileAction,
   applyProfileSeed,
   normalizeProfileCohort,
@@ -255,7 +256,7 @@ async function boot() {
   if (!fs.existsSync(runtime.hostBin)) throw new Error('bundled dsh host is missing: ' + runtime.hostBin);
 
   const stamp = readStampFile(runtime.stampFile);
-  const stampText = stamp === undefined ? 'unknown' : [stamp.node, stamp.host, stamp.webAll].join(' / ');
+  const stampText = runtimeSeedStamp(stamp);
   const profileDir = path.join(home, 'profiles', 'trading-web');
   const action = profileAction(profileDir, stampText);
   if (action !== 'leave') {
