@@ -12,7 +12,8 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { MarketDataService } from '@dshtrading/api'
-import { createJin10Service, type Config } from './plugin.js'
+import { DEFAULT_ENDPOINT, DEFAULT_TIMEOUT_MS } from './mcp.js'
+import { createJin10Service, type Config as ConnectorConfig } from './plugin.js'
 import {
   GLOBAL_MARKET,
   JIN10_PROVIDER,
@@ -21,6 +22,11 @@ import {
 } from './market-data.js'
 
 export const inject: string[] = []
+
+// 本行在 patch 里不带 config：loader 只认**本模块**导出的 Config 补默认值，缺它就按
+// undefined 传入、apply 一读 config.enabled 即崩（2026-09-13 桌面壳实测）。与主行共用同一
+// 份 schema，避免两处默认值漂移。
+export { Config } from './plugin.js'
 
 interface MarketDataRegistryLike {
   register(market: string, provider: string, service: MarketDataService): () => void
@@ -31,9 +37,15 @@ function resolveMarketDataRegistry(ctx: Context): MarketDataRegistryLike | undef
   return candidate !== undefined ? (candidate as MarketDataRegistryLike) : undefined
 }
 
-export function apply(ctx: Context, config: Config): void {
-  if (!config.enabled) return
-  const service = createJin10GlobalMarketDataService(createJin10Service(ctx, config))
+export function apply(ctx: Context, config?: Partial<ConnectorConfig>): void {
+  // 手工构造 ctx 的调用方（单测/第三方宿主）可能不传 config：缺省按启用处理，
+  // 字段缺省与 plugin.ts 的 schema 同值。
+  if (config?.enabled === false) return
+  const service = createJin10GlobalMarketDataService(createJin10Service(ctx, {
+    endpoint: config?.endpoint ?? DEFAULT_ENDPOINT,
+    tokenRef: config?.tokenRef ?? 'JIN10_MCP_TOKEN',
+    timeoutMs: config?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  }))
   ctx.reflect.provide(TRADING_GLOBAL_MARKET_DATA_KEY, service)
   const registry = resolveMarketDataRegistry(ctx)
   if (registry === undefined) return

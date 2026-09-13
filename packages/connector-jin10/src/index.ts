@@ -22,4 +22,8 @@ export * from './parse.js'
 export * from './service.js'
 export * from './tools.js'
 
-export { apply, Config, name } from './plugin.js'
+// patch 行按包名解析（@dshtrading/connector-jin10 → lib/index.js）：loader 只从**本入口**读
+// 插件元信息，故 name/inject/Config/apply 必须在此重导出——漏 inject 的后果不是报错跳过，
+// 而是宿主启动时 “cannot get property "tools" without inject” 整棵树加载失败（2026-09-13
+// 桌面壳实测）。
+export { apply, Config, inject, name } from './plugin.js'

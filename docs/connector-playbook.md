@@ -144,6 +144,22 @@ connector-okx 的对应实现段：
   改完 yml 后删 `~/.dsh-trading-presets/<market>-trader/` 下已装文件即可让安装器重写
   （无戳文件按用户改动跳过，crypto installer 先例）。
 
+### 4.2 loader 解析面契约（patch 行的 name 决定 loader 读哪个模块）
+
+loader 只从 patch 行 `name` 解析到的**那个模块**读 `name` / `inject` / `Config` / `apply`：
+
+- 行写包名（`@dshtrading/connector-<slug>` → `lib/index.js`）时，入口必须**重导出**这四项。
+  只在 `src/plugin.ts` 里 `export const inject` 不够：unbundle 产物会把「没有任何模块引用的
+  导出」丢掉，宿主启动直接整棵树加载失败 —— `cannot get property "tools" without inject`
+  （2026-09-13 桌面壳实测，host 退出码 1）。
+- 子路径行（`@dshtrading/connector-<slug>/dataplane` → `lib/dataplane.js`）同理：`Config`
+  必须由**该模块**导出。否则行内不写 `config:` 时 loader 按 `undefined` 传入，`apply` 一读
+  `config.enabled` 就崩（同实测）。与主行共用同一份 schema（`export { Config } from './plugin.js'`）
+  避免默认值漂移，`apply(ctx, config?: Partial<Config>)` 再对 `undefined` 给缺省（单测/第三方宿主手搓 ctx）。
+- 护栏：包内单测直接 `apply(fakeCtx, config)` **不会**暴露这类缺失（假 ctx 不读 loader 元信息）。
+  至少留一条「根入口重导出 name/inject/Config/apply」断言（connector-jin10/test/plugin.test.ts 先例），
+  并在真实宿主（桌面壳/CLI）启动一次核对日志无 `failed to apply loader entry`。
+
 ---
 
 ## 5. 测试与验收（对照 okx 切片的 R 序列）

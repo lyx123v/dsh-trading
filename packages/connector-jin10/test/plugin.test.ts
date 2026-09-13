@@ -1,6 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import { apply, Config, createTokenProvider, name } from '../src/plugin.js'
+import * as rootEntry from '../src/index.js'
+import { apply, Config, createTokenProvider, inject, name } from '../src/plugin.js'
+
+describe('包入口（loader 解析面）', () => {
+  // 回归：patch 行按包名解析到 lib/index.js，loader 只从该入口读 name/inject/Config/apply。
+  // 2026-09-13 桌面壳实测：入口漏 inject → 宿主整棵树加载失败（cannot get property "tools" without inject）。
+  it('根入口重导出 name/inject/Config/apply', () => {
+    expect(rootEntry.name).toBe('dsh-trading-connector-jin10')
+    expect(rootEntry.inject).toEqual(['tools'])
+    expect(rootEntry.Config).toBeDefined()
+    expect(typeof rootEntry.apply).toBe('function')
+    expect(inject).toEqual(['tools'])
+  })
+})
 
 function fakeCtx(options: { credential?: Record<string, string> } = {}) {
   const registered = new Map<string, { name: string }>()

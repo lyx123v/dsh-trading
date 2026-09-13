@@ -59,6 +59,14 @@ Status: implemented
 - **agent 工具面留在连接器**（`global_instruments/global_quote/global_klines` 不退役）：`<market>_get_ticker/_get_klines` 由 preset 平面的 `base/research-tools` 按「已安装市场」生成，该列表来自 bundle contribution——global 没有 bundle；而 `base/market-tools` 的账户/盘口族对纯数据市场只会多注册 7 个必然 `TRADING_NOT_IMPLEMENTED` 的工具。故 `MARKETS`、`ORDER_GATE_PATTERN`、`research-tools` 三个清单本轮**不加** global（零假工具）。后续若 owner 要 market-group 平权（bundle + kit + `global_get_ticker` 命名族 + persona 市场列表），按 `2026-09-12-futures-market-group.md` 清单落地。
 
 
+### 4. 桌面壳启动实测抓出的两个 loader 契约坑（同批修复）
+
+真实宿主（packaged 桌面壳）首次挂载本连接器时**整棵树加载失败、host 退出码 1**，两条根因都在「patch 行的 name 决定 loader 读哪个模块」这一契约上：
+
+- **根入口未重导出 `inject`**：patch 行 `name: '@dshtrading/connector-jin10'` 解析到 `lib/index.js`，而 loader 只从该入口读 `name/inject/Config/apply`。`src/plugin.ts` 里 `export const inject = ['tools']` 有，但 `src/index.ts` 只重导出了 `{ apply, Config, name }` → unbundle 产物把「无模块引用的导出」丢掉（`lib/plugin.js` 的聚合 export 里没有 inject）→ 宿主 `cannot get property "tools" without inject`。**修**：入口重导出 `inject`；并加回归断言「根入口重导出 name/inject/Config/apply」。
+- **数据面行未导出 `Config`**：patch 行不带 `config:` 时，loader 只认**该模块**导出的 schema 补默认值；`dataplane.ts` 当时只 `import type { Config }`，于是 `apply(ctx, undefined)` → `Cannot read properties of undefined (reading 'enabled')`。**修**：`export { Config } from './plugin.js'`（与主行共用同一份 schema，避免默认值漂移）+ `apply(ctx, config?: Partial<Config>)` 对 undefined 给缺省。
+- 教训写进 `docs/connector-playbook.md` §4.2：包内单测直接 `apply(fakeCtx, config)` 不会暴露 loader 元信息缺失——真实宿主启动是这类改动的必要验证面（本轮正是桌面壳启动抓出的）。
+
 ## Verification
 
 - 单测 50 例全绿（`pnpm --filter @dshtrading/connector-jin10 test`）：握手顺序与一次握手、会话头回带、缺凭证不发请求且补配后可重试、401/429/5xx/JSON-RPC error/坏形状映射、structuredContent 优先与文本兜底、限流与未知品种文案识别、解析层（标题提取/东八区时间/分页字段/正文丢弃/坏条目丢弃）、工具渲染与参数透传、插件注册与重名不覆盖、apply→工具 execute 的真实链路（打桩 fetch + 设置中心凭证）。
