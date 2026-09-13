@@ -36,3 +36,8 @@ UI 编辑器新建表单默认选中 master / workspace-write（所见即所存�
   `tasks-service.test.ts` 记录 commands 派发流水，断言默认任务 launch 时确实执行
   `/permission workspace-write`（此前只桩不验，漏传也全绿）。详见
   [review fixes](../bug-fix/2026-09-08-review-fixes.md)。
+
+## Addendum (2026-09-13, 契约更新)
+
+- 宿主 cohort 升 0.1.5-rc.1 后，`@deepseek-ai/dsh-commands` 的 `execute` 首参由 `sessionId` 改为 `Agent`（并新增 `submittedAttachments`）：本记录所述的 launch 期 `/permission` 下发一度整体失败（7 个定时任务停摆）。runner 已改按新契约调用，测试断言从「派发流水」加强为「派发流水 + signal 必须存在且未 aborted」。详见
+  [执行会话启动失败：commands.execute 首参契约](../bug-fix/2026-09-13-tasks-launch-commands-execute-agent-arity.md)。

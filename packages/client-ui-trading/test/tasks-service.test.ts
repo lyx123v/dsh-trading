@@ -82,12 +82,17 @@ describe('TradingTasksService', () => {
       gateway: () => gateway,
       // 创建默认钉住 workspace-write 后，launch 会对执行会话应用 /permission。
       // permissionCalls 记录派发流水（审查 M4：只桩不验会让「权限没下发」静默通过）。
+      // 0.1.5-rc.1 契约：execute(agent, line, submittedAttachments, signal)。
+      // signal 必须真实存在——2026-09-13 的启动故障正是旧调用形状把 signal 顶到
+      // submittedAttachments、令服务内 signal.aborted 抛 TypeError。
       commands: () => ({
-        execute: async (sessionId: string, line: string) => {
-          options.permissionCalls?.push({ sessionId, line })
-          return { kind: 'success', text: 'ok' }
+        execute: async (agent: unknown, line: string, _submittedAttachments: readonly unknown[], signal: AbortSignal) => {
+          if (signal === undefined || signal.aborted) throw new Error('permission command requires a live signal')
+          options.permissionCalls?.push({ sessionId: (agent as { session?: { id?: string } }).session?.id ?? '', line })
+          return { commandId: 'cmd-1', result: { kind: 'success', text: 'ok' } }
         },
       }),
+      agents: () => ({ get: (sessionId: string) => ({ session: { id: sessionId } }) }),
       tickMs: options.tickMs ?? 1_000,
       pollMs: 500,
     })

@@ -12,7 +12,7 @@ import {
   type TasksActionEnvelope,
   type TasksSnapshot,
 } from '../client/tasks-protocol.ts'
-import { TasksRunner, SessionLaunchError, type SessionCommandDispatcher, type SessionGateway } from './runner.ts'
+import { TasksRunner, SessionLaunchError, type AgentRegistryLike, type SessionCommandDispatcher, type SessionGateway } from './runner.ts'
 
 /** 宿主工作区名册面（meta + runner 校验共用）。宿主 Workspace 实体的显示名
  *  在 title（创建时默认 basename(path)，必填）；name 留给别名面兜底。 */
@@ -33,6 +33,8 @@ export interface TradingTasksServiceOptions {
   gateway: () => SessionGateway | undefined
   /** 惰性解析宿主 commands 服务（权限斜杠命令）。 */
   commands?: () => SessionCommandDispatcher | undefined
+  /** 惰性解析宿主 agents 服务（commands.execute 需要 Agent 首参）。 */
+  agents?: () => AgentRegistryLike | undefined
   /** 惰性解析宿主 workspaceRegistry。 */
   workspaces?: () => WorkspaceDirectoryLike | undefined
   /** 账本每次提交后的失效信号回调（桥层接 SSE emit('tasks')）。 */
@@ -73,6 +75,7 @@ export class TradingTasksService {
       options.gateway,
       options.commands ?? (() => undefined),
       options.workspaces as (() => WorkspaceDirectoryLike | undefined) | undefined ?? (() => undefined),
+      options.agents ?? (() => undefined),
     )
   }
 

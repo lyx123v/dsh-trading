@@ -25,9 +25,18 @@ export interface SessionGateway {
   stream?(request: { namespace: string; method: string; args: Record<string, unknown>; signal?: AbortSignal }): Promise<AsyncIterable<unknown>>
 }
 
-/** /permission 命令派发面（宿主 commands 服务）。 */
+/** /permission 命令派发面（宿主 commands 服务）。
+ *  0.1.5-rc.1 契约：execute(agent, line, submittedAttachments, signal)。
+ *  旧契约是 execute(sessionId, line, signal)——错传会把 signal 顶到
+ *  submittedAttachments 位置，导致服务内 `signal.aborted` 抛 TypeError
+ *  （2026-09-13 定时任务启动故障的根因）。 */
 export interface SessionCommandDispatcher {
-  execute(sessionId: string, line: string, signal: AbortSignal): Promise<{ kind: string; text?: string } | undefined>
+  execute(agent: unknown, line: string, submittedAttachments: readonly unknown[], signal: AbortSignal): Promise<unknown>
+}
+
+/** 宿主 agents 服务面：按 sessionId 取活跃 Agent（commands.execute 的首参）。 */
+export interface AgentRegistryLike {
+  get(sessionId: string): unknown
 }
 
 /** 工作区名册面（宿主 workspaceRegistry 服务）。 */
@@ -38,7 +47,10 @@ export interface WorkspaceRegistryLike {
 /** 启动后的失败：仍携带会话 id，账本据此把执行挂到该会话上观察收尾。 */
 export class SessionLaunchError extends Error {
   constructor(readonly sessionId: string, cause: unknown) {
-    super('execution session ' + sessionId + ' failed during launch: ' + (cause instanceof Error ? cause.message : String(cause)), { cause })
+    // 诊断留痕：启动失败的真实栈必须可见——只带 message 会把根因（如 TypeError）永远吃掉。
+    const detail = cause instanceof Error ? (cause.stack ?? cause.message) : String(cause)
+    console.error('[trading-tasks] session launch failed:', sessionId, detail)
+    super('execution session ' + sessionId + ' failed during launch: ' + detail, { cause })
     this.name = 'SessionLaunchError'
   }
 }
@@ -94,6 +106,7 @@ export class TasksRunner {
     private readonly gateway: () => SessionGateway | undefined,
     private readonly commands: () => SessionCommandDispatcher | undefined = () => undefined,
     private readonly workspaces: () => WorkspaceRegistryLike | undefined = () => undefined,
+    private readonly agents: () => AgentRegistryLike | undefined = () => undefined,
   ) {}
 
   private session(): SessionGateway {
@@ -138,9 +151,16 @@ export class TasksRunner {
       if (task.permission !== undefined) {
         const commands = this.commands()
         if (commands === undefined) throw new Error('permission command dispatcher (commands) is unavailable')
-        const command = await commands.execute(sessionId, '/permission ' + task.permission, AbortSignal.timeout(30_000))
-        if (command === undefined) throw new Error('permission command was not acknowledged')
-        if (command.kind !== 'success') throw new Error(command.text ?? 'permission command failed')
+        // 首参必须是 Agent（0.1.5-rc.1）：session.create 已 ensureSession 挂载 preset，
+        // 因此此处 agents.get(sessionId) 应命中；缺席即 fail-closed，不退回旧调用形状。
+        const agent = this.agents()?.get(sessionId)
+        if (agent === undefined) throw new Error('session agent is unavailable for the permission command')
+        const execution = await commands.execute(agent, '/permission ' + task.permission, [], AbortSignal.timeout(30_000))
+        if (execution === undefined) throw new Error('permission command was not acknowledged')
+        // 兼容新形状 { commandId, result: { kind, text } } 与旧形状 { kind, text }。
+        const outcome = (execution as { result?: { kind?: string; text?: string } }).result
+          ?? (execution as { kind?: string; text?: string })
+        if (outcome.kind !== 'success') throw new Error(outcome.text ?? 'permission command failed')
       }
       await this.invoke(gateway, 'session', 'prompt', {
         sessionId,

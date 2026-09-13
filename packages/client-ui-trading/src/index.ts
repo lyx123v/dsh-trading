@@ -216,6 +216,7 @@ export function apply(ctx: Context): void {
         ledgerPath: process.env.DSH_TRADING_TASKS_LEDGER ?? path.join(dshHomeDir(), 'trading-tasks', 'ledger-v1.json'),
         gateway: () => resolveHostService('typertGateway') as SessionGateway | undefined,
         commands: () => resolveHostService('commands') as SessionCommandDispatcher | undefined,
+        agents: () => resolveHostService('agents') as import('./tasks/runner.ts').AgentRegistryLike | undefined,
         workspaces: () => resolveHostService('workspaceRegistry') as import('./tasks/service.ts').WorkspaceDirectoryLike | undefined,
         onEvent: () => eventsOf()?.emit('tasks'),
       })
