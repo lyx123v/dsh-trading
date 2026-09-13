@@ -24,7 +24,6 @@ import { createSelectionStore, createWatchlistGroupsStore, createWatchlistStore 
 import { createChartStateStore } from './chart-state.ts'
 import { indicators, markCustomIndicator, unmarkCustomIndicator } from './indicator-registry.ts'
 import { stageViews } from './stage-views.ts'
-import { FlashFeedStage } from './FlashFeedStage.tsx'
 import { createTradingBridgeService } from './api.ts'
 import { fillComposerWithQuote, guardComposerTarget, type FillComposerFn, type ConversationDraftFace } from './fill-composer.ts'
 import { OrderCard, WatchlistChipCard } from './toolview.tsx'
@@ -124,9 +123,8 @@ export function apply(ctx: ClientContext): void {
   // 共享单例）。视图包不 import shell 内部模块，只经服务 inject。
   ctx.reflect.provide('tradingBridge', createTradingBridgeService())
 
-  // 市场快讯视图（内置）：数据来自 host 面 tradingFlashFeed（金十连接器提供）。
-  // 连接器未装/未配置时 tab 仍在、视图显示可操作提示（可选依赖语义，同 news 面板）。
-  stageViews.register({ id: 'flash', titleKey: 'stage.flash', order: 5, render: FlashFeedStage })
+  // 市场快讯（2026-09-13 迁出中栏）：原 flash stage 注册已移除——快讯改为右缘
+  // SessionRail 的功能页签（与定时任务/资产同款原位覆盖对话列），见 FlashPanel.tsx。
 
   // quote 视图是 registry 的内建种子条目（stage-views.ts 工厂内写入）——tab 条
   // 从名册统一渲染，MiddleStage 对 quote 走 QuoteStage 直引面。

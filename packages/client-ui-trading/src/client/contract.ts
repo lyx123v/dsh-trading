@@ -548,6 +548,7 @@ export type MarketLocaleKey =
   | 'flash.empty'
   | 'flash.loading'
   | 'flash.error'
+  | 'flash.close'
   | 'indicator.picker'
   | 'indicator.group.main'
   | 'indicator.group.sub'

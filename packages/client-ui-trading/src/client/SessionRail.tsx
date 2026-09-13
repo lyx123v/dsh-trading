@@ -4,7 +4,7 @@
  * - 永不隐藏：折叠只收会话列轨道（fold-store → shell-pad.css 规则 9），
  *   竖条始终占住右缘 44px（shell-pad.css 规则 8 预留的侧栏轨道），会话
  *   进行中也在——取代 2.8「右上浮动簇 + 会话头内联按钮」双入口。
- * - 结构自上而下：折叠/展开、新会话、分隔线、功能页签（定时任务、资产）；
+ * - 结构自上而下：折叠/展开、新会话、分隔线、功能页签（定时任务、资产、快讯）；
  *   设置入口 3.0 起迁往左侧自选面板底部（MarketDock），竖条不再承载。
  * - 功能页签 = 对话列容器的切换页签：激活时对话列内容被隐去（shell-pad.css
  *   规则 11/12），面板原位覆盖同一列——与对话非并排、同一容器二选一；
@@ -19,9 +19,10 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { FoldStore } from './fold-store.ts'
 import { holdingsPanelStore, setHoldingsPanelOpen } from './holdings-store.ts'
-import { IconClock, IconFoldPanel, IconNewSession, IconWallet } from './icons.tsx'
+import { IconClock, IconFlash, IconFoldPanel, IconNewSession, IconWallet } from './icons.tsx'
 import { ScheduledTasksPanel } from './ScheduledTasksPanel.tsx'
 import { HoldingsPanel } from './HoldingsPanel.tsx'
+import { FlashPanel } from './FlashPanel.tsx'
 import type { FillComposerFn } from './fill-composer.ts'
 import css from './session-rail.module.css'
 
@@ -47,6 +48,8 @@ export function SessionRail({ t, useFolded, startNewSession, toggleFold, openSes
   // 资产面板（功能页签 2 号）：开关在共享 store（QuoteStage 下单联动），
   // 本组件是渲染点与 rail 页签入口；与定时任务互斥（同一容器二选一）。
   const holdingsOpen = useSyncExternalStore(holdingsPanelStore.subscribe, holdingsPanelStore.getSnapshot)
+  // 快讯页签（功能页签 3 号，2026-09-13）：从中间容器迁来；与定时任务/资产互斥。
+  const [flashOpen, setFlashOpen] = useState(false)
 
   useEffect(() => {
     document.body.dataset.dshtradingChatFolded = folded ? 'on' : 'off'
@@ -63,14 +66,29 @@ export function SessionRail({ t, useFolded, startNewSession, toggleFold, openSes
     return () => { delete document.body.dataset.dshtradingHoldingsOpen }
   }, [holdingsOpen])
 
-  // 互斥联动：资产面板打开 → 收定时任务；定时任务打开 → 收资产面板。
   useEffect(() => {
-    if (holdingsOpen) setTasksOpen(false)
+    document.body.dataset.dshtradingFlashOpen = flashOpen ? 'on' : 'off'
+    return () => { delete document.body.dataset.dshtradingFlashOpen }
+  }, [flashOpen])
+
+  // 互斥联动（三页签共用同一容器，二选一）：资产面板打开 → 收定时任务/快讯。
+  useEffect(() => {
+    if (holdingsOpen) { setTasksOpen(false); setFlashOpen(false) }
   }, [holdingsOpen])
 
   const toggleTasks = (next: boolean): void => {
     setTasksOpen(next)
-    if (next) setHoldingsPanelOpen(false)
+    if (next) { setHoldingsPanelOpen(false); setFlashOpen(false) }
+  }
+
+  const toggleFlash = (next: boolean): void => {
+    setFlashOpen(next)
+    if (next) { setTasksOpen(false); setHoldingsPanelOpen(false) }
+  }
+
+  const toggleHoldings = (next: boolean): void => {
+    setHoldingsPanelOpen(next)
+    if (next) { setTasksOpen(false); setFlashOpen(false) }
   }
 
   return (
@@ -113,9 +131,19 @@ export function SessionRail({ t, useFolded, startNewSession, toggleFold, openSes
         aria-pressed={holdingsOpen}
         aria-label={t('trade.holdings.panel.open')}
         title={t('trade.holdings.panel.open')}
-        onClick={() => { setHoldingsPanelOpen(!holdingsOpen) }}
+        onClick={() => { toggleHoldings(!holdingsOpen) }}
       >
         <IconWallet size={16} />
+      </button>
+      <button
+        type="button"
+        className={css.button}
+        aria-pressed={flashOpen}
+        aria-label={t('stage.flash')}
+        title={t('stage.flash')}
+        onClick={() => { toggleFlash(!flashOpen) }}
+      >
+        <IconFlash size={16} />
       </button>
       {tasksOpen && (
         <ScheduledTasksPanel
@@ -129,6 +157,12 @@ export function SessionRail({ t, useFolded, startNewSession, toggleFold, openSes
           t={t}
           fillComposer={fillComposer}
           onClose={() => { setHoldingsPanelOpen(false) }}
+        />
+      )}
+      {flashOpen && (
+        <FlashPanel
+          t={t}
+          onClose={() => { setFlashOpen(false) }}
         />
       )}
     </div>

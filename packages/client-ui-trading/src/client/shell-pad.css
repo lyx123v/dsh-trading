@@ -184,3 +184,11 @@ body[data-dshtrading-tasks-open='on'] div:has(> [data-shell-overlay]) > div:nth-
 body[data-dshtrading-holdings-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
   display: none !important;
 }
+
+/* 13) 2026-09-13 市场快讯面板 = 会话列容器的切换页签 3 号（前身是中栏 flash
+      stage，与定时任务/资产同款模式、三者互斥）：闪电按钮激活时隐去对话列
+      直接子节点，FlashPanel（fixed，定位吃同一组轨道 var）原位覆盖。
+      body[data-dshtrading-flash-open] 由 SessionRail effect 写入。 */
+body[data-dshtrading-flash-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
+  display: none !important;
+}

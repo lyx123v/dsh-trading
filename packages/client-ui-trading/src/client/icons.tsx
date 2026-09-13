@@ -219,6 +219,15 @@ export function IconWallet({ size = 16 }: { size?: number }): ReactElement {
   )
 }
 
+/** 市场快讯入口（闪电）。 */
+export function IconFlash({ size = 16 }: { size?: number }): ReactElement {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.9 1.9 3.75 8.5h3.1l-.5 5.6L11.5 7.3H8.35z" />
+    </svg>
+  )
+}
+
 /** 勾选（分组选中态）。 */
 export function IconCheck({ size = 12 }: { size?: number }): ReactElement {
   return (

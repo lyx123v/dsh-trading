@@ -1,0 +1,134 @@
+/* FlashPanel —— 右缘会话列容器的快讯页签（定时任务/资产同款模式：fixed 原位
+ * 覆盖对话列，定位与宽度吃 frame 轨道变量，见 shell-pad.css 规则 13）。
+ * 视觉随容器走：base 底、左缘 default 分隔线，无圆角无投影。 */
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: var(--dshtrading-sidebar-w, 44px);
+  bottom: 0;
+  width: var(--dshtrading-chat-user-w, 380px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--dsw-futu-bg-base, #fff);
+  border: none;
+  border-left: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 45;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  flex: none;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.closeBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 16px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.08));
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding: 10px 12px 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.searchInput {
+  flex: 1 1 160px;
+  min-width: 120px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+  font-size: 13px;
+}
+
+.button {
+  appearance: none;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.06));
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.empty,
+.error {
+  margin: 0;
+  padding: 12px 4px;
+  font-size: 13px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  line-height: 1.6;
+}
+
+.error {
+  color: var(--dsw-alias-warning, #d97706);
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 12px;
+  flex: none;
+}
+
+.panel button:focus-visible,
+.panel input:focus-visible {
+  outline: 2px solid var(--dsw-futu-border-active, #3b82f6);
+  outline-offset: 1px;
+}
