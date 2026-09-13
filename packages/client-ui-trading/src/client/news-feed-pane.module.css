@@ -43,6 +43,23 @@
   white-space: nowrap;
 }
 
+/* 热度徽标（金十快讯网页版 火/热/沸/爆；无 hot 的源不渲染）。 */
+.hotBadge {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  background: #6b7280;
+}
+
+.hotBadge[data-hot='火'] { background: #f59e0b; }
+.hotBadge[data-hot='热'] { background: #ef7d3a; }
+.hotBadge[data-hot='沸'] { background: #e5484d; }
+.hotBadge[data-hot='爆'] { background: #b4231f; }
+
 /* 不同源类型的色系 */
 .source[data-type='exchange'] { background: #f59e0b; }
 .source[data-type='media'] { background: #3b82f6; }

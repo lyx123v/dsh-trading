@@ -799,6 +799,8 @@ export interface NewsItem {
   readonly publishedAt: string
   /** 关联标的代码（可选，格式随源不同）。 */
   readonly relatedCodes?: readonly string[]
+  /** 热度等级（可选；金十快讯网页版 火/热/沸/爆，其他源不填）。 */
+  readonly hot?: string
 }
 
 /** 新闻聚合请求选项。 */
@@ -836,8 +838,11 @@ export type NewsAggregator = (options?: AggregateNewsOptions) => Promise<Aggrega
  * TRADING_NOT_IMPLEMENTED，绝不把「没有数据源」伪装成「没有快讯」。
  */
 export interface FlashFeedService {
-  /** 最新快讯流（cursor 翻页）；条目只含元数据（标题/时间/链接）。 */
-  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined }): Promise<{
+  /**
+   * 最新快讯流（cursor 翻页）；条目只含元数据（标题/时间/链接）。
+   * `hot` 非空时按热度等级服务端过滤（金十网页版 火/热/沸/爆）。
+   */
+  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined; hot?: readonly string[] | undefined }): Promise<{
     readonly items: readonly NewsItem[]
     readonly nextCursor?: string | undefined
     readonly hasMore: boolean

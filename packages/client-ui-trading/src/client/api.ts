@@ -315,11 +315,12 @@ export async function fetchNews(market: MarketId, symbol?: string, limit = 20, s
  * 失败（未装数据源/凭证缺失/上游故障）返回 null，由视图显示可操作提示——
  * 不回落成空列表冒充「没有快讯」。
  */
-export async function fetchFlash(options: { cursor?: string; keyword?: string; limit?: number } = {}, signal?: AbortSignal): Promise<ClientFlashPage | null> {
+export async function fetchFlash(options: { cursor?: string; keyword?: string; limit?: number; hot?: readonly string[] } = {}, signal?: AbortSignal): Promise<ClientFlashPage | null> {
   try {
     const query = new URLSearchParams({ limit: String(options.limit ?? 30) })
     if (options.cursor !== undefined && options.cursor !== '') query.set('cursor', options.cursor)
     if (options.keyword !== undefined && options.keyword !== '') query.set('keyword', options.keyword)
+    if (options.hot !== undefined && options.hot.length > 0) query.set('hot', options.hot.join(','))
     const wire = await getJson<{ ok: boolean; items: ClientNewsItem[]; nextCursor?: string; hasMore?: boolean }>(
       '/dshtrading/api/flash?' + query.toString(), signal,
     )

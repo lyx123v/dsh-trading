@@ -66,6 +66,86 @@
   padding: 10px 12px 12px;
 }
 
+/* 热度筛选：4 段连体按钮（火/热/沸/爆），多选；默认由组件给 热+爆。 */
+.heatRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.heatTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+}
+
+.heatHint {
+  margin-left: 6px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.linkBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--dsw-futu-accent, #2563eb);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}
+
+.linkDivider {
+  color: var(--dsw-futu-border-default, #cfd4da);
+  font-size: 11px;
+}
+
+.heatChips {
+  display: flex;
+  gap: 0;
+  flex: none;
+}
+
+.heatChip {
+  flex: 1;
+  appearance: none;
+  height: 30px;
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-left: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.heatChip:first-child {
+  border-left: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 6px 0 0 6px;
+}
+
+.heatChip:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.heatChip[aria-pressed='true'] {
+  color: #fff;
+  background: var(--dsw-futu-accent, #2563eb);
+  border-color: var(--dsw-futu-accent, #2563eb);
+}
+
+.heatChip[aria-pressed='true'][data-level='火'] { background: #f59e0b; border-color: #f59e0b; }
+.heatChip[aria-pressed='true'][data-level='热'] { background: #ef7d3a; border-color: #ef7d3a; }
+.heatChip[aria-pressed='true'][data-level='沸'] { background: #e5484d; border-color: #e5484d; }
+.heatChip[aria-pressed='true'][data-level='爆'] { background: #b4231f; border-color: #b4231f; }
+
 .toolbar {
   display: flex;
   align-items: center;

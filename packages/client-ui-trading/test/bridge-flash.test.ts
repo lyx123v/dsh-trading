@@ -52,4 +52,26 @@ describe('桥 /flash（跨市场快讯，金十接入）', () => {
     expect(status).toBe(200)
     expect(payload).toMatchObject({ ok: true, hasMore: true })
   })
+
+  it('hot 逗号分隔透传到数据源；未知等级 → 协议 400（不静默降级）', async () => {
+    const calls: Array<readonly string[] | undefined> = []
+    const feed: FlashFeedLike = {
+      listFlash: async (options) => { calls.push(options?.hot); return { items: [ITEM], hasMore: false } },
+      searchFlash: async () => [ITEM],
+    }
+    await makeBridge(feed).flash(null, '10', null, '热,爆')
+    expect(calls[0]).toEqual(['热', '爆'])
+    await expect(makeBridge(FEED).flash(null, '10', null, '火星')).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('dispatchBridgeRequest GET /flash 透传 hot 参数', async () => {
+    const calls: Array<readonly string[] | undefined> = []
+    const feed: FlashFeedLike = {
+      listFlash: async (options) => { calls.push(options?.hot); return { items: [ITEM], hasMore: false } },
+      searchFlash: async () => [ITEM],
+    }
+    const { status } = await dispatchBridgeRequest(makeBridge(feed), 'GET', '/flash', new URLSearchParams({ limit: '7', hot: '沸' }))
+    expect(status).toBe(200)
+    expect(calls[0]).toEqual(['沸'])
+  })
 })

@@ -1,0 +1,87 @@
+{
+  "params": {
+    "channel": [
+      1,
+      5,
+      9
+    ],
+    "hot": [
+      "沸"
+    ]
+  },
+  "http": 200,
+  "status": 200,
+  "count": 50,
+  "dist": {
+    "沸": 50
+  },
+  "sample": {
+    "id": "20260913124249747800",
+    "time": "2026-09-13 12:42:49",
+    "type": 0,
+    "data": {
+      "pic": "",
+      "title": "",
+      "source": "",
+      "content": "据伊朗国家电视台：一艘伊朗商船在格什姆岛附近被击中，造成1人死亡、3人受伤。",
+      "source_link": "",
+      "exclusive_to": []
+    },
+    "important": 1,
+    "remark": [
+      {
+        "id": 36920265,
+        "type": "topic",
+        "title": "订阅美国VS伊朗动态",
+        "content": "请升级版本查看该快讯注解",
+        "topic_id": 88
+      },
+      {
+        "id": 49751009,
+        "type": "topic",
+        "title": "跟踪中东局势动态",
+        "content": "请升级版本查看该快讯注解",
+        "topic_id": 356
+      },
+      {
+        "title": "新华社报道",
+        "link": "https://h.xinhuaxmt.com/vh512/share/13283987?docid=13283987&newstype=1001&d=1352831",
+        "content": "",
+        "type": "link",
+        "vip_level": 0,
+        "id": 80997896
+      }
+    ],
+    "channel": [
+      1,
+      3,
+      2
+    ],
+    "child_channel": {
+      "1": [
+        1
+      ],
+      "2": [
+        30
+      ]
+    },
+    "tags": [],
+    "extras": {
+      "ad": false
+    },
+    "sources": [
+      1,
+      3,
+      2
+    ],
+    "hot": "沸",
+    "classify": [
+      97,
+      38,
+      122,
+      6,
+      126,
+      24
+    ]
+  }
+}

@@ -6,7 +6,8 @@
  * 工具名与参数不对外泄漏到 agent 面：工具面用业务命名（tools.ts），provider 可替换。
  */
 import { Jin10Error } from './errors.js'
-import type { Jin10McpClient } from './mcp.js'
+import { DEFAULT_TIMEOUT_MS, type Jin10McpClient } from './mcp.js'
+import { fetchJin10HotFlash, type Jin10FlashItem, type Jin10HeatLevel } from './web-flash.js'
 import {
   parseArticle,
   parseCalendar,
@@ -39,10 +40,23 @@ export interface Jin10PageOptions {
 
 export class Jin10Service {
   private readonly client: Jin10McpClient
+  private readonly webFetch: typeof globalThis.fetch
+  private readonly webTimeoutMs: number
   private instruments: { at: number; items: Jin10Instrument[] } | undefined
 
-  constructor(client: Jin10McpClient) {
+  constructor(client: Jin10McpClient, web: { fetchImpl?: typeof globalThis.fetch | undefined; timeoutMs?: number | undefined } = {}) {
     this.client = client
+    this.webFetch = web.fetchImpl ?? globalThis.fetch.bind(globalThis)
+    this.webTimeoutMs = web.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  }
+
+  /**
+   * 按热度取快讯（金十网页版服务端过滤，火/热/沸/爆）：官方 MCP 的 list_flash
+   * 无热度参数，故热度路径走网页版接口（见 web-flash.ts）。cursor = 上一页
+   * 最旧一条的 time 原串。
+   */
+  async listFlashByHeat(options: { hot: readonly Jin10HeatLevel[]; cursor?: string | undefined }): Promise<Jin10NewsPage<Jin10FlashItem>> {
+    return fetchJin10HotFlash(this.webFetch, { hot: options.hot, cursor: options.cursor }, { timeoutMs: this.webTimeoutMs })
   }
 
   /** 最新快讯流（cursor 翻页；正文不下发，只留标题/时间/链接）。 */

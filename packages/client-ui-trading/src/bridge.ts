@@ -78,12 +78,27 @@ export interface TradeRegistryLike {
  * 避免 shell 包对连接器包的类型依赖。
  */
 export interface FlashFeedLike {
-  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined }): Promise<{ items: readonly NewsItem[]; nextCursor?: string | undefined; hasMore: boolean }>
+  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined; hot?: readonly string[] | undefined }): Promise<{ items: readonly NewsItem[]; nextCursor?: string | undefined; hasMore: boolean }>
   searchFlash(keyword: string, limit?: number | undefined): Promise<readonly NewsItem[]>
 }
 
 /** 快讯端点条目上限（保护上游公共配额；超出直接 400）。 */
 export const MAX_FLASH_LIMIT = 50
+
+/** 快讯热度等级（金十网页版 火/热/沸/爆；与 connector-jin10 的 JIN10_HEAT_LEVELS 同词汇）。 */
+const FLASH_HEAT_LEVELS = ['火', '热', '沸', '爆'] as const
+
+/** 解析 hot 查询参数（逗号分隔）；未知等级 → 400，不静默改变语义。 */
+function parseFlashHeat(raw: string | null): string[] {
+  if (raw === null) return []
+  const levels = raw.split(',').map((part) => part.trim()).filter((part) => part.length > 0)
+  for (const level of levels) {
+    if (!(FLASH_HEAT_LEVELS as readonly string[]).includes(level)) {
+      throw new BridgeProtocolError(400, `flash: unsupported hot level ${JSON.stringify(level)} (supported: ${FLASH_HEAT_LEVELS.join('/')})`)
+    }
+  }
+  return levels
+}
 
 export interface TradingNewsRegistryLike {
   register(market: string, aggregator: NewsAggregator): () => void
@@ -1045,8 +1060,9 @@ export class TradingBridge {
    * 跨市场快讯（金十接入，2026-09-13）：host 面 tradingFlashFeed 服务提供，
    * 未安装/未启用 → TRADING_NOT_IMPLEMENTED（不是空列表）。
    * keyword 命中上游搜索（一次性返回、不支持翻页）；否则按 cursor 翻最新流。
+   * hot 为逗号分隔的热度等级（火/热/沸/爆），非空时 host 面走金十网页版服务端过滤。
    */
-  async flash(rawCursor: string | null, rawLimit: string | null, rawKeyword: string | null): Promise<FlashWire> {
+  async flash(rawCursor: string | null, rawLimit: string | null, rawKeyword: string | null, rawHot: string | null = null): Promise<FlashWire> {
     const feed = this.host.flashFeed
     if (feed === undefined) {
       throw Object.assign(
@@ -1063,9 +1079,11 @@ export class TradingBridge {
       const items = await feed.searchFlash(keyword, limit ?? 30)
       return { ok: true, items, hasMore: false }
     }
+    const hot = parseFlashHeat(rawHot)
     const page = await feed.listFlash({
       ...(rawCursor !== null && rawCursor !== '' ? { cursor: rawCursor } : {}),
       ...(limit !== undefined ? { limit } : {}),
+      ...(hot.length > 0 ? { hot } : {}),
     })
     return {
       ok: true,
@@ -1892,7 +1910,7 @@ export async function dispatchBridgeRequest(
         return { status: 200, payload: await bridge.fx(search.get('base') ?? 'USD') }
       }
       case '/flash': {
-        return { status: 200, payload: await bridge.flash(search.get('cursor'), search.get('limit'), search.get('keyword')) }
+        return { status: 200, payload: await bridge.flash(search.get('cursor'), search.get('limit'), search.get('keyword'), search.get('hot')) }
       }
       case '/news': {
         const market = search.get('market') ?? ''

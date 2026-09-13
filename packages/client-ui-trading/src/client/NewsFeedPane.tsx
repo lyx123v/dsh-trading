@@ -15,6 +15,8 @@ export interface ClientNewsItem {
   title: string
   url: string
   publishedAt: string
+  /** 热度等级（可选；金十快讯网页版 火/热/沸/爆）。 */
+  hot?: string
 }
 
 export interface NewsFeedPaneProps {
@@ -131,6 +133,9 @@ export function NewsFeedPane({ items, unavailable, fullHeight = false, filterTyp
             <span className={css.source} data-type={getSourceType(item.source)}>
               {formatSourceLabel(item.source, t)}
             </span>
+            {item.hot !== undefined && item.hot !== '' && (
+              <span className={css.hotBadge} data-hot={item.hot}>{item.hot}</span>
+            )}
             <span className={css.title} title={item.title}>
               {item.title}
             </span>

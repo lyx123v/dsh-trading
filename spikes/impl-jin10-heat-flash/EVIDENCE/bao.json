@@ -1,0 +1,80 @@
+{
+  "params": {
+    "channel": [
+      1,
+      5,
+      9
+    ],
+    "hot": [
+      "爆"
+    ]
+  },
+  "http": 200,
+  "status": 200,
+  "count": 50,
+  "dist": {
+    "爆": 50
+  },
+  "sample": {
+    "id": "20260913090253381800",
+    "time": "2026-09-13 09:02:53",
+    "type": 0,
+    "data": {
+      "pic": "",
+      "title": "",
+      "source": "",
+      "content": "【英国海事机构：一船只在霍尔木兹海峡遭袭】金十数据9月13日讯，英国海上贸易行动办公室：已收到霍尔木兹海峡内发生一起事件的报告。一艘船只在霍尔木兹海峡航行时被不明抛射物击中。目前，船员状况、损害评估及环境影响均不明。有关当局正在调查，建议船只谨慎通行，并向英国海上贸易行动办公室报告任何可疑活动。",
+      "vip_level": 0,
+      "source_link": "",
+      "exclusive_to": []
+    },
+    "important": 1,
+    "remark": [
+      {
+        "id": 28413185,
+        "pics": [
+          "https://flash-scdn.jin10.com/7dc18210-3468-4d77-b337-191c92615da2.png"
+        ],
+        "type": "flash-pics",
+        "title": "",
+        "content": "",
+        "vip_level": 0
+      },
+      {
+        "title": "央视报道",
+        "link": "https://content-static.cctvnews.cctv.com/snow-book/index.html?item_id=6056739147347275246&channelId=1017&toc_style_id=feeds_default&module=ccnews%3A%2F%2Fappclient%2Fpage%2Ffeeds%2Fdetail%3Furl%3Dhttps%253A%252F%252Fcontent-static.cctvnews.cctv.com%252Fsnow-book%252Findex.html%253Fitem_id%253D6056739147347275246%2526channelId%253D1017%2526toc_style_id%253Dfeeds_default",
+        "content": "",
+        "type": "link",
+        "vip_level": 0,
+        "id": 82366055
+      }
+    ],
+    "channel": [
+      1,
+      2,
+      3
+    ],
+    "child_channel": {
+      "1": [
+        1
+      ],
+      "2": [
+        30
+      ]
+    },
+    "tags": [],
+    "extras": {
+      "ad": false
+    },
+    "sources": [
+      1,
+      2,
+      3
+    ],
+    "hot": "爆",
+    "classify": [
+      136,
+      38
+    ]
+  }
+}

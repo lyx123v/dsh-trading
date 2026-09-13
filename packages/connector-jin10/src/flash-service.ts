@@ -13,15 +13,22 @@
  */
 import type { FlashFeedService, NewsItem } from '@dshtrading/api'
 import type { Jin10Service } from './service.js'
+import { isJin10HeatLevel } from './web-flash.js'
 
 export const TRADING_FLASH_FEED_KEY = 'tradingFlashFeed'
 
 /** 快讯源实现（桥与工具面共用同一 Jin10Service）。 */
 export function createJin10FlashFeed(feed: Jin10Service): FlashFeedService {
   return {
-    /** 最新快讯流（cursor 翻页；条目只含元数据，正文零再分发）。 */
-    async listFlash(options: { cursor?: string | undefined; limit?: number | undefined } = {}): Promise<{ items: readonly NewsItem[]; nextCursor?: string | undefined; hasMore: boolean }> {
-      const page = await feed.listFlash(options)
+    /**
+     * 最新快讯流（cursor 翻页；条目只含元数据，正文零再分发）。
+     * `hot` 含有效热度等级时走网页版服务端过滤（火/热/沸/爆）；否则走 MCP 全量流。
+     */
+    async listFlash(options: { cursor?: string | undefined; limit?: number | undefined; hot?: readonly string[] | undefined } = {}): Promise<{ items: readonly NewsItem[]; nextCursor?: string | undefined; hasMore: boolean }> {
+      const hot = (options.hot ?? []).filter(isJin10HeatLevel)
+      const page = hot.length > 0
+        ? await feed.listFlashByHeat({ hot, ...(options.cursor !== undefined ? { cursor: options.cursor } : {}) })
+        : await feed.listFlash(options)
       return {
         items: page.items,
         hasMore: page.hasMore,

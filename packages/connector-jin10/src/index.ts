@@ -21,6 +21,7 @@ export * from './mcp.js'
 export * from './parse.js'
 export * from './service.js'
 export * from './tools.js'
+export * from './web-flash.js'
 
 // patch 行按包名解析（@dshtrading/connector-jin10 → lib/index.js）：loader 只从**本入口**读
 // 插件元信息，故 name/inject/Config/apply 必须在此重导出——漏 inject 的后果不是报错跳过，

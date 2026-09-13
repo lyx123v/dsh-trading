@@ -45,7 +45,7 @@ Status: implemented
 ### 2. GUI 快讯面板（中栏「快讯」视图）
 
 - 连接器 provide `tradingFlashFeed`（`flash-service.ts`；`@dshtrading/api` 新增 `FlashFeedService` 契约 + Context 增强），桥新增 `GET /dshtrading/api/flash?cursor&limit&keyword`（cursor 翻页；keyword 走上游搜索，`hasMore=false`）。
-- 面板 = client-ui-trading 内建中栏视图 `flash`（`FlashFeedStage.tsx`，order 5，复用 `NewsFeedPane`；60s 轮询 + 加载更多 + 关键词搜索）。未装连接器 → 桥 `TRADING_NOT_IMPLEMENTED`；未配凭证/上游故障 → 面板显示可操作提示，**不把失败画成「没有快讯」**。
+- 面板 = client-ui-trading 内建中栏视图 `flash`（`FlashFeedStage.tsx`，order 5，复用 `NewsFeedPane`；60s 轮询 + 加载更多 + 关键词搜索）。未装连接器 → 桥 `TRADING_NOT_IMPLEMENTED`；未配凭证/上游故障 → 面板显示可操作提示，**不把失败画成「没有快讯」**。2026-09-13 后续：面板迁到右缘竖条容器（见 [闪讯面板归位](./2026-09-13-flash-panel-to-session-rail.md)），并新增金十网页版四级热度筛选（默认 热+爆）——MCP 无热度字段，热度路径改走网页版接口，见 [金十快讯热度筛选](./2026-09-13-jin10-flash-heat-filter.md)。
 - 为什么不新建 client 包（照 client-ui-strategies/knowledge 拆包先例）：快讯面板是壳内能力（与 news 面板同族），单独成包等于给 base 增加一个只服务单一连接器的前端依赖；可选性由错误态表达即可。
 - 服务形态：`tradingFlashFeed` 与 `tradingGlobalMarketData` 用 `ctx.reflect.provide`（普通对象）而非 `extends Service`——cordis `context.d.ts` 同名导出 `interface Context`（公共面）与 `class Context`，`Service` 构造签名上的 Context 解析随程序内文件顺序漂移（本包实测 TS2379：解析成窄接口后缺 inject/get/set…）。普通对象零构造签名，无该陷阱（client 半 `tradingStageViews` / `tradingIndicators` 同款先例）。
 
