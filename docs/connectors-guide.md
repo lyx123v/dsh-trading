@@ -79,6 +79,19 @@ dshtrading:
 
 或写入环境变量 `JIN10_MCP_TOKEN`（也可写工作区 `.env`）。未配置时工具调用报 `TRADING_CREDENTIALS_MISSING` 并在消息中提示配置路径；Token 申请见 [mcp.jin10.com/app](https://mcp.jin10.com/app/)。
 
+同源行情还被接进本仓的**市场路由**，作为第六个市场 `global`（与 crypto/us/cn/hk/futures 同级，纯数据、无交易面）：
+
+| 项 | 值 |
+| :--- | :--- |
+| 市场 id / provider | `global` / `jin10`（`DEFAULT_MARKETS.global = { provider: 'jin10' }`） |
+| patch 行 | `dsh-trading-global-dataplane-jin10`（`@dshtrading/connector-jin10/dataplane`，归 base：global 无 bundle/kit） |
+| 服务与注册 | provide `tradingGlobalMarketData` + `tradingMarketDataRegistry.register('global', 'jin10', service)` |
+| 品种词汇 | 金十原生大写代码即规范形（`XAUUSD`/`USOIL`/`USDJPY`/`SPX`，97 品种），见 [symbol-vocabulary](symbol-vocabulary.md) |
+| 周期 | 上游只有分钟 K 线且单次上限 100 根 → 本层最多拼 300 分钟窗口，支持 `1m/3m/5m/15m/30m/1h`，GUI 只上 `1m/5m/15m`；`1d` 及以上显式报错 |
+| GUI | 侧栏/自选新增「全球」市场（快照、分钟分时、XAUUSD/USOIL/SPX 指数条）；设置 → 交易 →「全球」tab 可选 provider 并填 Token |
+
+设置面另有一条**市场无关**的「市场快讯数据源」卡片（与 provider 凭据同键），GUI 中栏的「快讯」视图直接消费该数据源；未装连接器或未配 Token 时面板显示可操作提示，不会把失败画成「没有快讯」。
+
 ---
 
 ## 六、环境变量配置建议

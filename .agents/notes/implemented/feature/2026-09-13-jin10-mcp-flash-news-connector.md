@@ -1,4 +1,4 @@
-# Agent Note: 金十数据 MCP 连接器 —— 跨市场快讯/资讯/财经日历工具面
+# Agent Note: 金十数据 MCP 连接器 —— 跨市场快讯/资讯工具面与 global 市场数据面
 
 Status: implemented
 
@@ -16,7 +16,7 @@ Status: implemented
 4. **结果读取按用户契约**：`result.structuredContent` 优先，`result.content[].text` 仅在 structuredContent 缺席时作机器可读兜底；`isError=true` / `status !== 200` / `data === null` 一律抛错（不冒充空数据）；限流文案映射 `TRADING_RATE_LIMITED`（每用户每工具每北京时间自然日 1500 次），未知品种映射 `TRADING_UNSUPPORTED_SYMBOL`。
 5. **数据零再分发（铁律 #5）**：快讯只下发标题（从 `【标题】正文` 提取）/时间/链接，资讯下发标题/时间/链接/`id`，`news_get` 额外给上游 `introduction`（导语）；`content` 正文不下发、不落盘、不缓存。与 `cn_get_news`（东财快讯只引 title/showTime/链接）同口径。
 6. **凭证 BYOK 且惰性**：`dshtrading.credentials.jin10.token` 优先、`JIN10_MCP_TOKEN` 兜底，每次请求解析（settings 用户层晚于插件 apply 也生效，2026-09-12 hithink 凭证失效根因的同款纪律）；缺凭证报 `TRADING_CREDENTIALS_MISSING` 并给出配置路径。插件不内置密钥。
-7. **边界（本轮不做）**：不接 GUI 新闻面板与 `dshtrading.news.sources` 源配置（面板按标过滤，金十快讯无 `relatedCodes`，塞进去只能靠关键词猜标的，属伪造关联）；不接市场路由与符号词汇（金十代码自成一系，与 `docs/symbol-vocabulary.md` 五市场词汇无交集）；设置面板暂无金十 Token 卡片。
+7. **边界（首轮口径）**：不接按标过滤的 GUI 新闻面板与 `dshtrading.news.sources` 源配置（面板按标过滤，金十快讯无 `relatedCodes`，塞进去只能靠关键词猜标的，属伪造关联）。金十 Token 设置卡片、GUI 快讯面板、global 市场数据面三项于同日续作交付，见下文「续作」节。
 
 ## Alternatives considered
 
@@ -31,11 +31,39 @@ Status: implemented
 - 工具清单 +9（全角色、全市场会话可见）。这是 context 成本，换来跨市场快讯/资讯/日历/全球品种行情能力；工具描述里写明元数据边界、翻页与限流语义，避免模型拿 `news_get` 去要正文。
 - 出网限制：`global_klines` 在闭市（周末）返回空数组（上游 `status: 200` + `klines: []`），属真实语义而非故障；2026-09-13（周日）实测全品种为空，非空 K 线待交易日复测。工具描述已写明「空 = 窗口内无数据（闭市）≠ 故障」。
 - 用户启用路径：设置中心 `credentials.jin10.token`（settings.yaml 可直接写）或环境变量 `JIN10_MCP_TOKEN`；**已装 profile 需刷新**（坑 #15 overrides 行 + 重装 base bundle）才能拿到新行与包。
-- 后续步骤（未做）：设置面板「快讯数据源」卡片（金十 Token 输入 + 源开关）、GUI 快讯流面板、更多快讯源（财联社等，工具面已 provider 无关）、金十行情面的符号映射与路由接入。
+- 后续步骤（未做）：更多快讯源（财联社等，工具面已 provider 无关）、按标过滤的新闻面板接入（原口径：需要上游给 `relatedCodes` 才算真关联）、global 的 market-group 平权（bundle + kit + `global_get_ticker` 命名族）。
+## 续作（2026-09-13 同日）：设置卡片 / GUI 快讯面板 / global 市场数据面
+
+首轮 Decision #7 的「边界」三项（设置面板 Token 卡片、GUI 快讯面板、行情路由接入）在同一变更窗口内补齐；「不接按标过滤的新闻面板与 `news.sources` 源配置」的原口径不变（金十快讯无 relatedCodes，塞进按标面板只能靠关键词猜标的 = 伪造关联）。
+
+### 1. 设置中心：金十 MCP Token 卡片
+
+- client-ui-settings 的「交易」设置区在市场 tab 之上新增**市场无关的「市场快讯数据源」卡片**（`TradingSettingsSection.tsx` + 注入动作 `setJin10Token` / `clearJin10Token`），落同一存储键 `dshtrading.credentials.jin10.token`（与「全球」tab 里 jin10 provider 卡的凭据字段同键，非双份数据）；空串保存 = `unset` 回未配置态（工具随之报 `TRADING_CREDENTIALS_MISSING`）。
+- 卡片放在 tab 容器层而非某个市场 tab：金十快讯/资讯/日历是跨市场内容（首轮 Decision #3 同款理由）。
+- provider 清单登记 `jin10`（`markets: ['global']`，type=public，url `mcp.jin10.com`，env `JIN10_MCP_TOKEN`），凭据字段 `token`（label `field.label.mcpToken`，占位符 `JIN10_MCP_TOKEN`）。
+
+### 2. GUI 快讯面板（中栏「快讯」视图）
+
+- 连接器 provide `tradingFlashFeed`（`flash-service.ts`；`@dshtrading/api` 新增 `FlashFeedService` 契约 + Context 增强），桥新增 `GET /dshtrading/api/flash?cursor&limit&keyword`（cursor 翻页；keyword 走上游搜索，`hasMore=false`）。
+- 面板 = client-ui-trading 内建中栏视图 `flash`（`FlashFeedStage.tsx`，order 5，复用 `NewsFeedPane`；60s 轮询 + 加载更多 + 关键词搜索）。未装连接器 → 桥 `TRADING_NOT_IMPLEMENTED`；未配凭证/上游故障 → 面板显示可操作提示，**不把失败画成「没有快讯」**。
+- 为什么不新建 client 包（照 client-ui-strategies/knowledge 拆包先例）：快讯面板是壳内能力（与 news 面板同族），单独成包等于给 base 增加一个只服务单一连接器的前端依赖；可选性由错误态表达即可。
+- 服务形态：`tradingFlashFeed` 与 `tradingGlobalMarketData` 用 `ctx.reflect.provide`（普通对象）而非 `extends Service`——cordis `context.d.ts` 同名导出 `interface Context`（公共面）与 `class Context`，`Service` 构造签名上的 Context 解析随程序内文件顺序漂移（本包实测 TS2379：解析成窄接口后缺 inject/get/set…）。普通对象零构造签名，无该陷阱（client 半 `tradingStageViews` / `tradingIndicators` 同款先例）。
+
+### 3. global 市场数据面（金十行情接市场路由）
+
+- 新市场 id `global`（与 crypto/us/cn/hk/futures 同级），provider slug `jin10`：`@dshtrading/router` 登记 provider 词汇 + `DEFAULT_MARKETS.global = { provider: 'jin10' }` + 目录占位 `SYMBOL_CATALOG.global = []`（97 个品种代码表经 `quote://codes` 动态注入）。
+- 连接器新增 `market-data.ts`（`createJin10GlobalMarketDataService`：get_quote → Ticker、get_kline → Kline、quote://codes → listInstruments、subscribeTicker 轮询 5s）与 `dataplane.ts`（`@dshtrading/connector-jin10/dataplane`）；patch 行 `dsh-trading-global-dataplane-jin10` 归 base——global 无 bundle/kit，没有市场 bundle 会认领它，而连接器行本身也在 base（铁律 #1）。
+- **粒度纪律**：上游只有分钟 K 线，且单次上限 100 根、语义是「从 time 往后取 100 根」，本仓最多拼 300 分钟窗口（3 次上游调用）→ GUI 只上 `1m/5m/15m`（`MARKET_INTERVALS.global`），契约层支持 1m–1h 的分钟子集，`1d` 及以上**显式报错**（不换源、不用单日分钟冒充历史）。闭市返回 `klines: []` 照实回空序列（≠ 故障）。
+- 交易日模型（近似，与 futures 行同款口径）：周一 06:00 — 周六 05:00（北京时间）；`MARKET_TIMEZONE.global = null`（跨时区连续交易，不做交易日分组与固定时段 x 轴，`SESSION_SPANS` 改 Partial、缺席市场由消费方返回 null）。
+- GUI 承载面：market id 进 `MarketId`/`MARKET_IDS`/`MARKET_SERVICE_KEYS`（`tradingGlobalMarketData`）/MARKET_TAB_KEY/MARKET_INDICES（XAUUSD 现货金、USOIL WTI、SPX）/MARKET_INTERVALS/币种 $/侧栏与自选市场列表；自选搜索经既有 `/symbols` 通路动态注入目录，零新代码。
+- **agent 工具面留在连接器**（`global_instruments/global_quote/global_klines` 不退役）：`<market>_get_ticker/_get_klines` 由 preset 平面的 `base/research-tools` 按「已安装市场」生成，该列表来自 bundle contribution——global 没有 bundle；而 `base/market-tools` 的账户/盘口族对纯数据市场只会多注册 7 个必然 `TRADING_NOT_IMPLEMENTED` 的工具。故 `MARKETS`、`ORDER_GATE_PATTERN`、`research-tools` 三个清单本轮**不加** global（零假工具）。后续若 owner 要 market-group 平权（bundle + kit + `global_get_ticker` 命名族 + persona 市场列表），按 `2026-09-12-futures-market-group.md` 清单落地。
+
 
 ## Verification
 
 - 单测 50 例全绿（`pnpm --filter @dshtrading/connector-jin10 test`）：握手顺序与一次握手、会话头回带、缺凭证不发请求且补配后可重试、401/429/5xx/JSON-RPC error/坏形状映射、structuredContent 优先与文本兜底、限流与未知品种文案识别、解析层（标题提取/东八区时间/分页字段/正文丢弃/坏条目丢弃）、工具渲染与参数透传、插件注册与重名不覆盖、apply→工具 execute 的真实链路（打桩 fetch + 设置中心凭证）。
 - 出网验证 `JIN10_TOKEN=... node spikes/impl-jin10-mcp/verify.mjs`：13/13 通过（约 1–3s；闭市时段上游响应偏慢），跑的是构建产物 `lib/index.js`，覆盖 `quote://codes` 资源 → 快讯两页翻页 → 快讯搜索 → 资讯列表/搜索/详情 → 财经日历 → XAUUSD 报价 → 分钟 K 线 → 缺凭证与非法 code 两条错误语义；原始证据 `spikes/impl-jin10-mcp/EVIDENCE/`（含 `recon.mjs` 的 8 工具/资源原始响应）。
 - `pnpm -r build` 全绿；`node scripts/typecheck-gate.mjs` 棘轮通过（新 tsconfig 入基线，0 错）；`packages/base/test` 46 例全绿。
-- 未做的验证：真实客户端（桌面壳/CLI）挂载后的工具可见性与 UI 无改动；profile 刷新由用户在实例空闲时执行。
+- 续作门禁（2026-09-13）：`pnpm -r build` 全绿；`pnpm test` 181 文件 / 1511 例全绿（新增 market-data/dataplane/bridge-flash/flash-service 四组用例）；`node scripts/typecheck-gate.mjs` 棘轮通过（473/473，基线未上调）；`pnpm i18n:check` OK（992 zh keys）。
+- 续作出网验证（2026-09-13 周日闭市，走 profile 刷新后的安装副本）：`--dump-config` 见 `dsh-trading-connector-jin10` 与 `dsh-trading-global-dataplane-jin10` 两行；`getTicker('xauusd')` → `{symbol: 'XAUUSD', name: '现货黄金', price: 4348, prevClose: 4316.48, changePercent: 0.73, volume: 241084}`（周末 = 上一交易日快照）；`listInstruments()` → 97 品种；`getKlines('XAUUSD', '5m', 20)` → `[]`（上游 `klines: []`，与首轮已知限制同款）；`'1d'` → `TRADING_UNKNOWN` 显式报错；未登记代码 → `TRADING_UNSUPPORTED_SYMBOL`。
+- 未做的验证：分钟 K 线拼窗口与本地聚合的**真实**数据路径（周末上游回空，需交易日复测）；真实客户端（桌面壳/CLI）挂载后的 UI 呈现（设置卡片、快讯面板、全球市场行情/图表）由用户实测。

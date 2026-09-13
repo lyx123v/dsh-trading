@@ -77,6 +77,7 @@ export const PROVIDER_VOCABULARY = [
   'longbridge',
   'tiger',
   'hithink',
+  'jin10',
 ] as const
 export type Provider = (typeof PROVIDER_VOCABULARY)[number]
 
@@ -114,6 +115,9 @@ export const DEFAULT_MARKETS: Record<string, MarketProviderEntry> = {
   hk: { provider: 'tencent' },
   // 期货（issue #97）：唯一 provider 为同花顺（日K + 当日分时；无实盘交易面）。
   futures: { provider: 'hithink' },
+  // 全球品种（2026-09-13 金十接入）：唯一 provider 为金十数据 MCP（分钟K + 报价 +
+  // 品种代码表；快讯/资讯/财经日历同源）。纯数据市场，无交易面（不开下单工具）。
+  global: { provider: 'jin10' },
 }
 
 const MarketProviderEntrySchema = Schema.object({

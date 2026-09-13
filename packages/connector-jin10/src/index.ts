@@ -15,6 +15,8 @@
  */
 
 export * from './errors.js'
+export * from './flash-service.js'
+export * from './market-data.js'
 export * from './mcp.js'
 export * from './parse.js'
 export * from './service.js'

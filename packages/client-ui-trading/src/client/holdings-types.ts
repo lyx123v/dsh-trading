@@ -74,6 +74,8 @@ export const MARKET_DEFAULT_CURRENCY: Record<MarketId, HoldingCurrency> = {
   cn: 'CNY',
   hk: 'HKD',
   futures: 'CNY',
+  // 全球品种（金十）报价以美元计价。
+  global: 'USD',
 }
 
 /** 盯市价格表的键（§6.2：`${market}:${symbol}`）。 */

@@ -67,9 +67,10 @@ describe('instruments_search', () => {
     await expect(createInstrumentsSearchTool(makeServices()).execute({})).rejects.toThrow(/missing required property/)
   })
 
-  it('静态字典数据完整（5 市场 × 多行；futures 无静态种子，走动态全集）', () => {
-    expect(Object.keys(SYMBOL_CATALOG).sort()).toEqual(['cn', 'crypto', 'futures', 'hk', 'us'])
+  it('静态字典数据完整（6 市场；futures/global 无静态种子，走动态全集）', () => {
+    expect(Object.keys(SYMBOL_CATALOG).sort()).toEqual(['cn', 'crypto', 'futures', 'global', 'hk', 'us'])
     expect(SYMBOL_CATALOG.futures).toEqual([])
+    expect(SYMBOL_CATALOG.global).toEqual([])
     expect(SYMBOL_CATALOG.crypto!.length).toBeGreaterThan(3)
     expect(SYMBOL_CATALOG.hk!.some(e => e.symbol === '00700.HK')).toBe(true)
     expect(SYMBOL_CATALOG.cn!.some(e => e.symbol === '600519.SH')).toBe(true)

@@ -36,6 +36,10 @@ export interface TradingSettingsSectionInjected {
   }
   /** Write action: set global color mode. */
   setColorMode: (mode: 'red-up' | 'green-up') => Promise<void>
+  /** Write action: set/clear the Jin10 MCP token (empty string clears it). */
+  setJin10Token: (value: string) => Promise<void>
+  /** Write action: clear the Jin10 MCP token. */
+  clearJin10Token: () => Promise<void>
 }
 
 /** Props the renderer binds for the section. */
@@ -46,7 +50,7 @@ export type TradingSettingsSectionProps =
   & InjectFace<TradingSettingsSectionInjected>
 
 /** Render the Trading page: color mode selector + market tab bar + active market provider panel. */
-export function TradingSettingsSection({ t, renderSlot, useTabs, useController, setColorMode }: TradingSettingsSectionProps) {
+export function TradingSettingsSection({ t, renderSlot, useTabs, useController, setColorMode, setJin10Token, clearJin10Token }: TradingSettingsSectionProps) {
   const tabsId = useId()
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const rows = useTabs(value => value)
@@ -65,6 +69,39 @@ export function TradingSettingsSection({ t, renderSlot, useTabs, useController, 
   }, [active])
 
   const currentColorMode = controllerState.colorMode ?? 'red-up'
+
+  // 金十 MCP Token：读 = credentials.jin10.token（共享控制器快照），写 = 注入的两个动作。
+  const jin10Token = controllerState.credentials.jin10?.token
+  const tokenInputId = useId()
+  const [tokenDraft, setTokenDraft] = useState<string | undefined>(undefined)
+  const [tokenSaving, setTokenSaving] = useState(false)
+  const [tokenMessage, setTokenMessage] = useState<string | undefined>(undefined)
+  const tokenValue = tokenDraft ?? jin10Token ?? ''
+  const tokenDirty = tokenValue.trim() !== (jin10Token ?? '')
+  async function saveToken(): Promise<void> {
+    setTokenSaving(true)
+    try {
+      await setJin10Token(tokenValue)
+      setTokenDraft(undefined)
+      setTokenMessage(t('flashSourceSaved'))
+    } catch {
+      setTokenMessage(t('flashSourceFailed'))
+    } finally {
+      setTokenSaving(false)
+    }
+  }
+  async function clearToken(): Promise<void> {
+    setTokenSaving(true)
+    try {
+      await clearJin10Token()
+      setTokenDraft(undefined)
+      setTokenMessage(t('flashSourceCleared'))
+    } catch {
+      setTokenMessage(t('flashSourceFailed'))
+    } finally {
+      setTokenSaving(false)
+    }
+  }
 
   return (
     <div className={css.root}>
@@ -100,6 +137,46 @@ export function TradingSettingsSection({ t, renderSlot, useTabs, useController, 
             <span className={css.colorModeSwatchDown} style={{ background: '#e64545' }} />
             <span>{t('colorMode.greenUp')}</span>
           </label>
+        </div>
+      </fieldset>
+
+      {/* 市场快讯数据源（金十 MCP）：市场无关的数据源凭证，故放在 tab 容器层而非某市场 tab。 */}
+      <fieldset className={css.colorModeFieldset}>
+        <legend className={css.colorModeLabel}>{t('flashSourceTitle')}</legend>
+        <div className={css.flashSourceBody}>
+          <label className={css.flashSourceLabel} htmlFor={tokenInputId}>{t('flashSourceLabel')}</label>
+          <input
+            id={tokenInputId}
+            type="password"
+            className={css.flashSourceInput}
+            value={tokenValue}
+            disabled={!controllerState.writable || tokenSaving}
+            onChange={(event) => { setTokenDraft(event.target.value) }}
+            placeholder={t('flashSourcePlaceholder')}
+          />
+          <div className={css.flashSourceRow}>
+            <button
+              type="button"
+              className={css.flashSourceSave}
+              disabled={!tokenDirty || tokenSaving || !controllerState.writable}
+              onClick={() => { void saveToken() }}
+            >
+              {t('save')}
+            </button>
+            <button
+              type="button"
+              className={css.flashSourceClearBtn}
+              disabled={tokenSaving || !controllerState.writable || jin10Token === undefined}
+              onClick={() => { void clearToken() }}
+            >
+              {t('flashSourceClear')}
+            </button>
+            <span className={css.flashSourceState}>
+              {jin10Token === undefined ? t('flashSourceMissing') : t('flashSourceConfigured')}
+            </span>
+            {tokenMessage !== undefined ? <span className={css.flashSourceMsg}>{tokenMessage}</span> : null}
+          </div>
+          <div className={css.flashSourceHint}>{t('flashSourceHint')}</div>
         </div>
       </fieldset>
 

@@ -39,6 +39,7 @@ const MARKET_TABS: readonly { id: string; order: number; key: string }[] = [
   { id: 'cn', order: 2, key: 'cn' },
   { id: 'hk', order: 3, key: 'hk' },
   { id: 'futures', order: 4, key: 'futures' },
+  { id: 'global', order: 5, key: 'global' },
 ]
 
 /** 注册『交易』设置一级菜单（tab 容器）+ 每市场面板。 */
@@ -85,6 +86,19 @@ export function apply(ctx: ClientContext): void {
     async resetNewsSources(market) {
       const rev = scope.getSnapshot().revision
       await scope.mutate([{ op: 'unset', path: ['news', 'sources', market] }], rev)
+    },
+    async setJin10Token(value) {
+      const rev = scope.getSnapshot().revision
+      const trimmed = value.trim()
+      // 空串 = 清除（unset 回无凭证）：金十工具随之报 TRADING_CREDENTIALS_MISSING。
+      const op = trimmed
+        ? { op: 'set' as const, path: ['credentials', 'jin10'], value: { token: trimmed } }
+        : { op: 'unset' as const, path: ['credentials', 'jin10'] }
+      await scope.mutate([op], rev)
+    },
+    async clearJin10Token() {
+      const rev = scope.getSnapshot().revision
+      await scope.mutate([{ op: 'unset', path: ['credentials', 'jin10'] }], rev)
     },
     async setColorMode(mode) {
       const rev = scope.getSnapshot().revision
@@ -144,6 +158,8 @@ export function apply(ctx: ClientContext): void {
         controller: store,
       },
       setColorMode: actions.setColorMode,
+      setJin10Token: actions.setJin10Token,
+      clearJin10Token: actions.clearJin10Token,
     }),
     children: { 'dshtrading.market.tab': { kind: 'list', scope: 'root' } },
   }, TradingSettingsSection))

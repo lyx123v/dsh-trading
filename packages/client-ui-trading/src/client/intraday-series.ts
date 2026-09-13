@@ -16,6 +16,8 @@ const MARKET_TIMEZONE: Record<MarketId, string | null> = {
   cn: 'Asia/Shanghai',
   hk: 'Asia/Hong_Kong',
   futures: 'Asia/Shanghai',
+  // 全球品种跨时区连续交易（周一 06:00 — 周六 05:00 北京时间），不做交易日分组。
+  global: null,
 }
 
 export type IntradayInterval = '1m' | '5m'
@@ -57,8 +59,12 @@ export function selectIntradayCloses(market: MarketId, klines: readonly Kline[])
 /* 分时看起来像已收盘）。crypto 滚动 24h 窗口天然固定，无需 x 映射。   */
 /* ------------------------------------------------------------------ */
 
-/** 各市场常规时段（市场本地分钟数 since 00:00；午休等休止段压缩掉）。 */
-const SESSION_SPANS: Record<Exclude<MarketId, 'crypto'>, { spans: readonly (readonly [number, number])[]; total: number }> = {
+/**
+ * 各市场常规时段（市场本地分钟数 since 00:00；午休等休止段压缩掉）。
+ * 无固定时段模型的市场（crypto 滚动窗口、global 跨时区连续交易）不在此表，
+ * sessionXFraction 对其返回 null（等距铺满，不做时段 x 映射）。
+ */
+const SESSION_SPANS: Partial<Record<Exclude<MarketId, 'crypto'>, { spans: readonly (readonly [number, number])[]; total: number }>> = {
   us: { spans: [[570, 960]], total: 390 },            // 9:30–16:00 ET
   cn: { spans: [[570, 690], [780, 900]], total: 240 }, // 9:30–11:30 + 13:00–15:00 CST
   hk: { spans: [[570, 720], [780, 960]], total: 330 }, // 9:30–12:00 + 13:00–16:00 HKT
@@ -89,6 +95,7 @@ export function sessionXFraction(market: MarketId, openTime: number): number | n
   const tz = MARKET_TIMEZONE[market]
   if (tz === null) return null
   const session = SESSION_SPANS[market as Exclude<MarketId, 'crypto'>]
+  if (session === undefined) return null
   const t = localMinutes(tz, openTime)
   let acc = 0
   for (const [start, end] of session.spans) {

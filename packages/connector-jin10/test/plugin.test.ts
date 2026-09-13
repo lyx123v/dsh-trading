@@ -9,6 +9,7 @@ function fakeCtx(options: { credential?: Record<string, string> } = {}) {
       register: (definition: { name: string }) => { registered.set(definition.name, definition) },
       get: (toolName: string) => registered.get(toolName),
     },
+    reflect: { provide: () => {} },
     get: (key: string) => key === 'tradingMarketRouter'
       ? { getCredential: (provider: string) => (provider === 'jin10' ? options.credential : undefined) }
       : undefined,

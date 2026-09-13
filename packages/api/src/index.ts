@@ -682,6 +682,8 @@ declare module '@deepseek-ai/cordis' {
     tradingHkMarketData: MarketDataService
     /** futures 市场行情服务（由同花顺期货连接器提供，issue #97；日K + 当日分时聚合）。 */
     tradingFuturesMarketData: MarketDataService
+    /** 全球品种行情（global 市场：大宗/外汇/海外指数；@dshtrading/connector-jin10 dataplane 行提供）。 */
+    tradingGlobalMarketData: MarketDataService
     /**
      * crypto 市场交易服务（R3 2026-08-29 补齐，crypto 市场第一个真实 TradeService）：
      * 由 connector-okx 实现（签名 demo/live 下单），与 connector-binance 经
@@ -712,6 +714,8 @@ declare module '@deepseek-ai/cordis' {
      * 各市场 Kit apply 时注册 aggregateNews 纯函数，GUI 行情桥按市场获取。
      */
     tradingNewsRegistry: TradingNewsRegistry
+    /** 跨市场快讯源（@dshtrading/connector-jin10 提供；缺席 = 未安装快讯连接器）。 */
+    tradingFlashFeed: FlashFeedService
   }
 }
 
@@ -824,6 +828,23 @@ export interface AggregateNewsResult {
 
 /** 新闻聚合器函数签名（各 Kit 导出的 aggregateNews 符合此形状）。 */
 export type NewsAggregator = (options?: AggregateNewsOptions) => Promise<AggregateNewsResult>
+
+/**
+ * 跨市场快讯源契约（2026-09-13 金十接入）：host 平面由快讯连接器 provide
+ * tradingFlashFeed，GUI 快讯面板（桥 /dshtrading/api/flash）与 agent 快讯工具
+ * 共用同一取数实现；服务缺席 = 未安装/未启用该数据源 → 消费方报
+ * TRADING_NOT_IMPLEMENTED，绝不把「没有数据源」伪装成「没有快讯」。
+ */
+export interface FlashFeedService {
+  /** 最新快讯流（cursor 翻页）；条目只含元数据（标题/时间/链接）。 */
+  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined }): Promise<{
+    readonly items: readonly NewsItem[]
+    readonly nextCursor?: string | undefined
+    readonly hasMore: boolean
+  }>
+  /** 关键词搜快讯（上游一次性返回、不支持翻页）。 */
+  searchFlash(keyword: string, limit?: number | undefined): Promise<readonly NewsItem[]>
+}
 
 /** 新闻聚合器注册表契约（Issue #37，router 插件提供）。 */
 export interface TradingNewsRegistry {

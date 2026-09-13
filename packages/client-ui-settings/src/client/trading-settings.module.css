@@ -152,4 +152,90 @@
   border-radius: 2px;
 }
 
+/* 市场快讯数据源（金十 MCP）卡片 */
+.flashSourceBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
 
+.flashSourceLabel {
+  font-size: 13px;
+  color: var(--sec-text-secondary);
+}
+
+.flashSourceInput {
+  width: 100%;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--sec-border);
+  border-radius: 6px;
+  background: var(--sec-bg-input, transparent);
+  color: var(--sec-text-primary);
+  font-size: 13px;
+}
+
+.flashSourceInput:disabled {
+  opacity: 0.5;
+}
+
+.flashSourceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flashSourceSave,
+.flashSourceClearBtn {
+  appearance: none;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.flashSourceSave {
+  border: 1px solid transparent;
+  background: var(--dsw-alias-primary, #2563eb);
+  color: #ffffff;
+}
+
+.flashSourceSave:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.flashSourceClearBtn {
+  border: 1px solid var(--sec-border);
+  background: transparent;
+  color: var(--sec-text-secondary);
+}
+
+.flashSourceClearBtn:hover:not(:disabled) {
+  background: var(--sec-bg-hover);
+}
+
+.flashSourceSave:disabled,
+.flashSourceClearBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.flashSourceState {
+  font-size: 12.5px;
+  color: var(--sec-text-secondary);
+}
+
+.flashSourceMsg {
+  font-size: 12.5px;
+  color: var(--sec-primary);
+}
+
+.flashSourceHint {
+  font-size: 12.5px;
+  color: var(--sec-text-secondary);
+  line-height: 1.5;
+}

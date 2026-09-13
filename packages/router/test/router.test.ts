@@ -53,7 +53,7 @@ describe('dshtrading schema（用户设置一级）', () => {
     expect(activeProviderOf(cfg, 'jp')).toBe('yahoo')
   })
 
-  it('provider 候选集 = 全仓词汇（binance/okx/bybit/ccxt/yahoo/stooq/alpaca/fmp/finnhub/polygon/ibkr/tencent/eastmoney/tushare/akshare/qmt/futu/longbridge/tiger）', () => {
+  it('provider 候选集 = 全仓词汇（binance/okx/bybit/ccxt/yahoo/stooq/alpaca/fmp/finnhub/polygon/ibkr/tencent/eastmoney/tushare/akshare/qmt/futu/longbridge/tiger/hithink/jin10）', () => {
     expect([...PROVIDER_VOCABULARY].sort()).toEqual([
       'akshare',
       'alpaca',
@@ -66,6 +66,7 @@ describe('dshtrading schema（用户设置一级）', () => {
       'futu',
       'hithink',
       'ibkr',
+      'jin10',
       'longbridge',
       'okx',
       'polygon',

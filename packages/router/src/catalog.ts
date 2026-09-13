@@ -11,7 +11,7 @@
  */
 
 /** 市场词汇（与 api MarketId 同词汇；本地定义保持本模块零依赖）。 */
-export type CatalogMarket = 'crypto' | 'us' | 'cn' | 'hk' | 'futures'
+export type CatalogMarket = 'crypto' | 'us' | 'cn' | 'hk' | 'futures' | 'global'
 
 export interface CatalogEntry {
   symbol: string
@@ -234,6 +234,9 @@ export const SYMBOL_CATALOG: Record<CatalogMarket, CatalogEntry[]> = {
   ],
   // 期货无静态种子（合约有到期日），代码表经连接器 listInstruments 动态全集注入。
   futures: [],
+  // 全球品种同样零静态种子：代码表（97 个品种）经金十 quote://codes 动态全集注入
+  // （client-ui-trading 侧栏/自选搜索按市场拉取 /symbols 后 setDynamicCatalog）。
+  global: [],
 }
 
 const dynamicCatalogs = new Map<CatalogMarket, CatalogEntry[]>()
@@ -323,7 +326,7 @@ export interface Suggestion extends CatalogEntry {
 export function searchAllMarkets(query: string, limit = 8): Suggestion[] {
   const q = query.trim().toUpperCase()
   if (q === '') return []
-  const markets: CatalogMarket[] = ['crypto', 'us', 'cn', 'hk', 'futures']
+  const markets: CatalogMarket[] = ['crypto', 'us', 'cn', 'hk', 'futures', 'global']
   const all: Array<{ entry: Suggestion; score: number }> = []
   for (const market of markets) {
     const catalog = getMergedCatalog(market)

@@ -13,6 +13,7 @@ export const MARKET_TAB_KEY: Record<MarketId, MarketLocaleKey> = {
   cn: 'tab.cn',
   hk: 'tab.hk',
   futures: 'tab.futures',
+  global: 'tab.global',
 }
 
 const KNOWN_SH_INDICES = new Set(['000688', '000300', '000016', '000905', '000852'])

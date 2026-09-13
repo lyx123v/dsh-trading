@@ -47,6 +47,7 @@ export const PROVIDER_LABELS: readonly Readonly<ProviderMeta>[] = [
   { id: 'futu', label: 'provider.futu', url: 'https://futunn.com/download/open-api', env: 'FUTU_HOST', type: 'gateway', markets: ['hk', 'us'] },
   { id: 'longbridge', label: 'provider.longbridge', url: 'https://open.longportapp.com', env: 'LONGBRIDGE_APP_KEY', type: 'commercial', markets: ['hk', 'us'] },
   { id: 'tiger', label: 'provider.tiger', url: 'https://developer.itigerup.com', env: 'TIGER_ID', type: 'commercial', markets: ['hk', 'us', 'cn'] },
+  { id: 'jin10', label: 'provider.jin10', url: 'https://mcp.jin10.com', env: 'JIN10_MCP_TOKEN', type: 'public', markets: ['global'] },
   { id: 'hithink', label: 'provider.hithink', url: 'https://fuyao.aicubes.cn', env: 'HITHINK_FINANCE_API_KEY', type: 'commercial', markets: ['cn', 'futures'] },
 ]
 
@@ -149,6 +150,11 @@ export const PROVIDER_CREDENTIAL_SPECS: Record<string, readonly CredentialField[
     { key: 'tigerId', label: 'field.label.tigerId', placeholder: 'field.placeholder.tigerId' },
     { key: 'privateKey', label: 'field.label.tigerPrivateKey', placeholder: 'field.placeholder.tigerPrivateKey', secret: true },
   ],
+  jin10: [
+    // 金十 MCP 用 Bearer token（凭据落 dshtrading.credentials.jin10.token，与
+    // settings 面板的「市场快讯数据源」卡片同键；逐请求惰性解析）。
+    { key: 'token', label: 'field.label.mcpToken', placeholder: 'JIN10_MCP_TOKEN', secret: true },
+  ],
   hithink: [
     { key: 'apiKey', label: 'field.label.apiKey', placeholder: 'HITHINK_FINANCE_API_KEY', secret: true },
   ],
@@ -194,6 +200,10 @@ export interface TradingSettingsActions {
   resetProvider(market: string): Promise<void>
   setCredential(provider: string, fields: Record<string, string>): Promise<void>
   deleteCredential(provider: string): Promise<void>
+  /** 设置/清除金十 MCP Token（空串 = 清除；凭证落 dshtrading.credentials.jin10.token）。 */
+  setJin10Token(value: string): Promise<void>
+  /** 清除金十 MCP Token（回未配置态）。 */
+  clearJin10Token(): Promise<void>
   /** WS2c：设置/清除 CryptoPanic key（空串 = 清除回公共源）。 */
   setNewsKey(value: string): Promise<void>
   resetNewsKey(): Promise<void>

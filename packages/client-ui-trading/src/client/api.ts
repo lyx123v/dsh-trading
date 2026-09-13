@@ -310,6 +310,35 @@ export async function fetchNews(market: MarketId, symbol?: string, limit = 20, s
   }
 }
 
+/**
+ * 市场快讯（金十接入，2026-09-13；桥 /flash）：光标翻页 + 可选关键词搜索。
+ * 失败（未装数据源/凭证缺失/上游故障）返回 null，由视图显示可操作提示——
+ * 不回落成空列表冒充「没有快讯」。
+ */
+export async function fetchFlash(options: { cursor?: string; keyword?: string; limit?: number } = {}, signal?: AbortSignal): Promise<ClientFlashPage | null> {
+  try {
+    const query = new URLSearchParams({ limit: String(options.limit ?? 30) })
+    if (options.cursor !== undefined && options.cursor !== '') query.set('cursor', options.cursor)
+    if (options.keyword !== undefined && options.keyword !== '') query.set('keyword', options.keyword)
+    const wire = await getJson<{ ok: boolean; items: ClientNewsItem[]; nextCursor?: string; hasMore?: boolean }>(
+      '/dshtrading/api/flash?' + query.toString(), signal,
+    )
+    return {
+      items: wire.items ?? [],
+      hasMore: wire.hasMore === true,
+      ...(wire.nextCursor !== undefined ? { nextCursor: wire.nextCursor } : {}),
+    }
+  } catch {
+    return null
+  }
+}
+
+export interface ClientFlashPage {
+  items: ClientNewsItem[]
+  nextCursor?: string
+  hasMore: boolean
+}
+
 /* ------------------------------------------------------------------ */
 /* SSE 失效信号订阅（issue #30 / P1）                                        */
 /* ------------------------------------------------------------------ */
@@ -984,6 +1013,7 @@ export interface TradingBridgeService {
   fetchKnowledgeCards: typeof fetchKnowledgeCards
   fetchFundamentals: typeof fetchFundamentals
   fetchNews: typeof fetchNews
+  fetchFlash: typeof fetchFlash
   fetchSymbols: typeof fetchSymbols
   subscribeTradingEvents: typeof subscribeTradingEvents
 }
@@ -1004,6 +1034,7 @@ export function createTradingBridgeService(): TradingBridgeService {
     fetchKnowledgeCards,
     fetchFundamentals,
     fetchNews,
+    fetchFlash,
     fetchSymbols,
     subscribeTradingEvents,
   }

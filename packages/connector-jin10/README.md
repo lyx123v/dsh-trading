@@ -43,6 +43,20 @@
 - 错误：`isError=true`、`status !== 200`、`data === null` 一律抛错（不冒充空数据）；限流文案「今日该工具调用次数已达上限」映射 `TRADING_RATE_LIMITED`，未知品种映射 `TRADING_UNSUPPORTED_SYMBOL`。
 - 限流：每用户每工具每北京时间自然日 1500 次。
 
+## global 市场数据面（行情接市场路由，2026-09-13）
+
+同包还有一个数据面插件行，把金十行情接进本仓的市场路由：
+
+```yaml
+- id: dsh-trading-global-dataplane-jin10
+  name: '@dshtrading/connector-jin10/dataplane'
+```
+
+- 市场 id `global`（provider slug `jin10`）：provide `tradingGlobalMarketData` + 向 `tradingMarketDataRegistry` 注册 `(global, jin10)`；GUI 行情面板/自选/图表与 `router` 的 `DEFAULT_MARKETS.global` 由此生效。
+- 实现（`market-data.ts`）：`get_quote` → Ticker（昨收由 `close - ups_price` 反推）、`get_kline` → Kline、`quote://codes` → `listInstruments`（97 品种，1h 缓存）、`subscribeTicker` 5s 轮询。
+- **周期与深度**：上游只有分钟 K 线，单次上限 100 根且语义是「从 time 往后取」，本层最多拼 300 分钟窗口（3 次上游调用）→ 支持 `1m/3m/5m/15m/30m/1h`，`1d` 及以上显式报错（不换源、不用单日分钟冒充历史）。闭市窗口返回空序列（上游 `klines: []`，合法结果）。
+- 凭证与主行同源（`credentials.jin10.token` / `JIN10_MCP_TOKEN`，逐请求惰性解析）；未配置时面板/桥报凭证缺失，不伪装成空行情。
+
 ## 数据边界（铁律 #5 数据零再分发）
 
 - 快讯只下发**标题（从 `【标题】正文` 提取）/时间/链接**，`content` 正文丢弃；
@@ -53,10 +67,10 @@
 ## 验证
 
 ```sh
-pnpm --filter @dshtrading/connector-jin10 test     # 50 例：传输/握手/错误映射/解析/工具渲染/插件接线
+pnpm --filter @dshtrading/connector-jin10 test     # 67 例：传输/握手/错误映射/解析/工具渲染/插件接线/快讯面/数据面
 JIN10_TOKEN=sk-... node spikes/impl-jin10-mcp/verify.mjs   # 出网验证（构建产物 + 真实 MCP）
 ```
 
 `verify.mjs` 覆盖资源 → 快讯两页翻页 → 快讯搜索 → 资讯列表/搜索/详情 → 财经日历 → 报价 → K 线，以及缺凭证/非法 code 两条错误语义；证据 JSON 落 `spikes/impl-jin10-mcp/EVIDENCE/`。
 
-已知限制：`global_klines` 在闭市（周末）返回空数组（上游 `status: 200` + `klines: []`），属真实语义而非故障，工具描述已写明；2026-09-13（周日）实测全品种为空，非空 K 线待交易日复测。
+已知限制：闭市（周末）上游对全部品种回 `status: 200` + `klines: []`（工具与 `global` 市场数据面照实回空序列，属真实语义而非故障）；2026-09-13（周日）实测全品种为空，分钟 K 线的拼窗口与本地聚合路径待交易日复测。`global` 市场只上 `1m/5m/15m` 周期（上游单窗口 100 根、本层最多拼 300 分钟），深度上限见上文数据面节。

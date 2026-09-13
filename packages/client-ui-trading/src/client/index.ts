@@ -24,6 +24,7 @@ import { createSelectionStore, createWatchlistGroupsStore, createWatchlistStore 
 import { createChartStateStore } from './chart-state.ts'
 import { indicators, markCustomIndicator, unmarkCustomIndicator } from './indicator-registry.ts'
 import { stageViews } from './stage-views.ts'
+import { FlashFeedStage } from './FlashFeedStage.tsx'
 import { createTradingBridgeService } from './api.ts'
 import { fillComposerWithQuote, guardComposerTarget, type FillComposerFn, type ConversationDraftFace } from './fill-composer.ts'
 import { OrderCard, WatchlistChipCard } from './toolview.tsx'
@@ -123,13 +124,17 @@ export function apply(ctx: ClientContext): void {
   // 共享单例）。视图包不 import shell 内部模块，只经服务 inject。
   ctx.reflect.provide('tradingBridge', createTradingBridgeService())
 
+  // 市场快讯视图（内置）：数据来自 host 面 tradingFlashFeed（金十连接器提供）。
+  // 连接器未装/未配置时 tab 仍在、视图显示可操作提示（可选依赖语义，同 news 面板）。
+  stageViews.register({ id: 'flash', titleKey: 'stage.flash', order: 5, render: FlashFeedStage })
+
   // quote 视图是 registry 的内建种子条目（stage-views.ts 工厂内写入）——tab 条
   // 从名册统一渲染，MiddleStage 对 quote 走 QuoteStage 直引面。
 
   // 对话内富卡片（issue #34 / P5 §5.5）：下单三态卡（4 市场 keyed 各一把 +
   // 生成器注册）与自选 chip 卡。策略/知识卡的注册在各自视图包（归属随视图）。
   ctx.slots.inject('tool.call.toolview', function* () {
-    for (const market of ['crypto', 'us', 'cn', 'hk', 'futures'] as const) {
+    for (const market of ['crypto', 'us', 'cn', 'hk', 'futures', 'global'] as const) {
       yield ctx.slots.register({
         name: 'tool.call.toolview',
         key: `${market}_place_order`,

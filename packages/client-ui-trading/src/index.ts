@@ -198,6 +198,8 @@ export function apply(ctx: Context): void {
         const router = webCtx.get('tradingMarketRouter', false) as { newsSources?: (market: string) => readonly string[] | undefined } | undefined
         return router?.newsSources?.(market)
       },
+      // 跨市场快讯（金十接入）：host 面 tradingFlashFeed 服务（连接器未装即缺席）。
+      flashFeed: webCtx.get('tradingFlashFeed', false) as import('./bridge.ts').FlashFeedLike | undefined,
     })
     const bridge = new TradingBridge(host)
 

@@ -36,6 +36,12 @@ export const MARKET_INDICES: Record<MarketId, MarketIndexDef[]> = {
   ],
   // 期货无「大盘指数」概念（品种行情按合约展示，指数代码不在本表口径内）。
   futures: [],
+  // 全球品种（金十）：现货金 / WTI 原油 / 标普500（金十原生代码）。
+  global: [
+    { symbol: 'XAUUSD', nameKey: 'index.spotGold' },
+    { symbol: 'USOIL', nameKey: 'index.wtiOil' },
+    { symbol: 'SPX', nameKey: 'index.sp500' },
+  ],
 }
 
 export interface MarketSessionInfo {
@@ -165,6 +171,17 @@ export function getMarketSessionStatus(market: MarketId, dateOrTimestamp: Date |
     if (minutes >= 1255 && minutes < 1260) return { statusKey: 'status.auction', isOpen: false, color: '#e37318' }
     if (minutes >= 1260 && minutes < 1380) return { statusKey: 'status.trading', isOpen: true, color: '#2ba471' }
     return { statusKey: 'status.closed', isOpen: false, color: '#8e95a3' }
+  }
+
+  // 全球品种（2026-09-13 金十接入，近似模型）：现货金/原油/外汇按「周一 06:00 开 —
+  // 周六 05:00 收」（北京时间；悉尼开盘/纽约收盘）近似，日内 05:00-06:00 结算间隙
+  // 不单独建模（与期货行同款近似口径，不做逐品种日历）。
+  if (market === 'global') {
+    const { dayOfWeek, minutes } = getZonedTime(date, 'Asia/Shanghai')
+    if (dayOfWeek === 0) return { statusKey: 'status.closed', isOpen: false, color: '#8e95a3' }
+    if (dayOfWeek === 6 && minutes >= 300) return { statusKey: 'status.closed', isOpen: false, color: '#8e95a3' }
+    if (dayOfWeek === 1 && minutes < 360) return { statusKey: 'status.closed', isOpen: false, color: '#8e95a3' }
+    return { statusKey: 'status.trading', isOpen: true, color: '#2ba471' }
   }
 
   if (market === 'us') {

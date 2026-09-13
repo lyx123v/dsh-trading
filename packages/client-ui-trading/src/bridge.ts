@@ -46,9 +46,9 @@ import { createFxService } from '@dshtrading/holdings/fx'
 import { TtlCache } from './ttl-cache.ts'
 
 /** 本桥支持的市场（与连接器服务键一一对应）。 */
-export type MarketId = 'crypto' | 'us' | 'cn' | 'hk' | 'futures'
+export type MarketId = 'crypto' | 'us' | 'cn' | 'hk' | 'futures' | 'global'
 
-export const MARKET_IDS: readonly MarketId[] = ['crypto', 'us', 'cn', 'hk', 'futures']
+export const MARKET_IDS: readonly MarketId[] = ['crypto', 'us', 'cn', 'hk', 'futures', 'global']
 
 /** market → Context 服务键（@dshtrading/api 的 Context 增强）。 */
 export const MARKET_SERVICE_KEYS: Record<MarketId, string> = {
@@ -57,6 +57,7 @@ export const MARKET_SERVICE_KEYS: Record<MarketId, string> = {
   cn: 'tradingCnMarketData',
   hk: 'tradingHkMarketData',
   futures: 'tradingFuturesMarketData',
+  global: 'tradingGlobalMarketData',
 }
 
 /** 注册表服务的最小形状（鸭式，与 @dshtrading/router 的 MarketDataRegistryLike 同构）。 */
@@ -70,6 +71,20 @@ export interface TradeRegistryLike {
 }
 
 /** 新闻注册表服务的最小形状（issue #37，鸭式；api 包 TradingNewsRegistry 同构）。 */
+
+/**
+ * 快讯源最小结构面（桥侧）：host 面 tradingFlashFeed 服务实现
+ * @dshtrading/api 的 FlashFeedService；此处只声明桥用到的两个方法，
+ * 避免 shell 包对连接器包的类型依赖。
+ */
+export interface FlashFeedLike {
+  listFlash(options?: { cursor?: string | undefined; limit?: number | undefined }): Promise<{ items: readonly NewsItem[]; nextCursor?: string | undefined; hasMore: boolean }>
+  searchFlash(keyword: string, limit?: number | undefined): Promise<readonly NewsItem[]>
+}
+
+/** 快讯端点条目上限（保护上游公共配额；超出直接 400）。 */
+export const MAX_FLASH_LIMIT = 50
+
 export interface TradingNewsRegistryLike {
   register(market: string, aggregator: NewsAggregator): () => void
   get(market: string): NewsAggregator | undefined
@@ -110,6 +125,8 @@ export function createBridgeHost(services: {
   newsKey?: (() => string | undefined) | undefined
   /** 市场启用的新闻/公告源 id 列表取值函数（issue #96；可选）。 */
   newsSources?: ((market: string) => readonly string[] | undefined) | undefined
+  /** 跨市场快讯源（2026-09-13 金十接入；缺席 = 未安装快讯连接器 → TRADING_NOT_IMPLEMENTED）。 */
+  flashFeed?: FlashFeedLike | undefined
 }): BridgeHost {
   return {
     getMarketService: market => {
@@ -133,6 +150,7 @@ export function createBridgeHost(services: {
     newsRegistry: services.newsRegistry,
     newsKey: services.newsKey,
     newsSources: services.newsSources,
+    flashFeed: services.flashFeed,
   }
 }
 
@@ -182,6 +200,8 @@ export interface BridgeHost {
   newsKey?: (() => string | undefined) | undefined
   /** 市场启用的新闻/公告源 id 列表取值函数（issue #96；缺省 = kit 默认源全集）。 */
   newsSources?: ((market: string) => readonly string[] | undefined) | undefined
+  /** 跨市场快讯源（2026-09-13 金十接入；缺席 = 未安装快讯连接器 → TRADING_NOT_IMPLEMENTED）。 */
+  flashFeed?: FlashFeedLike | undefined
 }
 
 export interface MarketInfoWire {
@@ -493,6 +513,15 @@ export function parseHoldingPatch(body: Record<string, unknown>): Partial<NewHol
 }
 
 /* -- 新闻 wire（issue #37）----------------------------------------------- */
+
+
+/** 快讯流响应信封（桥 /flash；cursor 翻页 + 可选关键词搜索）。 */
+export interface FlashWire {
+  ok: true
+  items: readonly NewsItem[]
+  nextCursor?: string
+  hasMore: boolean
+}
 
 export interface NewsWire {
   ok: true
@@ -1011,6 +1040,41 @@ export class TradingBridge {
 
     return { ok: true, items: result.items, unavailable: result.unavailable }
   }
+
+  /**
+   * 跨市场快讯（金十接入，2026-09-13）：host 面 tradingFlashFeed 服务提供，
+   * 未安装/未启用 → TRADING_NOT_IMPLEMENTED（不是空列表）。
+   * keyword 命中上游搜索（一次性返回、不支持翻页）；否则按 cursor 翻最新流。
+   */
+  async flash(rawCursor: string | null, rawLimit: string | null, rawKeyword: string | null): Promise<FlashWire> {
+    const feed = this.host.flashFeed
+    if (feed === undefined) {
+      throw Object.assign(
+        new Error('flash feed is not mounted (install/enable the jin10 connector)'),
+        { code: 'TRADING_NOT_IMPLEMENTED' },
+      )
+    }
+    const limit = rawLimit === null || rawLimit === '' ? undefined : Number(rawLimit)
+    if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0 || limit > MAX_FLASH_LIMIT)) {
+      throw new BridgeProtocolError(400, 'flash: limit must be an integer in 1..' + MAX_FLASH_LIMIT)
+    }
+    const keyword = rawKeyword === null ? '' : rawKeyword.trim()
+    if (keyword.length > 0) {
+      const items = await feed.searchFlash(keyword, limit ?? 30)
+      return { ok: true, items, hasMore: false }
+    }
+    const page = await feed.listFlash({
+      ...(rawCursor !== null && rawCursor !== '' ? { cursor: rawCursor } : {}),
+      ...(limit !== undefined ? { limit } : {}),
+    })
+    return {
+      ok: true,
+      items: page.items,
+      hasMore: page.hasMore,
+      ...(page.nextCursor !== undefined ? { nextCursor: page.nextCursor } : {}),
+    }
+  }
+
 
   /** 自定义策略名册（issue #31）：返回记录（含内置覆盖记录），前端校验后并入名册。 */
   async customStrategies(): Promise<{ ok: boolean; strategies: CustomStrategyRecord[] }> {
@@ -1826,6 +1890,9 @@ export async function dispatchBridgeRequest(
       case '/fx': {
         // base 缺省 USD；非法 base → 400 协议错误（契约 §4）。
         return { status: 200, payload: await bridge.fx(search.get('base') ?? 'USD') }
+      }
+      case '/flash': {
+        return { status: 200, payload: await bridge.flash(search.get('cursor'), search.get('limit'), search.get('keyword')) }
       }
       case '/news': {
         const market = search.get('market') ?? ''

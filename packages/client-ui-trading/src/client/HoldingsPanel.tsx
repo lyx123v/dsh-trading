@@ -80,6 +80,7 @@ const MARKET_LABEL_KEY: Record<MarketId, MarketLocaleKey> = {
   cn: 'tab.cn',
   hk: 'tab.hk',
   futures: 'tab.futures',
+  global: 'tab.global',
 }
 
 /** Tab 条短标签（会话列宽度约束下的紧凑文案）。 */

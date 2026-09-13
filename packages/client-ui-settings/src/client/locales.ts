@@ -28,6 +28,16 @@ export type SettingsLocaleKey =
   | 'newsSourcesTitle'
   | 'newsSourcesHint'
   | 'newsSourcesReset'
+  | 'flashSourceTitle'
+  | 'flashSourceLabel'
+  | 'flashSourcePlaceholder'
+  | 'flashSourceHint'
+  | 'flashSourceClear'
+  | 'flashSourceSaved'
+  | 'flashSourceCleared'
+  | 'flashSourceFailed'
+  | 'flashSourceConfigured'
+  | 'flashSourceMissing'
   | 'newsSource.eastmoney'
   | 'newsSource.eastmoneyAnnouncement'
   | 'newsSource.eastmoneyFundAnnouncement'
@@ -51,6 +61,7 @@ export type SettingsLocaleKey =
   | 'market.cn'
   | 'market.hk'
   | 'market.futures'
+  | 'market.global'
   | 'credential.btn'
   | 'credential.btnFold'
   | 'credential.configured'
@@ -88,11 +99,13 @@ export type SettingsLocaleKey =
   | 'provider.longbridge'
   | 'provider.tiger'
   | 'provider.hithink'
+  | 'provider.jin10'
   | 'field.label.apiKey'
   | 'field.label.apiSecret'
   | 'field.label.secretKey'
   | 'field.label.passphrase'
   | 'field.label.token'
+  | 'field.label.mcpToken'
   | 'field.label.apiUrl'
   | 'field.label.qmtUrl'
   | 'field.label.futuHost'
@@ -148,6 +161,16 @@ export const zh: Record<SettingsLocaleKey, string> = {
       'newsSourcesTitle': '新闻公告数据源',
       'newsSourcesHint': '未配置时使用全部默认源；取消全部勾选并保存 = 关闭该市场新闻流。公告源仅在查询具体标的时生效。',
       'newsSourcesReset': '恢复默认源',
+      'flashSourceTitle': '市场快讯数据源',
+      'flashSourceLabel': '金十数据 MCP Token（可选）——市场快讯、财经资讯与财经日历工具的数据源。',
+      'flashSourcePlaceholder': '粘贴金十 MCP Token（sk-…，私钥，仅本地存储）',
+      'flashSourceHint': 'Token 申请入口：mcp.jin10.com。保存后即时生效；清空并保存 = 停用该数据源（相关工具将报凭证缺失）。',
+      'flashSourceClear': '清除',
+      'flashSourceSaved': '已保存',
+      'flashSourceCleared': '已清除',
+      'flashSourceFailed': '保存失败',
+      'flashSourceConfigured': '已配置',
+      'flashSourceMissing': '未配置（快讯工具不可用）',
       'newsSource.eastmoney': '东方财富快讯',
       'newsSource.eastmoneyAnnouncement': '东财公告',
       'newsSource.eastmoneyFundAnnouncement': '东财基金公告',
@@ -171,6 +194,7 @@ export const zh: Record<SettingsLocaleKey, string> = {
       'market.cn': '中国 A 股',
       'market.hk': '香港股票',
       'market.futures': '期货',
+      'market.global': '全球',
       'credential.btn': '配置 API 凭证',
       'credential.btnFold': '收起配置',
       'credential.configured': '已配置凭证',
@@ -208,11 +232,13 @@ export const zh: Record<SettingsLocaleKey, string> = {
       'provider.longbridge': 'Longbridge (长桥)',
       'provider.tiger': 'Tiger Trade (老虎证券)',
       'provider.hithink': '同花顺',
+      'provider.jin10': '金十数据',
       'field.label.apiKey': 'API Key',
       'field.label.apiSecret': 'API Secret',
       'field.label.secretKey': 'Secret Key',
       'field.label.passphrase': 'Passphrase',
       'field.label.token': 'Pro Token',
+      'field.label.mcpToken': 'MCP Token',
       'field.label.apiUrl': 'HTTP 服务地址',
       'field.label.qmtUrl': 'MiniQMT 服务地址',
       'field.label.futuHost': 'OpenD IP',
@@ -269,6 +295,16 @@ export const en: Record<SettingsLocaleKey, string> = {
       'newsSourcesTitle': 'News & announcement sources',
       'newsSourcesHint': 'Unconfigured = all default sources enabled; uncheck everything and save to turn this market news feed off. Announcement sources only apply to symbol queries.',
       'newsSourcesReset': 'Restore defaults',
+      'flashSourceTitle': 'Market flash data source',
+      'flashSourceLabel': 'Jin10 MCP token (optional) — data source for the market flash, article and economic calendar tools.',
+      'flashSourcePlaceholder': 'Paste the Jin10 MCP token (sk-…, private, stored locally only)',
+      'flashSourceHint': 'Request a token at mcp.jin10.com. Saving applies immediately; clearing it disables this source (the related tools then report missing credentials).',
+      'flashSourceClear': 'Clear',
+      'flashSourceSaved': 'Saved',
+      'flashSourceCleared': 'Cleared',
+      'flashSourceFailed': 'Save failed',
+      'flashSourceConfigured': 'Configured',
+      'flashSourceMissing': 'Not configured (flash tools unavailable)',
       'newsSource.eastmoney': 'Eastmoney fast news',
       'newsSource.eastmoneyAnnouncement': 'Eastmoney announcements',
       'newsSource.eastmoneyFundAnnouncement': 'Eastmoney fund announcements',
@@ -292,6 +328,7 @@ export const en: Record<SettingsLocaleKey, string> = {
       'market.cn': 'China A-shares',
       'market.hk': 'Hong Kong',
       'market.futures': 'Futures',
+      'market.global': 'Global',
       'credential.btn': 'Configure API Credentials',
       'credential.btnFold': 'Hide Configuration',
       'credential.configured': 'Configured',
@@ -329,11 +366,13 @@ export const en: Record<SettingsLocaleKey, string> = {
       'provider.longbridge': 'Longbridge',
       'provider.tiger': 'Tiger Trade',
       'provider.hithink': 'HiThink',
+      'provider.jin10': 'Jin10',
       'field.label.apiKey': 'API Key',
       'field.label.apiSecret': 'API Secret',
       'field.label.secretKey': 'Secret Key',
       'field.label.passphrase': 'Passphrase',
       'field.label.token': 'Pro Token',
+      'field.label.mcpToken': 'MCP Token',
       'field.label.apiUrl': 'HTTP endpoint',
       'field.label.qmtUrl': 'MiniQMT endpoint',
       'field.label.futuHost': 'OpenD IP',
