@@ -1,0 +1,50 @@
+{
+  "path": "/api/meta/tickers/list?asset_type=fund-otc&limit=3&offset=0",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "9ed8bb08187d4997bd318307c0eb8536",
+    "data": {
+      "timestamp": 1789192822177,
+      "item": [
+        {
+          "thscode": "000001.OF",
+          "ticker": "000001",
+          "name": "华夏成长",
+          "exchange": null,
+          "asset_type": "fund-otc",
+          "currency": "CNY",
+          "list_date": null,
+          "end_date": null,
+          "last_trade_date": null,
+          "last_delivery_date": null
+        },
+        {
+          "thscode": "000003.OF",
+          "ticker": "000003",
+          "name": "中海转A",
+          "exchange": null,
+          "asset_type": "fund-otc",
+          "currency": "CNY",
+          "list_date": null,
+          "end_date": null,
+          "last_trade_date": null,
+          "last_delivery_date": null
+        },
+        {
+          "thscode": "000004.OF",
+          "ticker": "000004",
+          "name": "中海转C",
+          "exchange": null,
+          "asset_type": "fund-otc",
+          "currency": "CNY",
+          "list_date": null,
+          "end_date": null,
+          "last_trade_date": null,
+          "last_delivery_date": null
+        }
+      ]
+    }
+  }
+}

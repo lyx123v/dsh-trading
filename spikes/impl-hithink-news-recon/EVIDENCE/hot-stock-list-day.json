@@ -1,0 +1,284 @@
+{
+  "path": "/api/a-share/special-data/hot-stock-list?period=day",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "5040dee819d24d57a6b4e8303c98b024",
+    "data": {
+      "timestamp": 1789193314593,
+      "item": [
+        {
+          "thscode": "000636.SZ",
+          "ticker": "000636",
+          "name": "风华高科",
+          "rank": 1,
+          "heat": "6458328",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "600869.SH",
+          "ticker": "600869",
+          "name": "远东股份",
+          "rank": 2,
+          "heat": "5206187",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "002636.SZ",
+          "ticker": "002636",
+          "name": "金安国纪",
+          "rank": 3,
+          "heat": "4165637",
+          "rank_change": 1,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "688836.SH",
+          "ticker": "688836",
+          "name": "宇树科技",
+          "rank": 4,
+          "heat": "3749904",
+          "rank_change": -1,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "601086.SH",
+          "ticker": "601086",
+          "name": "国芳集团",
+          "rank": 5,
+          "heat": "3575180",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "300308.SZ",
+          "ticker": "300308",
+          "name": "中际旭创",
+          "rank": 6,
+          "heat": "3293840",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "000823.SZ",
+          "ticker": "000823",
+          "name": "超声电子",
+          "rank": 7,
+          "heat": "3050215",
+          "rank_change": 2,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "601869.SH",
+          "ticker": "601869",
+          "name": "长飞光纤",
+          "rank": 8,
+          "heat": "3018046",
+          "rank_change": 2,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "600127.SH",
+          "ticker": "600127",
+          "name": "金健米业",
+          "rank": 9,
+          "heat": "2952988",
+          "rank_change": -2,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "000759.SZ",
+          "ticker": "000759",
+          "name": "中百集团",
+          "rank": 10,
+          "heat": "2913887",
+          "rank_change": -2,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "600487.SH",
+          "ticker": "600487",
+          "name": "亨通光电",
+          "rank": 11,
+          "heat": "2680506",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "600176.SH",
+          "ticker": "600176",
+          "name": "中国巨石",
+          "rank": 12,
+          "heat": "2619059",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "002297.SZ",
+          "ticker": "002297",
+          "name": "博云新材",
+          "rank": 13,
+          "heat": "2488401",
+          "rank_change": 1,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "600667.SH",
+          "ticker": "600667",
+          "name": "太极实业",
+          "rank": 14,
+          "heat": "2452288",
+          "rank_change": -1,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "603618.SH",
+          "ticker": "603618",
+          "name": "杭电股份",
+          "rank": 15,
+          "heat": "2220039",
+          "rank_change": 1,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "301526.SZ",
+          "ticker": "301526",
+          "name": "国际复材",
+          "rank": 16,
+          "heat": "2146399",
+          "rank_change": 2,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "688825.SH",
+          "ticker": "688825",
+          "name": "长鑫科技",
+          "rank": 17,
+          "heat": "2123214",
+          "rank_change": -2,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "600522.SH",
+          "ticker": "600522",
+          "name": "中天科技",
+          "rank": 18,
+          "heat": "2112896",
+          "rank_change": 1,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "000978.SZ",
+          "ticker": "000978",
+          "name": "桂林旅游",
+          "rank": 19,
+          "heat": "1985943",
+          "rank_change": -2,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "002579.SZ",
+          "ticker": "002579",
+          "name": "中京电子",
+          "rank": 20,
+          "heat": "1977172",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "603601.SH",
+          "ticker": "603601",
+          "name": "再升科技",
+          "rank": 21,
+          "heat": "1855008",
+          "rank_change": 0,
+          "rank_trend": "flat"
+        },
+        {
+          "thscode": "002201.SZ",
+          "ticker": "002201",
+          "name": "九鼎新材",
+          "rank": 22,
+          "heat": "1833580",
+          "rank_change": 4,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "300408.SZ",
+          "ticker": "300408",
+          "name": "三环集团",
+          "rank": 23,
+          "heat": "1803576",
+          "rank_change": 2,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "600396.SH",
+          "ticker": "600396",
+          "name": "华电辽能",
+          "rank": 24,
+          "heat": "1788997",
+          "rank_change": -2,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "600105.SH",
+          "ticker": "600105",
+          "name": "永鼎股份",
+          "rank": 25,
+          "heat": "1751398",
+          "rank_change": -1,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "300285.SZ",
+          "ticker": "300285",
+          "name": "国瓷材料",
+          "rank": 26,
+          "heat": "1691634",
+          "rank_change": 3,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "605006.SH",
+          "ticker": "605006",
+          "name": "山东玻纤",
+          "rank": 27,
+          "heat": "1657908",
+          "rank_change": 6,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "002384.SZ",
+          "ticker": "002384",
+          "name": "东山精密",
+          "rank": 28,
+          "heat": "1630094",
+          "rank_change": -1,
+          "rank_trend": "down"
+        },
+        {
+          "thscode": "600183.SH",
+          "ticker": "600183",
+          "name": "生益科技",
+          "rank": 29,
+          "heat": "1618782",
+          "rank_change": 1,
+          "rank_trend": "up"
+        },
+        {
+          "thscode": "603186.SH",
+          "ticker": "603186",
+          "name": "华正新材",
+          "rank": 30,
+          "heat": "1615302",
+          "rank_change": 4,
+          "rank_trend": "up"
+        }
+      ]
+    }
+  }
+}

@@ -13,10 +13,11 @@ type Resp = { ok: boolean; status: number; text: () => Promise<string> }
 const jsonResp = (obj: unknown): Resp => ({ ok: true, status: 200, text: async () => JSON.stringify(obj) })
 const failResp = (status: number, body = 'boom'): Resp => ({ ok: false, status, text: async () => body })
 
-/** URL 分发 mock：东财快讯 / 东财公告 / 巨潮 topSearch / 巨潮 hisAnnouncement 四路。 */
-function cnRouteFetch(map: { emNews?: Resp; emAnn?: Resp; topSearch?: Resp; cninfo?: Resp } = {}) {
+/** URL 分发 mock：东财快讯 / 东财公告 / 巨潮 topSearch / 巨潮 hisAnnouncement / 基金 F10 公告 五路。 */
+function cnRouteFetch(map: { emNews?: Resp; emAnn?: Resp; topSearch?: Resp; cninfo?: Resp; fundAnn?: Resp } = {}) {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
+    if (url.includes('JJGG')) return map.fundAnn ?? jsonResp({ Data: [] })
     if (url.includes('np-anotice')) return map.emAnn ?? jsonResp({ data: { list: [] } })
     if (url.includes('topSearch')) return map.topSearch ?? jsonResp({ keyBoardList: [{ code: '600519', orgId: 'gssh0600519', zwjc: '贵州茅台' }] })
     if (url.includes('hisAnnouncement')) return map.cninfo ?? jsonResp({ announcements: [] })
@@ -424,5 +425,83 @@ describe('fetchCninfoAnnouncements（巨潮公告源，2026-09-03 多供应商�
     ])
     expect(topSearchCalls).toBe(1)
     expect(a.items).toEqual(b.items)
+  })
+})
+
+describe('fetchEastmoneyFundAnnouncements（基金公告源，2026-09-12）', () => {
+  const fundAnnJson = {
+    Data: [
+      { FUNDCODE: '159869', TITLE: '华夏中证动漫游戏ETF2026年中期报告', PUBLISHDATEDesc: '2026-08-31', ID: 'AN202608301828738678' },
+      // FUNDCODE 与请求代码不符（公司级归因条目）→ 丢弃
+      { FUNDCODE: '159870', TITLE: '其他基金公告', PUBLISHDATEDesc: '2026-08-31', ID: 'AN202608301828738679' },
+      // 坏日期 / 缺 ID → 丢弃，绝不回退「现在」
+      { FUNDCODE: '159869', TITLE: '坏日期条目', PUBLISHDATEDesc: 'not-a-date', ID: 'AN1' },
+      { FUNDCODE: '159869', TITLE: '缺ID条目', PUBLISHDATEDesc: '2026-08-30' },
+    ],
+    TotalCount: 4,
+  }
+
+  it('ETF 代码：解析 Data、日精度时间按东八区 00:00、URL 为 gonggao/{code},{ID}.html、必带 Referer', async () => {
+    let referer = ''
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('JJGG')) {
+        referer = String((init?.headers as Record<string, string>)?.referer ?? '')
+        return jsonResp(fundAnnJson)
+      }
+      if (url.includes('np-anotice')) return jsonResp({ data: { list: [] } })
+      return jsonResp({ data: { fastNewsList: [] } })
+    }) as unknown as typeof globalThis.fetch
+    const { items, unavailable } = await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: '159869.SZ' })
+    expect(unavailable).toEqual([])
+    const ann = items.find((i) => i.source === 'eastmoney-fund-announcement')
+    expect(ann?.title).toContain('中期报告')
+    expect(ann?.url).toBe('https://fund.eastmoney.com/gonggao/159869,AN202608301828738678.html')
+    expect(ann?.publishedAt).toBe(new Date(Date.parse('2026-08-31T00:00:00+08:00')).toISOString())
+    expect(ann?.relatedCodes).toEqual(['159869'])
+    expect(referer).toBe('https://fundf10.eastmoney.com/jjgg_159869.html')
+    // 非本标的条目 / 坏日期 / 缺 ID 全部丢弃
+    expect(items.filter((i) => i.source === 'eastmoney-fund-announcement')).toHaveLength(1)
+  })
+
+  it('基金接口 200 坏 JSON → unavailable 带来源前缀（评审 L2 同款）', async () => {
+    const badBody: Resp = { ok: true, status: 200, text: async () => '<html>not json</html>' }
+    const { unavailable } = await aggregateNews({
+      fetch: cnRouteFetch({ fundAnn: badBody }),
+      now: NOW,
+      symbol: '159869.SZ',
+    })
+    expect(unavailable.some((u) => u.startsWith('eastmoney-fund-announcement:'))).toBe(true)
+  })
+
+  it('股票代码严禁进基金接口（002714 与基金代码同空间）：不发 JJGG 请求', async () => {
+    const urls: string[] = []
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      urls.push(String(input))
+      if (String(input).includes('JJGG')) return jsonResp(fundAnnJson)
+      if (String(input).includes('np-anotice')) return jsonResp({ data: { list: [] } })
+      return jsonResp({ data: { fastNewsList: [] } })
+    }) as unknown as typeof globalThis.fetch
+    const { items, unavailable } = await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: '002714' })
+    expect(urls.some((u) => u.includes('JJGG'))).toBe(false)
+    expect(unavailable.some((u) => u.includes('fund-announcement'))).toBe(false)
+    expect(items.every((i) => i.source !== 'eastmoney-fund-announcement')).toBe(true)
+  })
+
+  it('sources 排除基金公告源时不请求 JJGG；仅基金公告源时其他端点零请求', async () => {
+    const excluded: string[] = []
+    const excludedFetch = vi.fn(async (input: RequestInfo | URL) => {
+      excluded.push(String(input))
+      return jsonResp({ data: { fastNewsList: [] } })
+    }) as unknown as typeof globalThis.fetch
+    await aggregateNews({ fetch: excludedFetch, now: NOW, symbol: '159869.SZ', sources: ['eastmoney'] })
+    expect(excluded.some((u) => u.includes('JJGG'))).toBe(false)
+
+    const tripwire = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('JJGG')) return jsonResp(fundAnnJson)
+      throw new Error('unexpected request: ' + String(input))
+    }) as unknown as typeof globalThis.fetch
+    const { items } = await aggregateNews({ fetch: tripwire, now: NOW, symbol: '159869.SZ', sources: ['eastmoney-fund-announcement'] })
+    expect(items.some((i) => i.source === 'eastmoney-fund-announcement')).toBe(true)
   })
 })

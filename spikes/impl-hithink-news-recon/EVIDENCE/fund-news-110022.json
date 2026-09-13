@@ -1,0 +1,15 @@
+{
+  "path": "/api/fund/news/article-list?thscode=110022.OF&limit=20",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "a532149b8efa4621b6ff659dea6140cd",
+    "data": {
+      "timestamp": 1789193327087,
+      "item": [],
+      "limit": 20,
+      "has_more": false
+    }
+  }
+}

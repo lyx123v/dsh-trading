@@ -1,0 +1,734 @@
+{
+  "jsonrpc": "2.0",
+  "id": 479176,
+  "result": {
+    "ttlMs": 0,
+    "cacheScope": "public",
+    "tools": [
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "获取指定品种的分钟级 K 线数据（最高价、最低价、成交量等）",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "行情品种代码，如 XAUUSD（必填），具体品种列表通过 quote://codes 资源获取"
+            },
+            "time": {
+              "type": "integer",
+              "description": "起始 Unix 时间戳（秒），从此往后取数据，范围24小时内（可选，默认当前时间）"
+            },
+            "count": {
+              "type": "integer",
+              "description": "数据量，从 time 开始往后取 count 个分钟K线，范围1-100（可选，默认100）"
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        },
+        "name": "get_kline",
+        "outputSchema": {
+          "properties": {
+            "data": {
+              "description": "K线数据",
+              "properties": {
+                "code": {
+                  "description": "品种代码",
+                  "type": "string"
+                },
+                "klines": {
+                  "description": "K线数组",
+                  "items": {
+                    "properties": {
+                      "close": {
+                        "description": "收盘价",
+                        "type": "string"
+                      },
+                      "high": {
+                        "description": "最高价",
+                        "type": "string"
+                      },
+                      "low": {
+                        "description": "最低价",
+                        "type": "string"
+                      },
+                      "open": {
+                        "description": "开盘价",
+                        "type": "string"
+                      },
+                      "time": {
+                        "description": "秒级时间戳",
+                        "type": "integer"
+                      },
+                      "volume": {
+                        "description": "成交量",
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "description": "品种名称",
+                  "type": "string"
+                }
+              },
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "错误说明",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200为成功",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "title": "获取K线数据"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "根据文章 ID 获取文章详情。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "文章 ID（必填）"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "name": "get_news",
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "description": "文章详情数据，失败时为 null。",
+              "properties": {
+                "content": {
+                  "description": "文章正文。",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "文章唯一标识。",
+                  "type": "string"
+                },
+                "introduction": {
+                  "description": "文章简介。",
+                  "type": "string"
+                },
+                "time": {
+                  "description": "文章发布时间。",
+                  "type": "string"
+                },
+                "title": {
+                  "description": "文章标题。",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "文章原文链接。",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "introduction",
+                "content",
+                "time",
+                "url"
+              ],
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "状态说明或错误信息。",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200 表示成功。",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "data",
+            "message",
+            "status"
+          ],
+          "type": "object"
+        },
+        "title": "文章详情"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "获取指定品种的实时行情报价（价格、成交量、涨跌幅等）",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "行情品种代码，如 XAUUSD（必填），具体品种列表通过 quote://codes 资源获取"
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        },
+        "name": "get_quote",
+        "outputSchema": {
+          "properties": {
+            "data": {
+              "description": "报价详细数据",
+              "properties": {
+                "close": {
+                  "description": "最新/收盘价",
+                  "type": "string"
+                },
+                "code": {
+                  "description": "品种代码",
+                  "type": "string"
+                },
+                "high": {
+                  "description": "最高价",
+                  "type": "string"
+                },
+                "low": {
+                  "description": "最低价",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "品种名称",
+                  "type": "string"
+                },
+                "open": {
+                  "description": "开盘价",
+                  "type": "string"
+                },
+                "time": {
+                  "description": "报价发布时间(RFC3339)",
+                  "type": "string"
+                },
+                "ups_percent": {
+                  "description": "涨跌幅(%)",
+                  "type": "string"
+                },
+                "ups_price": {
+                  "description": "涨跌金额",
+                  "type": "string"
+                },
+                "volume": {
+                  "description": "成交量",
+                  "type": "integer"
+                }
+              },
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "错误说明",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200为成功",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "title": "获取行情报价"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "获取当前自然周（周一到周日）的财经日历数据",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "name": "list_calendar",
+        "outputSchema": {
+          "properties": {
+            "data": {
+              "description": "本周财经日历列表",
+              "items": {
+                "properties": {
+                  "actual": {
+                    "description": "公布值",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "affect_txt": {
+                    "description": "影响方向说明",
+                    "type": "string"
+                  },
+                  "consensus": {
+                    "description": "预测值",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "previous": {
+                    "description": "前值",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "pub_time": {
+                    "description": "理论公布时间",
+                    "type": "string"
+                  },
+                  "revised": {
+                    "description": "修正值",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "star": {
+                    "description": "重要性",
+                    "type": "integer"
+                  },
+                  "title": {
+                    "description": "指标标题",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "message": {
+              "description": "错误或提示信息",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200为成功",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "title": "获取本周财经日历"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "按 cursor 获取快讯分页列表。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "type": "string",
+              "description": "分页游标（可选，首次请求可不传，后续传上次返回的 next_cursor）"
+            }
+          },
+          "additionalProperties": false
+        },
+        "name": "list_flash",
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "description": "快讯列表数据，失败时为 null。",
+              "properties": {
+                "has_more": {
+                  "description": "是否还有更多数据。",
+                  "type": "boolean"
+                },
+                "items": {
+                  "description": "快讯分页列表。",
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "快讯条目。",
+                    "properties": {
+                      "content": {
+                        "description": "快讯正文内容。",
+                        "type": "string"
+                      },
+                      "time": {
+                        "description": "快讯发布时间。",
+                        "type": "string"
+                      },
+                      "title": {
+                        "description": "快讯标题（可选，可能为空）。",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "快讯原文链接。",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "time",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "next_cursor": {
+                  "description": "下一页 cursor；若无更多数据则为空字符串。",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "items",
+                "next_cursor",
+                "has_more"
+              ],
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "状态说明或错误信息。",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200 表示成功。",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "data",
+            "message",
+            "status"
+          ],
+          "type": "object"
+        },
+        "title": "快讯列表"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "按 cursor 获取文章分页列表。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cursor": {
+              "type": "string",
+              "description": "分页游标（可选，首次请求可不传，后续传上次返回的 next_cursor）"
+            }
+          },
+          "additionalProperties": false
+        },
+        "name": "list_news",
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "description": "文章列表数据，失败时为 null。",
+              "properties": {
+                "has_more": {
+                  "description": "是否还有更多数据。",
+                  "type": "boolean"
+                },
+                "items": {
+                  "description": "文章分页列表。",
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "文章摘要条目。",
+                    "properties": {
+                      "id": {
+                        "description": "文章唯一标识。",
+                        "type": "string"
+                      },
+                      "introduction": {
+                        "description": "文章简介。",
+                        "type": "string"
+                      },
+                      "time": {
+                        "description": "文章发布时间。",
+                        "type": "string"
+                      },
+                      "title": {
+                        "description": "文章标题。",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "文章原文链接。",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "introduction",
+                      "time",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "next_cursor": {
+                  "description": "下一页 cursor；若无更多数据则为空字符串。",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "items",
+                "next_cursor",
+                "has_more"
+              ],
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "状态说明或错误信息。",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200 表示成功。",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "data",
+            "message",
+            "status"
+          ],
+          "type": "object"
+        },
+        "title": "文章列表"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "按关键词搜索快讯。最多返回 150 条，不支持翻页。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "keyword": {
+              "type": "string",
+              "description": "搜索关键词（必填）"
+            }
+          },
+          "required": [
+            "keyword"
+          ],
+          "additionalProperties": false
+        },
+        "name": "search_flash",
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "description": "快讯搜索结果数据，失败时为 null。",
+              "properties": {
+                "items": {
+                  "description": "快讯结果列表。最多150条，不支持翻页，返回即全量。",
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "快讯条目。",
+                    "properties": {
+                      "content": {
+                        "description": "快讯正文内容。",
+                        "type": "string"
+                      },
+                      "time": {
+                        "description": "快讯发布时间。",
+                        "type": "string"
+                      },
+                      "title": {
+                        "description": "快讯标题（可选，可能为空）。",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "快讯原文链接。",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "time",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 150,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "items"
+              ],
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "状态说明或错误信息。",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200 表示成功。",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "data",
+            "message",
+            "status"
+          ],
+          "type": "object"
+        },
+        "title": "搜索快讯"
+      },
+      {
+        "annotations": {
+          "idempotentHint": false,
+          "readOnlyHint": true
+        },
+        "description": "按关键词搜索文章，支持 cursor 分页。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "keyword": {
+              "type": "string",
+              "description": "搜索关键词（必填）"
+            },
+            "cursor": {
+              "type": "string",
+              "description": "分页游标（可选，首次请求可不传，后续传上次返回的 next_cursor）"
+            }
+          },
+          "required": [
+            "keyword"
+          ],
+          "additionalProperties": false
+        },
+        "name": "search_news",
+        "outputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "description": "文章搜索结果数据，失败时为 null。",
+              "properties": {
+                "has_more": {
+                  "description": "是否还有更多数据。",
+                  "type": "boolean"
+                },
+                "items": {
+                  "description": "文章搜索结果列表。",
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "文章摘要条目。",
+                    "properties": {
+                      "id": {
+                        "description": "文章唯一标识。",
+                        "type": "string"
+                      },
+                      "introduction": {
+                        "description": "文章简介。",
+                        "type": "string"
+                      },
+                      "time": {
+                        "description": "文章发布时间。",
+                        "type": "string"
+                      },
+                      "title": {
+                        "description": "文章标题。",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "文章原文链接。",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "introduction",
+                      "time",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "next_cursor": {
+                  "description": "下一页 cursor；若无更多数据则为空字符串。",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "items",
+                "next_cursor",
+                "has_more"
+              ],
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "message": {
+              "description": "状态说明或错误信息。",
+              "type": "string"
+            },
+            "status": {
+              "description": "状态码，200 表示成功。",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "data",
+            "message",
+            "status"
+          ],
+          "type": "object"
+        },
+        "title": "搜索文章"
+      }
+    ]
+  }
+}

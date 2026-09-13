@@ -1,0 +1,197 @@
+[
+  {
+    "step": "initialize",
+    "status": 200,
+    "contentType": "text/event-stream",
+    "sessionId": null,
+    "result": {
+      "capabilities": {
+        "logging": {},
+        "resources": {},
+        "tools": {}
+      },
+      "protocolVersion": "2025-11-25",
+      "serverInfo": {
+        "name": "jin10-mcp",
+        "title": "金十数据智能开放平台",
+        "description": "基于MCP协议的智能数据服务，为您提供实时、准确、全面的金融与市场数据接口。",
+        "version": "1.0.0",
+        "websiteUrl": "https://mcp.jin10.com/app/",
+        "icons": [
+          {
+            "src": "https://cdn.jin10.com/assets/img/commons/favicon.ico",
+            "mimeType": "image/x-icon"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "step": "notifications/initialized",
+    "status": 400,
+    "bodyLength": 63
+  },
+  {
+    "step": "tools/list",
+    "status": 200,
+    "names": [
+      "get_kline",
+      "get_news",
+      "get_quote",
+      "list_calendar",
+      "list_flash",
+      "list_news",
+      "search_flash",
+      "search_news"
+    ]
+  },
+  {
+    "step": "resources/list",
+    "status": 200,
+    "resources": [
+      {
+        "description": "可查询的行情品种及其说明",
+        "mimeType": "application/json",
+        "name": "quote_codes",
+        "title": "行情品种列表",
+        "uri": "quote://codes"
+      }
+    ]
+  },
+  {
+    "step": "resources/read quote://codes",
+    "status": 200,
+    "mimeType": "application/json",
+    "textLength": 3575
+  },
+  {
+    "step": "tools/call list_flash",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "has_more",
+      "items",
+      "next_cursor"
+    ]
+  },
+  {
+    "step": "tools/call list_flash",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "has_more",
+      "items",
+      "next_cursor"
+    ]
+  },
+  {
+    "step": "tools/call search_flash",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "items"
+    ]
+  },
+  {
+    "step": "tools/call list_news",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "has_more",
+      "items",
+      "next_cursor"
+    ]
+  },
+  {
+    "step": "tools/call get_news",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "content",
+      "id",
+      "introduction",
+      "time",
+      "title",
+      "url"
+    ]
+  },
+  {
+    "step": "tools/call search_news",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "has_more",
+      "items",
+      "next_cursor"
+    ]
+  },
+  {
+    "step": "tools/call list_calendar",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": "array(231)"
+  },
+  {
+    "step": "tools/call get_quote",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "close",
+      "code",
+      "high",
+      "low",
+      "name",
+      "open",
+      "time",
+      "ups_percent",
+      "ups_price",
+      "volume"
+    ]
+  },
+  {
+    "step": "tools/call get_kline",
+    "status": 200,
+    "hasStructured": true,
+    "contentTypes": [
+      "text"
+    ],
+    "status_": 200,
+    "dataKeys": [
+      "code",
+      "klines",
+      "name"
+    ]
+  }
+]

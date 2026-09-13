@@ -1,0 +1,106 @@
+{
+  "ranAt": "2026-09-13T02:01:58.036Z",
+  "endpoint": "https://mcp.jin10.com/mcp",
+  "protocolVersion": "2025-11-25",
+  "durationMs": 2420,
+  "passed": 13,
+  "failed": 0,
+  "steps": [
+    {
+      "step": "global_instruments (quote://codes resource)",
+      "ok": true,
+      "ms": 1488,
+      "summary": "string(1855 chars)",
+      "value": "global_instruments — 97 all instruments (source: Jin10 (金十数据) MCP feed):\nIGBP — 工行账户英镑\nICHF — 工行账户瑞士法郎\nIUSDHKD — 工行账户美元/港币\nXPDXUSD — 现货钯金(暗钯参考价)\nSSMI — 瑞士SWI20指数\nBVSP — 巴西Bovespa指数\nIRTS — 俄罗斯RTSI指数\nMXX — 墨西哥IPC指数\nUSDCHF — 美元/瑞郎\nICNYGAS — 工行人民币账户天然气\nCOPPERXUSD — 现货铜(暗铜参考价)\nHSI — 香港恒生指数\n399001 — 深证成指\n000300 — 沪深300\nIUSDCAD — 工行账户美元/加拿大元\nFTMIB — 意大利富时MIB指数\nBSESN — 印度BSE Sensex指数\nGSPTSE — 加拿大多伦多标普/TSX综合指数\nTA25 — 以色列特拉维夫25指数\nUSOIL — WTI原油\nCOPPER — 现货铜\nIAUD — 工行账户澳大利亚元\nICNYXAU — 工行人民币账户黄金\nUKOILX — 布伦特原油(暗油参考价)\n899050 — 北证50\nGBPUSD — 英镑/美元\nIUSDJPY — 工行账户美元/日元\nIUSDSEK — 工行账户美元/瑞典克朗\nICBCJCJ — 工行积存金\nICBCRYJCJ — 工行如意积存金\nZHJCJ — 招行积存金\nAEX — 荷兰阿姆斯特丹证交所指数\nXU100 — 土耳其National-100指数\nXAUUSD — 现货黄金\nEURUSD — 欧元/美元\nUSDCNH — 美元/人民币\nUSDHKD — 美元/港元\nICNYXAG — 工行人民币账户白银\nICNYXPT — 工行人民币账户铂金\nFCHI — 法国CAC40指数\nTASI — …[1855 chars]"
+    },
+    {
+      "step": "global_instruments query=黄金",
+      "ok": true,
+      "ms": 0,
+      "summary": "string(186 chars)",
+      "value": "global_instruments — 6 matches for \"黄金\" (source: Jin10 (金十数据) MCP feed):\nICNYXAU — 工行人民币账户黄金\nXAUUSD — 现货黄金\nACNYXAU — 农行人民币账户黄金\nAUSDXAU — 农行美元账户黄金\nPAXGUSD — 现货黄金(暗金参考价)\nIUSDXAU — 工行美元账户黄金"
+    },
+    {
+      "step": "flash_list page 1 (tool render)",
+      "ok": true,
+      "ms": 255,
+      "summary": "string(685 chars)",
+      "value": "flash_list — 5 item(s), newest-first, source: Jin10 (金十数据) MCP feed:\n2026-09-13T01:47:16.000Z | 市场消息：也门武装部队通报，也门塔伊兹境内胡塞武装据点遭到三次空袭 | https://flash.jin10.com/detail/20260913094716818800\n2026-09-13T01:43:12.000Z | 美媒：传统车企撤退，特斯拉正重新夺回美国电动车市场 | https://flash.jin10.com/detail/20260913094312127800\n2026-09-13T01:34:13.000Z | 甬舟铁路全线桥梁主塔今天全部封顶 | https://flash.jin10.com/detail/20260913093413714800\n2026-09-13T01:13:49.000Z | 美媒：卡尼拟推动加拿大成为欧盟“准成员国”，以减少对美依赖 | https://flash.jin10.com/detail/20260913091349991800\n2026-09-13T01:02:53.000Z | 英国海事机构：一船只在霍尔木兹海峡遭袭 | https://flash.jin10.com/detail/20260913090253381800\nhas_more=true — pass cursor=\"1789247456499\" to flash_list for the next (older) page."
+    },
+    {
+      "step": "flash_list page 2 (cursor=1789247456499)",
+      "ok": true,
+      "ms": 56,
+      "summary": "string(476 chars)",
+      "value": "flash_list — 3 item(s), newest-first, source: Jin10 (金十数据) MCP feed:\n2026-09-12T20:50:18.000Z | 沙特称也门胡塞武装袭击造成2人受伤 | https://flash.jin10.com/detail/20260913045018666800\n2026-09-12T20:39:45.000Z | 特斯拉预告10月1日展示下一代Roadster，SpaceX合并猜测升温 | https://flash.jin10.com/detail/20260913043945253800\n2026-09-12T20:28:29.000Z | 美媒：美国不再是购买武器和存放资金的“默认选项” | https://flash.jin10.com/detail/20260913042829807800\nhas_more=true — pass cursor=\"1789235768682\" to flash_list for the next (older) page."
+    },
+    {
+      "step": "flash_search keyword=黄金",
+      "ok": true,
+      "ms": 143,
+      "summary": "string(751 chars)",
+      "value": "flash_search — 5 match(es) for \"黄金\", newest-first, source: Jin10 (金十数据) MCP feed:\n2026-09-12T00:52:32.000Z | 国内新闻： 1. 中国证监会发布《期货公司监督管理办法》 | https://flash.jin10.com/detail/20260912085232195800\n2026-09-12T00:14:50.000Z | 全球最大黄金ETF--SPDR Gold Trust持仓较上日减少2.852吨，当前持仓量为1047.425吨 | https://flash.jin10.com/detail/20260912081450868800\n2026-09-11T19:31:40.000Z | 美国商品期货交易委员会（CFTC）：截至9月8日当周，COMEX黄金投机者削减净多头头寸1,263份合约，至139,548份 | https://flash.jin10.com/detail/20260912033140323800\n2026-09-11T18:39:22.000Z | 高盛：美联储加息预期的再次上升可能引发交易商对冲头寸的解除，从而导致黄金价格出现比往常更为剧烈的调整 | https://flash.jin10.com/detail/20260912023922355800\n2026-09-11T18:39:13.000Z | 高盛：如果ETF投资者的资金流入恢复，并且当前的高位看涨期权持仓持续，交易商对冲可能会机械性地放大反弹，推动黄金价格远超我们的预测 | https://flash.jin10.com/detail/20260912023913457800"
+    },
+    {
+      "step": "news_list (tool render)",
+      "ok": true,
+      "ms": 51,
+      "summary": "string(484 chars)",
+      "value": "news_list — 3 article(s), newest-first, source: Jin10 (金十数据) MCP feed:\n2026-09-12T14:15:26.000Z | 一周展望：超级央行周来袭！美联储会否按下三年来首次加息的按钮？ | https://xnews.jin10.com/details/229952 | id=229952\n2026-09-12T01:57:25.000Z | 一周热榜精选：CPI后美联储加息概率逼近90%！沙特东西输油管道暂时关闭 | https://xnews.jin10.com/details/229893 | id=229893\n2026-09-11T16:39:26.000Z | USDA 9月月报：美国大豆供需预期数据 | https://xnews.jin10.com/details/229913 | id=229913\nhas_more=true — pass cursor=\"1789118602898\" to news_list for the next (older) page."
+    },
+    {
+      "step": "news_search keyword=美联储",
+      "ok": true,
+      "ms": 62,
+      "summary": "string(511 chars)",
+      "value": "news_search — 3 match(es) for \"美联储\", newest-first, source: Jin10 (金十数据) MCP feed:\n2026-09-12T14:15:26.000Z | 一周展望：超级央行周来袭！美联储会否按下三年来首次加息的按钮？ | https://xnews.jin10.com/details/229952 | id=229952\n2026-09-12T01:57:25.000Z | 一周热榜精选：CPI后美联储加息概率逼近90%！沙特东西输油管道暂时关闭 | https://xnews.jin10.com/details/229893 | id=229893\n2026-09-11T14:57:16.000Z | 美联储加息阴霾与通胀施压，标普500指数8000点关口攻坚战陷入胶着 | https://xnews.jin10.com/details/229932 | id=229932\nhas_more=true — pass cursor=\"1789005886723\" to news_search for the next (older) page."
+    },
+    {
+      "step": "news_get id=229952",
+      "ok": true,
+      "ms": 80,
+      "summary": "string(254 chars)",
+      "value": "news_get — id=229952, source: Jin10 (金十数据) MCP feed\ntitle: 一周展望：超级央行周来袭！美联储会否按下三年来首次加息的按钮？\npublishedAt: 2026-09-12T14:15:26.000Z\nurl: https://xnews.jin10.com/details/229952\nintroduction: 美日英三大央行即将登场！美联储三年来首次加息正进入倒计时？伊朗与海湾国家坐上谈判桌，临时管理霍尔木兹海峡航运的协议能否为百元油价降温？"
+    },
+    {
+      "step": "econ_calendar (tool render, limit 5)",
+      "ok": true,
+      "ms": 63,
+      "summary": "string(478 chars)",
+      "value": "econ_calendar — 5 entr(ies) for the current week (Beijing time), source: Jin10 (金十数据) MCP feed:\n2026-09-06T23:50:00.000Z | ★2 | 日本8月外汇储备(亿美元) | 前值=12871 预期=- 公布=12075 影响=利空\n2026-09-07T01:30:00.000Z | ★1 | 澳大利亚8月季调后ANZ总招聘广告年率 | 前值=2.1 预期=- 公布=7.8 影响=利多\n2026-09-07T01:30:00.000Z | ★1 | 澳大利亚8月季调后ANZ总招聘广告月率 | 前值=0.80 预期=- 公布=2.5 影响=利多\n2026-09-07T05:00:00.000Z | ★1 | 新加坡7月季调后零售销售月率 | 前值=1.00 预期=- 公布=0.9 影响=利空\n2026-09-07T05:00:00.000Z | ★1 | 新加坡7月零售销售年率 | 前值=4.00 预期=- 公布=1.5 影响=利空"
+    },
+    {
+      "step": "global_quote code=XAUUSD",
+      "ok": true,
+      "ms": 76,
+      "summary": "string(174 chars)",
+      "value": "{\"code\":\"XAUUSD\",\"name\":\"现货黄金\",\"time\":\"2026-09-11T20:56:57.000Z\",\"open\":4316.31,\"close\":4348,\"high\":4402.51,\"low\":4290.42,\"volume\":241084,\"change\":31.52,\"changePercent\":0.73}"
+    },
+    {
+      "step": "global_klines code=XAUUSD time=-3h count=5",
+      "ok": true,
+      "ms": 97,
+      "summary": "string(122 chars)",
+      "value": "{\"code\":\"XAUUSD\",\"klines\":[],\"note\":\"no candles in the requested window (upstream returns forward from time, 24h window)\"}"
+    },
+    {
+      "step": "错误语义：非法 code 必须抛错而非空数据",
+      "ok": true,
+      "ms": 48,
+      "summary": "string(113 chars)",
+      "value": "threw TRADING_UNSUPPORTED_SYMBOL: jin10 get_quote: 不支持该品种 \"NOT_A_CODE\"，请通过 quote://codes 资源查询支持的品种列表 (status 400)"
+    },
+    {
+      "step": "错误语义：缺凭证 → TRADING_CREDENTIALS_MISSING（不发请求）",
+      "ok": true,
+      "ms": 0,
+      "summary": "string(147 chars)",
+      "value": "TRADING_CREDENTIALS_MISSING: jin10 mcp initialize: missing MCP token. 配置金十 MCP Token：设置中心 dshtrading.credentials.jin10.token，或环境变量 JIN10_MCP_TOKEN。"
+    }
+  ],
+  "samples": {
+    "instrumentCount": null,
+    "quote": "{\"code\":\"XAUUSD\",\"name\":\"现货黄金\",\"time\":\"2026-09-11T20:56:57.000Z\",\"open\":4316.31,\"close\":4348,\"high\":4402.51,\"low\":4290.42,\"volume\":241084,\"change\":31.52,\"changePercent\":0.73}",
+    "codeFilterHits": "global_instruments — 6 matches for \"黄金\" (source: Jin10 (金十数据) MCP feed):\nICNYXAU — 工行人民币账户黄金\nXAUUSD — 现货黄金\nACNYXAU — 农行人民币账户黄金\nAUSDXAU — 农行美元账户黄金\nPAXGUSD — 现货黄金(暗金参考价)\nIUSDXAU — 工行美元账户黄金"
+  }
+}

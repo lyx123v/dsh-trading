@@ -32,6 +32,7 @@
   "packages/connector-futu/tsconfig.json": 7,
   "packages/connector-hithink/tsconfig.json": 0,
   "packages/connector-ibkr/tsconfig.json": 16,
+  "packages/connector-jin10/tsconfig.json": 0,
   "packages/connector-longbridge/tsconfig.json": 24,
   "packages/connector-okx/tsconfig.json": 14,
   "packages/connector-polygon/tsconfig.json": 16,

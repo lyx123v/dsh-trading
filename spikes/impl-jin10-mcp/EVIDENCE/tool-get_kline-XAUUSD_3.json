@@ -1,0 +1,21 @@
+{
+  "jsonrpc": "2.0",
+  "id": 4241,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"data\":{\"code\":\"XAUUSD\",\"klines\":[],\"name\":\"现货黄金\"},\"message\":\"\",\"status\":200}"
+      }
+    ],
+    "structuredContent": {
+      "data": {
+        "code": "XAUUSD",
+        "klines": [],
+        "name": "现货黄金"
+      },
+      "message": "",
+      "status": 200
+    }
+  }
+}

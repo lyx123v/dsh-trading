@@ -32,4 +32,5 @@ hk 无干净公共源。遗留一个复制期结构性坑：kit-us/kit-cn 的 SD
 - **另一个 live 暴露并修复的契约坑**：东财 `stockList` 是**字符串数组 `<marketId>.<code>`**（如 `'1.600519'`/`'116.00700'`/`'105.AMZN'`），非对象数组；`relatedCodes` 保留全串，匹配时取 `.` 后 code 段（cn 按 code、hk 额外要求 `116.` 前缀）。
 - `#6` 保持开放作跟踪伞；hk 已按降级交付（不再阻塞），WS4 剩余为基本面（#2）、衍生品（#3）。
 - 全量 `pnpm -r build`/`-r test` 由 PR CI 承接；本地已对 kit-crypto（16）、kit-us（6）、kit-cn（4）、kit-hk（5）验证。
+- **后续指向（2026-09-13）**：本记录的「市场内新闻 = kit 薄工具、不进 connector+dataplane」口径不变；**跨市场快讯**（宏观/大宗/外汇/地缘，与单一标的无关）另立 host 平面连接器工具行 `@dshtrading/connector-jin10`（MCP 数据源），见 [金十 MCP 连接器](2026-09-13-jin10-mcp-flash-news-connector.md)。
 

@@ -305,6 +305,7 @@ export type MarketLocaleKey =
   | 'news.time.monthsAgo'
   | 'news.time.yearsAgo'
   | 'news.source.eastmoneyAnnouncement'
+  | 'news.source.eastmoneyFundAnnouncement'
   | 'news.source.eastmoney'
   | 'news.source.hkexAnnouncement'
   | 'news.source.cninfoAnnouncement'

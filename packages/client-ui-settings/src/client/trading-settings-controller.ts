@@ -61,6 +61,7 @@ export const NEWS_SOURCE_CATALOG: Record<string, readonly NewsSourceMeta[]> = {
     { id: 'eastmoney', label: 'newsSource.eastmoney' },
     { id: 'eastmoney-announcement', label: 'newsSource.eastmoneyAnnouncement' },
     { id: 'cninfo-announcement', label: 'newsSource.cninfoAnnouncement' },
+    { id: 'eastmoney-fund-announcement', label: 'newsSource.eastmoneyFundAnnouncement' },
   ],
   us: [
     { id: 'yahoo', label: 'newsSource.yahoo' },

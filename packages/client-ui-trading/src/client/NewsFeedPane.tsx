@@ -64,6 +64,7 @@ function getSourceType(source: string): string {
 /** 数据源 → 显示名（词典键驱动；未收录的源 id 原样展示）。 */
 const SOURCE_LABEL_KEY: Record<string, MarketLocaleKey> = {
   'eastmoney-announcement': 'news.source.eastmoneyAnnouncement',
+  'eastmoney-fund-announcement': 'news.source.eastmoneyFundAnnouncement',
   'eastmoney': 'news.source.eastmoney',
   'hkex-announcement': 'news.source.hkexAnnouncement',
   'cninfo-announcement': 'news.source.cninfoAnnouncement',

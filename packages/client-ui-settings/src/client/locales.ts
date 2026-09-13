@@ -30,6 +30,7 @@ export type SettingsLocaleKey =
   | 'newsSourcesReset'
   | 'newsSource.eastmoney'
   | 'newsSource.eastmoneyAnnouncement'
+  | 'newsSource.eastmoneyFundAnnouncement'
   | 'newsSource.cninfoAnnouncement'
   | 'newsSource.hkexAnnouncement'
   | 'newsSource.yahoo'
@@ -149,6 +150,7 @@ export const zh: Record<SettingsLocaleKey, string> = {
       'newsSourcesReset': '恢复默认源',
       'newsSource.eastmoney': '东方财富快讯',
       'newsSource.eastmoneyAnnouncement': '东财公告',
+      'newsSource.eastmoneyFundAnnouncement': '东财基金公告',
       'newsSource.cninfoAnnouncement': '巨潮资讯公告',
       'newsSource.hkexAnnouncement': '港交所披露易',
       'newsSource.yahoo': 'Yahoo Finance',
@@ -269,6 +271,7 @@ export const en: Record<SettingsLocaleKey, string> = {
       'newsSourcesReset': 'Restore defaults',
       'newsSource.eastmoney': 'Eastmoney fast news',
       'newsSource.eastmoneyAnnouncement': 'Eastmoney announcements',
+      'newsSource.eastmoneyFundAnnouncement': 'Eastmoney fund announcements',
       'newsSource.cninfoAnnouncement': 'CNINFO announcements',
       'newsSource.hkexAnnouncement': 'HKEX disclosures',
       'newsSource.yahoo': 'Yahoo Finance',

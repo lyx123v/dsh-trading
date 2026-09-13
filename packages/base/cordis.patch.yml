@@ -118,6 +118,23 @@
     - id: dsh-trading-market-tools
       name: '@dshtrading/base/market-tools'
 
+    # 金十数据 MCP 连接器（2026-09-13）：市场快讯/资讯/财经日历/全球品种报价。
+    # host 平面注册九个只读工具 —— flash_list/flash_search/news_list/news_search/
+    # news_get/econ_calendar/global_instruments/global_quote/global_klines；内容是
+    # **跨市场**的（宏观/大宗/外汇/A 股/地缘），故为市场无关共享行、归 base 所有
+    # （铁律 #1），host 行注册一次全会话可见（与上行 market-tools 同款形态）。
+    # 纯只读：不命中下单闸门正则（铁律 #3 不涉及）。凭证 BYOK：设置中心
+    # dshtrading.credentials.jin10.token 优先、环境变量 JIN10_MCP_TOKEN 兜底，
+    # 每次请求惰性解析（先例：hithink 2026-09-12 凭证修复）；缺凭证时工具调用报
+    # TRADING_CREDENTIALS_MISSING 并给出配置路径，行本身照常挂载。
+    # 快讯/资讯只下发元数据（标题/时间/链接 + 文章导语），正文零再分发（铁律 #5）。
+    # 包名解析依赖本包 dependencies 里的 @dshtrading/connector-jin10（进 profile
+    # 安装闭包，S3 坑 3 同款）。
+    - id: dsh-trading-connector-jin10
+      name: '@dshtrading/connector-jin10'
+      config:
+        enabled: true
+
     # 中心化 i18n 语言包（feat/i18n-zh-cn）：注册「简体中文」(zh-CN) 进宿主
     # Settings → General 语言目录，并为全部 dshtrading.* 命名空间注册 zh-CN
     # 词典（构建期 import 各 UI 包 locales.ts 纯数据模块，zh-CN ≡ zh 零漂移）。

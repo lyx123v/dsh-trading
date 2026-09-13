@@ -13,6 +13,7 @@ Issue: #96
 - A 股历史日K `GET /api/a-share/prices/historical`：`interval` **仅支持 1d**，`start/end` 毫秒必填（窗口 ≤ 10 年），支持前/后复权；实测 600519.SH 返回 10 根（2026-09-12）。
 - 分钟级高频模块（`/api/a-share/high-frequency/*`）：文档标注「暂未开放外部接入」，实测 `code=2004`（同花顺 AI 客户端专用）——上游不给分钟数据，不是连接器缺陷。
 - 新闻/公告：全量接口清单（llms-full.txt，11551 行）逐条过筛，**无个股新闻端点、无公告端点**（仅基金资讯 `/api/fund/news/article-list`）；同花顺不能作为 A 股新闻/公告源。
+- 全市场覆盖核查（同日补全，spikes/impl-hithink-news-recon/）：平台 `asset_type` 官方枚举仅 a-share/a-share-index/fund-*/forex/futures/options——**无港股、美股域**；零公告端点；唯一新闻端点（单基金资讯，字段满足 NewsItem 契约）实测 510300.SH/110022.OF/000001.OF 全部返回空列表；A 股异动原因/热榜实测字段无 url/发布时间。结论：同花顺金融数据 API 不能作为 cn/hk/us/crypto/futures 任何市场的新闻/公告源；HK/US 公告增强只能走 iFinD（独立授权体系，未验证）。
 
 ## Decision
 
@@ -22,7 +23,7 @@ Issue: #96
    - `AggregateNewsOptions` 增加 `sources`；四个 kit 的 aggregateNews 按源 id 装配 fetcher（公告源保持 symbol 门控、cryptopanic 保持 key 门控——源开关作用于 fetcher 列表组装处，不污染 unavailable 的失败语义）；
    - 桥 `news()` 与 agent 工具（cn/us/hk/crypto_get_news）经**惰性 thunk** 读 router `newsSources(market)`，避免 cryptoPanicKey 注册期快照的 staleness 债复发；
    - 设置页每市场新增「新闻公告数据源」多选卡片（NEWS_SOURCE_CATALOG 与各 kit NewsSource 词汇对齐；us 的 sec-edgar 补进 NewsSource union）。
-3. 同花顺不进新闻源候选：其异动原因/热榜是当日事件解读快照（无 url/发布时间），不满足 NewsItem 契约，留作后续独立情绪类工具评估。
+3. 同花顺不进新闻源候选：其异动原因/热榜是当日事件解读快照（无 url/发布时间），不满足 NewsItem 契约，留作后续独立情绪类工具评估；基金资讯端点虽字段达标，但实测空数据且单基金标的不在市场新闻流场景内。
 
 ## Verification
 

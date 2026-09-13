@@ -1,0 +1,25 @@
+{
+  "jsonrpc": "2.0",
+  "id": 844158,
+  "result": {
+    "capabilities": {
+      "logging": {},
+      "resources": {},
+      "tools": {}
+    },
+    "protocolVersion": "2025-11-25",
+    "serverInfo": {
+      "name": "jin10-mcp",
+      "title": "金十数据智能开放平台",
+      "description": "基于MCP协议的智能数据服务，为您提供实时、准确、全面的金融与市场数据接口。",
+      "version": "1.0.0",
+      "websiteUrl": "https://mcp.jin10.com/app/",
+      "icons": [
+        {
+          "src": "https://cdn.jin10.com/assets/img/commons/favicon.ico",
+          "mimeType": "image/x-icon"
+        }
+      ]
+    }
+  }
+}

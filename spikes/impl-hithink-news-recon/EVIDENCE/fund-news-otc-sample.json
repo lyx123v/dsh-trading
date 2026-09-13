@@ -1,0 +1,15 @@
+{
+  "path": "/api/fund/news/article-list?thscode=000001.OF&limit=20",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "2dbbcdc82d37485ca7a4145e55e73f6e",
+    "data": {
+      "timestamp": 1789193327428,
+      "item": [],
+      "limit": 20,
+      "has_more": false
+    }
+  }
+}

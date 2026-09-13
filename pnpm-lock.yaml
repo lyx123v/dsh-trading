@@ -178,6 +178,9 @@ importers:
       '@dshtrading/client-ui-updater':
         specifier: workspace:^
         version: link:../client-ui-updater
+      '@dshtrading/connector-jin10':
+        specifier: workspace:^
+        version: link:../connector-jin10
       '@dshtrading/dsh-home':
         specifier: workspace:^
         version: link:../dsh-home
@@ -219,7 +222,7 @@ importers:
         version: 0.3.20(react@18.3.1)
       '@xmanrui/dsh-im':
         specifier: ^4.20.0
-        version: 4.20.0
+        version: 4.20.0(debug@4.4.3)
     devDependencies:
       tsdown:
         specifier: ^0.22.0
@@ -810,6 +813,28 @@ importers:
         version: 3.2.7(@types/node@24.13.3)(jsdom@30.0.1)(lightningcss@1.33.0)(tsx@4.23.13)(yaml@2.9.0)
 
   packages/connector-ibkr:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: '>=4.0.0'
+        version: 4.0.2(@deepseek-ai/cordis-plugin-include@1.0.7)(@deepseek-ai/cordis-plugin-loader@1.0.3)
+      '@deepseek-ai/dsh-tools':
+        specifier: 0.1.5-rc.1
+        version: 0.1.5-rc.1(42bef068bdb77cea11b81bec106cd1d1)
+      '@deepseek-ai/schemastery':
+        specifier: '>=3.18.0'
+        version: 3.18.2
+      '@dshtrading/api':
+        specifier: workspace:^
+        version: link:../api
+    devDependencies:
+      tsdown:
+        specifier: ^0.22.0
+        version: 0.22.14(tsx@4.23.13)(typescript@5.9.3)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@24.13.3)(jsdom@30.0.1)(lightningcss@1.33.0)(tsx@4.23.13)(yaml@2.9.0)
+
+  packages/connector-jin10:
     dependencies:
       '@deepseek-ai/cordis':
         specifier: '>=4.0.0'
@@ -5174,7 +5199,7 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@wecom/aibot-node-sdk@1.0.7':
+  '@wecom/aibot-node-sdk@1.0.7(debug@4.4.3)':
     dependencies:
       axios: 1.20.0(debug@4.4.3)
       eventemitter3: 5.0.4
@@ -5185,11 +5210,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@xmanrui/dsh-im@4.20.0':
+  '@xmanrui/dsh-im@4.20.0(debug@4.4.3)':
     dependencies:
       '@tencent-connect/qqbot-connector': 1.2.0
       '@tencent-connect/qqbot-nodejs': 1.0.4
-      '@wecom/aibot-node-sdk': 1.0.7
+      '@wecom/aibot-node-sdk': 1.0.7(debug@4.4.3)
       dingtalk-stream: 2.1.4
       qrcode: 1.5.4
       undici: 7.29.0

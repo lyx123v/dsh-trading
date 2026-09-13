@@ -1,0 +1,15 @@
+{
+  "path": "/api/fund/news/article-list?thscode=510300.SH&limit=20",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "f7d46d55c46c45aca85c3df1997d8b1f",
+    "data": {
+      "timestamp": 1789193326813,
+      "item": [],
+      "limit": 20,
+      "has_more": false
+    }
+  }
+}

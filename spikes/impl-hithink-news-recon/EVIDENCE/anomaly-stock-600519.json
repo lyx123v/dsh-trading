@@ -1,0 +1,13 @@
+{
+  "path": "/api/a-share/special-data/anomaly-analysis-stock?thscodes=600519.SH",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "479d013f0a044580920d6c7c5fe8d142",
+    "data": {
+      "timestamp": 1789193280709,
+      "item": []
+    }
+  }
+}

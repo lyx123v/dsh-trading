@@ -1,0 +1,28 @@
+{
+  "jsonrpc": "2.0",
+  "id": 137159,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"data\":{\"close\":\"4348.00\",\"code\":\"XAUUSD\",\"high\":\"4402.51\",\"low\":\"4290.42\",\"name\":\"现货黄金\",\"open\":\"4316.31\",\"time\":\"2026-09-12T04:56:57+08:00\",\"ups_percent\":\"0.73\",\"ups_price\":\"31.52\",\"volume\":241084},\"message\":\"\",\"status\":200}"
+      }
+    ],
+    "structuredContent": {
+      "data": {
+        "close": "4348.00",
+        "code": "XAUUSD",
+        "high": "4402.51",
+        "low": "4290.42",
+        "name": "现货黄金",
+        "open": "4316.31",
+        "time": "2026-09-12T04:56:57+08:00",
+        "ups_percent": "0.73",
+        "ups_price": "31.52",
+        "volume": 241084
+      },
+      "message": "",
+      "status": 200
+    }
+  }
+}

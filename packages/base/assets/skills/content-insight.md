@@ -1,6 +1,6 @@
 ---
 name: content-insight
-description: 多源内容深度分析与知识沉淀技能，支持两类素材：① B站视频（bilibili.com / b23.tv / BV号）→ 官方字幕获取或音频ASR转写；② 微信公众号文章（mp.weixin.qq.com）→ 正文与元数据提取。统一产出：字幕/正文底稿、事实核查报告（三档标注）、五维深度分析报告（docx/pdf）、知识卡片。当用户给出B站视频链接并提出"总结/分析/提取字幕/转写/这个视频讲了什么"，或给出微信公众号文章链接并提出"总结/分析/这篇文章说了什么/帮我读一下/提炼要点/沉淀成笔记"时，务必使用本技能——即使用户没有明确提到"转写""字幕"或"分析"两个字。只要是B站视频或微信文章链接加任何形式的内容提炼诉求，就用本技能；其他网站的网页内容请改用 web-reader 技能。
+description: 提取并总结 B 站视频或微信公众号文章；转写、深度报告和知识库入库按用户请求选择。其他网站使用当前可用的网页读取工具。
 ---
 
 # 内容深度分析与知识沉淀（B站视频 / 微信文章）
@@ -21,9 +21,9 @@ description: 多源内容深度分析与知识沉淀技能，支持两类素材�
   │    A1 wechat_fetch.py（正文提取 → article_text.txt）
   └─ 共享分析层（素材就绪后，两类来源完全一致）
        S1 事实核查（web-search，三档标注）
-       S2 五维深度报告（读 references/analysis-framework.md，调用 docx/pdf skill）
+       S2 五维深度报告（读 references/analysis-framework.md，按当前可用文档工具生成）
        S3 知识卡片沉淀
-       S4 知识库入库（cards.json 统一存储，默认执行）
+       S4 知识库入库（仅用户明确要求入库时执行）
 ```
 
 ## 路由规则
@@ -33,7 +33,7 @@ description: 多源内容深度分析与知识沉淀技能，支持两类素材�
 | bilibili.com / b23.tv / BV号 | 视频管线 V1-V3 |
 | mp.weixin.qq.com/s/... | 文章管线 A1 |
 | 同一请求混多源（如"对比这个视频和这篇文章"） | 分别取材，共享分析层做对比框架 |
-| 其他网站链接 | 超出本技能范围，改用 web-reader 技能 |
+| 其他网站链接 | 超出本技能范围，使用当前可用的网页读取工具 |
 
 ---
 
@@ -116,14 +116,14 @@ python <skill目录>/scripts/wechat_fetch.py "<文章链接>" <工作目录>
 每条三档标注：✅证实 / ⚠️有出入 / ❓无法核实。搜索结果存 JSON 备查。
 详细清单与操作准则见 `references/analysis-framework.md` 第二节。
 
-### S2: 深度分析报告
+### S2: 深度分析报告（仅用户要求深度报告时）
 
 **先读 `references/analysis-framework.md`**（五维分析框架+报告模板），再按用户确认的格式：
-- 默认 Word：**必须先调用 docx skill** 按其规范生成，保存到
-  `download/深度分析报告_<主题>.docx`；用户指定 PDF/PPT 时调用对应 skill。
+- 默认 Word 时用当前可用的 Office 工具（如 `officecli`）按其规范生成，保存到
+  `download/深度分析报告_<主题>.docx`；用户指定 PDF/PPT 时按可用能力生成，缺工具时说明限制。
 - 报告第1节"内容基本信息"按来源取字段：视频→UP主/时长/链接；文章→公众号/作者/发布时间。
 - 篇幅基准：5-10分钟视频或3000字内文章 → 2000-3000字正文；核查表至少覆盖5-8条关键声称。
-- 生成后运行 docx skill 的 postcheck 质检，0 errors 才交付。
+- 生成后按所用文档工具的质检流程校验，无错误才交付。
 
 ### S3: 知识卡片
 
@@ -132,36 +132,21 @@ python <skill目录>/scripts/wechat_fetch.py "<文章链接>" <工作目录>
 
 ---
 
-## S4: 知识库入库（统一存储，默认执行）
+## S4: 知识库入库（仅明确入库请求）
 
-**唯一权威存储**：`$DSH_HOME/knowledge/cards.json`（dsh-trading 缺省 `~/.dsh-trading/knowledge/cards.json`；
-2026-09-08 起 trading 走独立 home，不再是 `~/.dsh`）—— dsh-trading 知识库 UI（中栏知识库 Tab）的
-唯一数据源。markdown 知识卡片（S3 产物）只是过程底稿；**不入库 = 未沉淀**。
-字段契约与受控词表对齐 dsh-trading 的 `knowledge-curation` 技能（source.url 为查重键；
-credibility 三档；factCheck 三桶；takeaways/boundaries/tags）。
+普通总结、底稿或知识卡片交付**不触发入库**。只有用户明确要求写入知识库（"入库/沉淀到知识库/存进 cards"）时才执行本节；生成 Markdown 卡片不等于已入库，也不等于有写入授权。
 
-### 默认流程（单条与批量一致）
-1. 优先调用 `knowledge_ingest` 工具逐张入库（自动 URL 查重、保持 ID 稳定）；
-2. 工具不可用（如报 `store.list is not a function`：会话绑定的是修复前旧构建，或
-   dsh-trading 未重启）→ 走**直写回退**（见下）；
-3. 入库后必须自检：重新 `JSON.parse` 校验 + 抽查字段完整性（summary 非空、coreClaims
-   非空、credibility 枚举、URL 无重复）；
-4. **直写后必须提醒用户**：store 在 dsh 进程内有内存缓存（启动时读一次），
-   直写对活进程不可见且会被后续 flush 覆盖——需重启 dsh 实例（如 trading-web）后生效，
-   并避免在重启前从旧进程再触发 ingest。
+**权威存储**：`$DSH_HOME/knowledge/cards.json`（dsh-trading 缺省 `~/.dsh-trading/knowledge/cards.json`）是知识库 UI 的数据源；字段契约与受控词表对齐 `knowledge-curation` 技能（source.url 为查重键；credibility 三档；factCheck 三桶；takeaways/boundaries/tags）。
 
-### 直写回退协议（工具不可用时）
-- 备份：`cp cards.json cards.json.bak-<批次名>`；
-- 按既有卡片 schema 追加（id 格式 `kc_<hex>`，createdAt/updatedAt ISO 时间戳）；
-- 原子性：一次性读改写；若怀疑有活跃 store 实例，先提示重启再做；
-- markdown → 字段映射：核心观点/核心论点与推理链→coreClaims（注意兼容编号列表）；
-  ✅/⚠️/❓ 三类行→factCheck 三桶；可复用视角/框架→takeaways；适用边界→boundaries；
-  tags 用主题聚类标签 + 作者名，词表外标签需说明理由。
+### 入库流程（单条与批量一致）
+1. 只调用 `knowledge_ingest` 工具逐张入库（自动 URL 查重、保持 ID 稳定）；
+2. 工具不可用（如报 `store.list is not a function`：会话绑定旧构建或实例未重载）→ **停止入库**，保存待导入的 Markdown 卡片并报告失败原因；不直接读改写 `cards.json`——store 在 dsh 进程内有内存缓存，直写会被后续 flush 覆盖，一次读改写不等于并发安全；
+3. 入库后自检：通过知识库工具读回核对（summary 非空、coreClaims 非空、credibility 枚举、URL 无重复），不能只用本地 JSON.parse 代替服务读回；
+4. 不擅自重启 dsh 实例；如需重载让新卡片可见，报告给用户处理。
 
-### 批量任务（系列视频/合集沉淀）
-- 逐条转换、逐条校验，不允许只写 markdown 不入库；
-- 全量完成后输出对账：应入库 N / 实际 N / 跳过（已存在）M / 失败清单。
-- 深度解析类（长视频）必须带事实核查三桶；纯卡片类可空桶。
+### 批量任务（用户明确批量入库时）
+- 逐条入库、逐条读回校验；
+- 完成后输出对账：应入库 N / 实际 N / 跳过（已存在）M / 失败清单及可重试输入。
 
 ---
 
@@ -172,8 +157,8 @@ credibility 三档；factCheck 三桶；takeaways/boundaries/tags）。
 | B站 view API -404 | BV号错误或视频已删除，与用户确认 |
 | B站 playurl -404/-352 | 需登录/VIP或风控，告知无法在未登录环境处理 |
 | 音频下载 403 | 流地址过期（有时效），重跑 bili_fetch.py |
-| knowledge_ingest 报 store.list is not a function | 会话绑定了旧构建或 dsh 进程未重载：重建 dsh-trading 后重启实例；批量任务用 S4 直写回退协议 |
-| knowledge_search 看不到刚直写的卡片 | store 进程内存缓存所致，重启 dsh 实例后可见；直写前先备份 |
+| knowledge_ingest 报 store.list is not a function | 会话绑定了旧构建或 dsh 进程未重载：报告失败并保留待导入卡片，不直写 cards.json、不擅自重启 |
+| knowledge_search 看不到新入库卡片 | 先确认入库是否真正通过工具完成；store 内存缓存问题报告用户，由用户决定是否重载实例 |
 | whisper 模型下载失败（HF 直连超时） | 设 `HF_ENDPOINT=https://hf-mirror.com` 重跑 |
 | mlx-whisper 安装或运行失败 | 本脚本依赖 MLX，仅支持 Apple Silicon；其他平台需另配本地 ASR（如 faster-whisper）后再跑 |
 | 微信"环境异常"三次重试仍拦截 | 风控冷却未结束，等5-10分钟重跑；或请用户粘贴正文；或试 agent-browser |

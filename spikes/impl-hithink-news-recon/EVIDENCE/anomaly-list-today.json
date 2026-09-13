@@ -1,0 +1,13 @@
+{
+  "path": "/api/a-share/special-data/anomaly-analysis-list",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "0c0c972c096a4ab08445b3f4c41cab11",
+    "data": {
+      "timestamp": 1789193281799,
+      "item": []
+    }
+  }
+}

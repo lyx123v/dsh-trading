@@ -1,0 +1,13 @@
+{
+  "path": "/api/a-share/special-data/anomaly-analysis-stock?thscodes=000636.SZ",
+  "http": 200,
+  "body": {
+    "code": 0,
+    "message": "success",
+    "request_id": "f2ac42ba05f84110a8195f03dbe25d1c",
+    "data": {
+      "timestamp": 1789192922740,
+      "item": []
+    }
+  }
+}

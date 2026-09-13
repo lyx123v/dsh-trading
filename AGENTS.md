@@ -1,32 +1,34 @@
 # dsh-trading Agent 指南
 
-DSH 交易插件包 monorepo：按市场组织 bundle（crypto/us/cn/hk），主 agent 任项目推进者与代码审查者，执行子 agent 用 headless spike-runner profile 承载。
+DSH 交易插件 monorepo，按市场组织 bundle（crypto/us/cn/hk）。本文件只保留项目契约；通用执行、并发与授权纪律遵循用户级指令。
 
-## Instruction Layers
+## 安全与当前授权
 
-- 架构与铁律：[README.md](README.md)（目标结构、五条设计铁律、关键架构定稿、数据源 ToS 表）
-- 决策记录与软件工厂治理：[.agents/notes/README.md](.agents/notes/README.md)（Agent Notes 规范、Prompt 分层缓存、CI 确定性自愈、Pareto 模型分级与反震荡治理）
-- 市场复制手册：[docs/replication.md](docs/replication.md)（含 14 条实证坑清单，改包结构前必读）
-- 交易所接入手册：[docs/connector-playbook.md](docs/connector-playbook.md)（新增交易所/数据源连接器前必读：先经 `scripts/new-connector.mjs` 生成，再按手册填写）
-- 设置路由设计：[docs/exchange-routing.md](docs/exchange-routing.md)（单预设 + dshtrading 设置路由；改动连接器激活/交易所选择前必读）
-- spike 裁决史：[spikes/REVIEW-LOG.md](spikes/REVIEW-LOG.md)
+- bundle patch insert-only；知识进 skill 随包分发；base 拥有全部市场无关行；不内置密钥、不再分发数据。下单默认 dry-run，liveTrading 必须显式开启，base 统一审批闸门不得绕过。
+- 修 CI、管线、配置或文档不授权发布。版本发布 bump、提交/推送、tag、npm 与 GitHub Release 按当前请求确认范围；历史授权、token 和启用的 workflow 不构成当前许可。发布入口：[dsh-trading-release](.dsh/skills/dsh-trading-release/SKILL.md)。
+- DSH 宿主安装与 SDK cohort 以当前实际安装及项目声明核验，不硬编码旧版本；宿主本体对本项目任务只读，不修改旧 deepseek-harness checkout。
 
-## Development Workflow
+## Home 与运行验证
 
-- **决策记录规范**：每个非平凡变更必须在同一变更中记录 Agent Note：`Record every non-trivial change as an Agent Note under [.agents/notes/](.agents/notes/README.md) in the same change.`
-- **Prompt 分层与缓存优化**：严格保障 Layer 1（全局静态前缀）与 Layer 2（仓库静态上下文）置顶稳定，动态上下文（Mem0、CodeGraph、Diff、实时指令）沉底 Layer 3，最大化服务端 KV Cache 命中率。
-- **子 Agent 模型分级与反震荡**：优先以轻量模型（`flash`/`flash_lite`）派发只读调研、代码检索与文档同步；仅在 Planning、跨模块架构重构与疑难 Bug 分析时采用高阶模型（`pro`）。单点排错连续 3 次未果必须触发熔断（Anti-thrashing Circuit Breaker），停止盲目试错并主动向用户请求澄清。
-- **CI 确定性自愈闭环**：测试或构建报错时严禁盲目提交重试，严格执行「日志精准归因 $\rightarrow$ 本地最小复现 $\rightarrow$ 针对性最小补丁 $\rightarrow$ 全量门禁前置验证」四步自愈。
-- **演进闭环**：非平凡决策提炼为 Note $\rightarrow$ 高频模式固化为 Skill（`.agents/skills/`） $\rightarrow$ 确定性约束固化为脚本 Gate（`scripts/`）。
-- **DSH_HOME 分离**：dsh-trading 的 profile 与全部 home 数据（watchlists/knowledge/holdings/strategies/indicators/trading-tasks 等）走独立 home `~/.dsh-trading`（`DSH_HOME` 环境变量），与 dsh web 宿主（`~/.dsh`）互不污染（2026-09-08 定，包内路径统一经 `@dshtrading/dsh-home` 解析）。CLI 一律经 `~/.local/bin/dsh-trading` wrapper（= `DSH_HOME=~/.dsh-trading dsh`）启动；桌面壳已内置缺省 home ~/.dsh-trading（desktop/src/runtime.cjs resolveDshHome），Dock 直点即正确；`open -a "DSH Trading" --env DSH_HOME=…` 仅作显式覆盖。仓库脚本默认已指向新 home，可用 `DSH_HOME` 覆盖。见 [dsh-home separation note](.agents/notes/implemented/process/2026-09-08-separate-dsh-home.md)。
-- **Trading UI 验证 Profile**：首验/回归固定走独立 profile：`dsh-trading --profile trading-web`（无头场景 `trading-dev`，全市场 `trading-all`）。默认 `web` profile 已摘除全部 dsh-trading 插件（2026-08-29），不得把 dsh-trading 挂回 web profile 验证；改 client 产物后需重建包并刷新 profile 的 file: 副本（删 `~/.dsh-trading/profiles/trading-web/node_modules/@dshtrading/<pkg>` 后 `dsh-trading plugin --profile trading-web install`——裸 `dsh` 会解析到旧 home `~/.dsh` 的残留 profile），见 [process note](.agents/notes/implemented/process/2026-08-29-trading-web-profile.md)。**同一 profile 服务两种宿主**（桌面壳自带 runtime / CLI 全局 dsh），核心包链接方向随最后一次启动者变化：桌面壳启动时把 profile 内 `@deepseek-ai/*` 归一为自带 runtime（`desktop/src/runtime.cjs normalizeProfileCohort`，双 `dsh-scope` 实例会让预设提示词与事件注入静默失效），CLI 验证前需重跑 `scripts/refresh-trading-web-profile.sh` 指回全局宿主；见 [cohort note](.agents/notes/implemented/bug-fix/2026-09-08-desktop-preset-context-injection.md)。
-- **UI 界面验证手法**：验证 dsh-trading 界面一律「宿主 HTTP + 无头 Chrome 截图」，不做全屏桌面截图（2026-09-04 定）：从宿主日志取 tokenized URL（桌面壳 `~/Library/Logs/dsh-trading-desktop/dsh-host.log`；`dsh --profile trading-web` 直接打印），curl 确认托管 UI 可达（401 = host 已起待鉴权），再用 headless Chrome `--timeout` 截图（勿用 `virtual-time-budget`，行情 WebSocket 长连接令页面永不静默而挂起）。见 [ui-verification note](.agents/notes/implemented/process/2026-09-04-ui-verification-hosted-http-headless-chrome.md)。
-- **宿主 DSH 升级验收**：升级 npm 全局 `@deepseek-ai/dsh` 后的 profile cohort 验收（影子拷贝检测/symlink 归一/冒烟清单）统一走全局 skill `dsh-sdk-upgrade`（`~/.zcode/skills/dsh-sdk-upgrade/`，脚本 `scripts/profile-cohort-check.sh` 跨项目通用；FAIL 必须先修）。trading-web 专属刷新走 `scripts/refresh-trading-web-profile.sh`（重挂宿主核心包 symlink，裸 `dsh plugin install` 不够）。禁止实例运行中执行 `dsh plugin install`。见 [shadow-copy note](.agents/notes/implemented/bug-fix/2026-09-01-profile-shadow-copy-prepare-crash.md)。
-- **构建与测试基线**：`pnpm build` 与 `pnpm test` 必须全绿；连接器改动另需真实网络验证（`spikes/impl-*/` 留原始响应证据）。
-- **铁律速记**：bundle patch insert-only；知识进 skill 随包分发；下单默认 dry-run + liveTrading 显式开关 + base 统一审批闸门；base 拥有全部市场无关行；不内置密钥、不再分发数据。
-- **交付流分级**：按改动规模与风险面分两档（有没有建 Issue 不是判据）。较大功能开发——改公共契约（packages/api）、交易安全语义（铁律 #3）、跨多包联动的新功能/重构——走「最新 main 开 `feat/<issue号>-<短名>` 分支 + PR 合并」，PR 描述挂 Issue、至少一个审查批准；小修小补（docs/notes、注释、CI 与脚本微调、单点 bug 修复、lockfile 维护）直接提交 main，不强制 PR。定案见 [PR flow note](.agents/notes/archived/process/2026-09-02-issue-batch-assignment-pr-flow.md) 与 [scope refinement](.agents/notes/implemented/process/2026-09-02-pr-flow-scope-refined.md)。
-- **代码与 Git 规范**：提交用 Conventional Commits；不发布 npm（未授权）；DSH 宿主本体为 npm 全局安装的 `@deepseek-ai/dsh@0.1.5-rc.1`（`/opt/homebrew/lib/node_modules/@deepseek-ai/dsh`，2026-09-10 cohort 升级），是 SDK cohort 与 profile 行的权威来源，全程只读；旧 checkout（/Users/zcl/code/deepseek-harness）已弃用，不再作为约束引用。
+- trading profile 和全部业务数据使用独立 home `~/.dsh-trading`；包内经 `@dshtrading/dsh-home` 解析。显式 `DSH_HOME` 可覆盖，但须核实目标是 trading 实例，不能因继承了 Web 会话环境而误用 `~/.dsh`。CLI 用 `~/.local/bin/dsh-trading` wrapper；桌面壳内置 trading 缺省 home。见 [home 契约](.agents/notes/implemented/process/2026-09-08-separate-dsh-home.md)。
+- UI 验证用 `dsh-trading --profile trading-web`；无头用 `trading-dev`，全市场用 `trading-all`。不得挂回 Web 宿主默认 `web` profile。客户端更新后重建并按 [profile 刷新契约](.agents/notes/implemented/process/2026-08-29-trading-web-profile.md) 刷新 file: 副本；CLI/桌面切换注意 [cohort 链接方向](.agents/notes/implemented/bug-fix/2026-09-08-desktop-preset-context-injection.md)，CLI 刷新入口 `scripts/refresh-trading-web-profile.sh`。禁止实例运行中执行 plugin install，不擅自重启服务。
+- UI 证据走宿主 tokenized HTTP URL + headless Chrome `--timeout` 截图，不做全屏桌面截图；按需加载 `ui-screenshot-verify`，见 [项目验证说明](.agents/notes/implemented/process/2026-09-04-ui-verification-hosted-http-headless-chrome.md)。宿主升级按需加载 `dsh-sdk-upgrade`，检查 profile shadow-copy/cohort；不要把裸 `dsh plugin install` 当刷新完成。
 
-## 交易会话守则（Trading Session）
+## 开发、分支与门禁
 
-对任何标的、行业或宏观主题做正式分析前，先调 `knowledge_search` 检索本地知识库（按标的代码、行业与主题标签）：命中的知识卡片作为线索证据纳入分析并标注卡片 id 便于溯源，未命中如实说明「知识库无相关沉淀」。知识库按主体组织（图谱聚类），两级检索：主题宽泛或不确定时先 `knowledge_graph` 看主体分布，再 `knowledge_search` 按 `cluster` 钻取、`knowledge_get` 读全文。卡片是「别人观点的结构化转述」——转述≠背书，只作线索证据，不替代原始披露与权威数据；注意卡片时效（`updatedAt` 与素材发布时间），宏观/政策类观点过期即降权，不当作当前事实引用；对外明示不构成投资建议。分析中形成新的可复用结论时，按 knowledge-curation skill 建议用户查重后入库。交易日志纪律（双轨 append-only、先闸门后记账）见 trading-notes-setup skill；该 skill 在无本守则的外部工作区建骨架时，把同款守则写入 `.trading-journal/AGENTS.md` 作便携兜底。
+- 每个非平凡变更同一变更中记录 [Agent Note](.agents/notes/README.md)。Prompt 分层、模型能力选择、CI 归因与反震荡规则由该文档维护，不在入口复述。
+- main 是集成/默认分支，无 dev。较大功能（公共 API、交易安全语义、跨多包新功能/重构）从最新 main 开 `feat/<issue号>-<短名>`，PR 关联 Issue 并至少一个审查批准；docs/notes、CI/脚本微调和单点修复等小改可直接 main，不强制 PR。此契约不代替当前提交/推送授权。见 [交付流分级](.agents/notes/implemented/process/2026-09-02-pr-flow-scope-refined.md)。提交用 Conventional Commits，只暂存核对过的精确文件。
+- 构建/测试基线是 `pnpm build` 与 `pnpm test`；连接器另需真实网络原始响应证据（`spikes/impl-*/`）。按改动运行相关验证，完整门禁放在提交/推送及发布边界，不为纯指令编辑生成分发副本。
+
+## 按需阅读
+
+- 架构、五条铁律、数据源 ToS：[README.md](README.md)。
+- 改包结构：[市场复制手册](docs/replication.md)；新增连接器：[接入手册](docs/connector-playbook.md)，先用 `scripts/new-connector.mjs` 生成。
+- 改连接器激活/交易所选择：[设置路由](docs/exchange-routing.md)；查 spike 裁决：[REVIEW-LOG](spikes/REVIEW-LOG.md)。
+- B站/微信内容提炼：[项目 content-insight](.agents/skills/content-insight/SKILL.md)，只交付请求产物；知识库写入需明确授权与当前工具，禁止直写活 store。
+
+## 交易会话守则
+
+正式分析标的、行业或宏观主题前，先用当前可用 `knowledge_search` 检索本地知识库；主题宽泛时先 `knowledge_graph` 看主体分布，再按 cluster 搜索、`knowledge_get` 读全文。工具不可用应如实说明，不能伪称已查库；无命中说明「知识库无相关沉淀」。卡片须标 id、核查 updatedAt 与素材发布时间，仅作观点线索，不替代原始披露和权威数据；过时宏观/政策观点降权，转述不等于背书，对外明示不构成投资建议。
+
+新结论可建议用户按 knowledge-curation 查重后入库，不自动写库。交易日志遵守 trading-notes-setup 的双轨 append-only、先闸门后记账契约；外部工作区的便携守则由该 skill 写入 `.trading-journal/AGENTS.md`。

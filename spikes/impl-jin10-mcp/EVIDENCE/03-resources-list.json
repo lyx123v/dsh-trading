@@ -1,0 +1,17 @@
+{
+  "jsonrpc": "2.0",
+  "id": 337192,
+  "result": {
+    "ttlMs": 0,
+    "cacheScope": "public",
+    "resources": [
+      {
+        "description": "可查询的行情品种及其说明",
+        "mimeType": "application/json",
+        "name": "quote_codes",
+        "title": "行情品种列表",
+        "uri": "quote://codes"
+      }
+    ]
+  }
+}

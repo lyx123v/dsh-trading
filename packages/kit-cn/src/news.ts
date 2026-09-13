@@ -13,8 +13,12 @@
  * 跨源去重（±24h 内：归一化标题全文等值，或共同前缀 ≥6 字且共同后缀 ≥2 字——
  * 2026-09-03 评审 M1 收紧：裸类别短标题/「摘要」类严格前缀/泛化日期头（截至二零二六年…）
  * 同日不同文件不判重，失败方向宁漏勿误）。
+ *
+ * 基金公告源（2026-09-12）：场内基金/ETF 无上市公司公告（东财股票公告与巨潮对其恒空），
+ * 走东财基金 F10 公告接口（JJGG type=0 全类、按 FUNDCODE 归因）。基金代码与股票代码同空间
+ * （002714 = 牧原股份 = 鹏华金城混合基金），门控按场内基金代码段双向互斥——股票代码严禁进基金接口。
  */
-export type NewsSource = 'eastmoney' | 'eastmoney-announcement' | 'cninfo-announcement'
+export type NewsSource = 'eastmoney' | 'eastmoney-announcement' | 'eastmoney-fund-announcement' | 'cninfo-announcement'
 
 export interface NewsItem {
   /** 来源名（铁律 #5 的来源标注）。 */
@@ -50,6 +54,8 @@ export interface AggregateNewsResult {
 }
 
 const EASTMONEY_URL = 'https://np-listapi.eastmoney.com/comm/web/getFastNewsList'
+const EASTMONEY_FUND_ANNOUNCEMENT_URL = 'https://api.fund.eastmoney.com/f10/JJGG'
+const EASTMONEY_FUND_ANNOUNCEMENT_DETAIL_BASE = 'https://fund.eastmoney.com/gonggao/'
 const CNINFO_BASE = 'https://www.cninfo.com.cn'
 const CNINFO_PDF_BASE = 'https://static.cninfo.com.cn/'
 const DEFAULT_WINDOW_HOURS = 24
@@ -302,6 +308,67 @@ async function fetchCninfoAnnouncements(fetchImpl: typeof globalThis.fetch, rawS
   return items
 }
 
+/* -- 东财基金公告源（2026-09-12）：场内基金/ETF 专用，F10 全类公告接口 -- */
+
+/**
+ * 场内基金代码段：15/16（深：ETF/LOF）与 50/51/52/56/58（沪：封闭/ETF）。
+ * 基金代码与股票代码同空间（002714 = 牧原股份 = 鹏华金城混合基金），两空间无前缀交集
+ * （股票 = 60/00/30/68/43/83/87/92）——此判别是基金接口的硬门控，错进即查错公司。
+ */
+function isCnExchangeTradedFundCode(stockCode: string): boolean {
+  return /^(15|16|50|51|52|56|58)/.test(stockCode)
+}
+
+async function fetchEastmoneyFundAnnouncements(fetchImpl: typeof globalThis.fetch, rawSymbol: string, limit: number): Promise<NewsItem[]> {
+  const fundCode = rawSymbol.trim().replace(/\.(SH|SZ|BJ)$/i, '')
+  if (!/^\d{6}$/.test(fundCode) || !isCnExchangeTradedFundCode(fundCode)) return []
+  const url = new URL(EASTMONEY_FUND_ANNOUNCEMENT_URL)
+  url.searchParams.set('fundcode', fundCode)
+  url.searchParams.set('pageIndex', '1')
+  url.searchParams.set('pageSize', String(Math.max(limit, 20)))
+  // type=0 = 全类（发行运作/分红送配/定期报告/人事调整）；省略 type 上游返回空。
+  url.searchParams.set('type', '0')
+  const response = await fetchImpl(url, {
+    headers: {
+      accept: 'application/json',
+      'user-agent': UA,
+      // 实证契约：缺 Referer 时 HTTP 200 但 Data 恒空——静默空数据比 4xx 更难排查，必须带。
+      referer: `https://fundf10.eastmoney.com/jjgg_${fundCode}.html`,
+    },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`eastmoney-fund-announcement: HTTP ${response.status}${body ? ` — ${body.slice(0, 160)}` : ''}`)
+  }
+  // 评审 L2 同款：坏 JSON 也要带来源前缀进 unavailable，不能裸 SyntaxError 无归因。
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(await response.text())
+  } catch {
+    throw new Error('eastmoney-fund-announcement: unexpected payload (invalid JSON)')
+  }
+  const raw = (parsed as { Data?: Array<{ FUNDCODE?: string; TITLE?: string; PUBLISHDATEDesc?: string; ID?: string }> | null }).Data
+  if (raw !== null && raw !== undefined && !Array.isArray(raw)) throw new Error('eastmoney-fund-announcement: unexpected payload (expected Data[])')
+  const items: NewsItem[] = []
+  for (const it of Array.isArray(raw) ? raw : []) {
+    if (!it.TITLE || !it.ID) continue
+    // 与巨潮源同款守卫：条目 FUNDCODE 与请求代码不符 → 丢弃（公司级公告不得冒充本标的披露）。
+    if (typeof it.FUNDCODE === 'string' && it.FUNDCODE !== fundCode) continue
+    // PUBLISHDATEDesc 只有日精度（YYYY-MM-DD，东八区 00:00）；解析失败丢弃该条，绝不回退「现在」。
+    const ts = typeof it.PUBLISHDATEDesc === 'string' ? Date.parse(`${it.PUBLISHDATEDesc.trim()}T00:00:00+08:00`) : NaN
+    if (!Number.isFinite(ts)) continue
+    items.push({
+      source: 'eastmoney-fund-announcement',
+      title: it.TITLE,
+      url: `${EASTMONEY_FUND_ANNOUNCEMENT_DETAIL_BASE}${fundCode},${encodeURIComponent(it.ID)}.html`,
+      publishedAt: new Date(ts).toISOString(),
+      relatedCodes: [fundCode],
+    })
+  }
+  return items
+}
+
 /* -- 跨源公告去重（东财 ↔ 巨潮同一条披露会同时出现，不去重则公告页签/图钉成对假事件）-- */
 
 /** 公告标题归一化：去公司名前缀（东财习惯 `公司:标题`，巨潮标题无前缀）→ 去全部标点/符号/空白。 */
@@ -399,6 +466,9 @@ export async function aggregateNews(options: AggregateNewsOptions = {}): Promise
   }
   if (options.symbol && isEnabled('cninfo-announcement')) {
     tasks.push(fetchCninfoAnnouncements(fetchImpl, options.symbol, limit, now))
+  }
+  if (options.symbol && isEnabled('eastmoney-fund-announcement')) {
+    tasks.push(fetchEastmoneyFundAnnouncements(fetchImpl, options.symbol, limit))
   }
 
   const results = await Promise.allSettled(tasks)
