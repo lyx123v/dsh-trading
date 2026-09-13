@@ -12,11 +12,14 @@ const NOW = Date.parse('2026-08-30T20:00:00Z')
 type Resp = { ok: boolean; status: number; text: () => Promise<string> }
 const jsonResp = (obj: unknown): Resp => ({ ok: true, status: 200, text: async () => JSON.stringify(obj) })
 const failResp = (status: number, body = 'boom'): Resp => ({ ok: false, status, text: async () => body })
+/** 原样返回文本体（JSONP 端点用）。 */
+const rawResp = (text: string): Resp => ({ ok: true, status: 200, text: async () => text })
 
-/** URL 分发 mock：东财快讯 / 东财公告 / 巨潮 topSearch / 巨潮 hisAnnouncement / 基金 F10 公告 五路。 */
-function cnRouteFetch(map: { emNews?: Resp; emAnn?: Resp; topSearch?: Resp; cninfo?: Resp; fundAnn?: Resp } = {}) {
+/** URL 分发 mock：东财快讯 / 东财个股检索 / 东财公告 / 巨潮 topSearch / 巨潮 hisAnnouncement / 基金 F10 公告 六路。 */
+function cnRouteFetch(map: { emNews?: Resp; emSymbol?: Resp; emAnn?: Resp; topSearch?: Resp; cninfo?: Resp; fundAnn?: Resp } = {}) {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
+    if (url.includes('search-api-web')) return map.emSymbol ?? jsonResp({ result: { cmsArticleWebOld: [] } })
     if (url.includes('JJGG')) return map.fundAnn ?? jsonResp({ Data: [] })
     if (url.includes('np-anotice')) return map.emAnn ?? jsonResp({ data: { list: [] } })
     if (url.includes('topSearch')) return map.topSearch ?? jsonResp({ keyBoardList: [{ code: '600519', orgId: 'gssh0600519', zwjc: '贵州茅台' }] })
@@ -121,6 +124,93 @@ describe('源配置化（issue #96）：aggregateNews 按 sources 装配', () =>
     })
     const { items } = await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: '600519', sources: ['eastmoney-announcement'] })
     expect(items.some((i) => i.source === 'eastmoney-announcement')).toBe(true)
+  })
+})
+
+describe('fetchEastmoneySymbolNews（个股新闻源，2026-09-13）', () => {
+  const symbolNewsPayload = {
+    code: 0,
+    hitsTotal: 2,
+    result: {
+      cmsArticleWebOld: [
+        { date: '2026-08-26 10:11:51', title: '贵州茅台(<em>600519</em>.SH)：2026年中报净利润为445亿元', url: 'http://finance.eastmoney.com/a/202608153842377958.html' },
+        // 标题不含代码 → 仍保留（个股源按代码检索，不叠加标题匹配）
+        { date: '2026-08-27 18:24:44', title: 'i茅台再调整规则：6款次新飞天常态化投放', url: 'http://finance.eastmoney.com/a/202609083868170263.html' },
+        // 超过默认 7 天回看窗 → 丢弃
+        { date: '2026-08-20 09:00:00', title: '旧新闻', url: 'http://finance.eastmoney.com/a/old.html' },
+        // 坏时间 / 缺链接 → 丢弃，绝不回退「现在」
+        { date: 'not-a-time', title: '坏时间条目', url: 'http://finance.eastmoney.com/a/bad.html' },
+        { date: '2026-08-26 12:00:00', title: '缺链接条目' },
+      ],
+    },
+  }
+  const jsonpBody = 'cb(' + JSON.stringify(symbolNewsPayload) + ')'
+
+  it('解析 JSONP：剥 <em>、source/relatedCodes、默认 7 天窗、坏时间/缺链接丢弃、不叠加标题匹配', async () => {
+    const { items, unavailable } = await aggregateNews({
+      fetch: cnRouteFetch({ emSymbol: rawResp(jsonpBody) }),
+      now: NOW,
+      symbol: '600519.SH',
+    })
+    expect(unavailable).toEqual([])
+    const symbolItems = items.filter((i) => i.source === 'eastmoney-symbol-news')
+    expect(symbolItems).toHaveLength(2)
+    const first = symbolItems.find((i) => i.title.includes('中报'))
+    expect(first?.title).toBe('贵州茅台(600519.SH)：2026年中报净利润为445亿元')
+    expect(first?.url).toBe('http://finance.eastmoney.com/a/202608153842377958.html')
+    expect(first?.publishedAt).toBe(new Date(Date.parse('2026-08-26T10:11:51+08:00')).toISOString())
+    expect(first?.relatedCodes).toEqual(['600519'])
+    expect(symbolItems.some((i) => i.title.includes('i茅台'))).toBe(true)
+    expect(items.some((i) => i.title === '旧新闻' || i.title === '坏时间条目' || i.title === '缺链接条目')).toBe(false)
+  })
+
+  it('windowHours 不缩短个股新闻窗（GUI 桥固定传 24h）：7 天内条目仍返回', async () => {
+    const { items } = await aggregateNews({
+      fetch: cnRouteFetch({ emSymbol: rawResp(jsonpBody) }),
+      now: NOW,
+      symbol: '600519',
+      windowHours: 24,
+    })
+    expect(items.filter((i) => i.source === 'eastmoney-symbol-news')).toHaveLength(2)
+  })
+
+  it('个股新闻与全市场快讯同名同窗 → 标题去重只留一条', async () => {
+    const dup = { data: { fastNewsList: [{ title: '贵州茅台(600519)发布半年度业绩', showTime: '2026-08-30 19:00:00', code: '202608300001', stockList: ['1.600519'] }] } }
+    const symbolDup = { code: 0, result: { cmsArticleWebOld: [{ date: '2026-08-30 18:00:00', title: '贵州茅台(600519)发布半年度业绩', url: 'http://finance.eastmoney.com/a/dup.html' }] } }
+    const { items } = await aggregateNews({
+      fetch: cnRouteFetch({ emNews: jsonResp(dup), emSymbol: rawResp('cb(' + JSON.stringify(symbolDup) + ')') }),
+      now: NOW,
+      symbol: '600519',
+    })
+    expect(items.filter((i) => i.title === '贵州茅台(600519)发布半年度业绩')).toHaveLength(1)
+  })
+
+  it('非 2xx / 坏 JSONP → unavailable 带 eastmoney-symbol-news 前缀（fail-soft）', async () => {
+    const failed = await aggregateNews({ fetch: cnRouteFetch({ emSymbol: failResp(503) }), now: NOW, symbol: '600519' })
+    expect(failed.unavailable.some((u) => u.includes('eastmoney-symbol-news'))).toBe(true)
+    const bad = await aggregateNews({ fetch: cnRouteFetch({ emSymbol: rawResp('<html>not jsonp</html>') }), now: NOW, symbol: '600519' })
+    expect(bad.unavailable.some((u) => u.startsWith('eastmoney-symbol-news:'))).toBe(true)
+  })
+
+  it('源配置化：sources 排除个股新闻源时不发 search-api-web 请求', async () => {
+    const urls: string[] = []
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      urls.push(String(input))
+      return jsonResp({ data: { fastNewsList: [] } })
+    }) as unknown as typeof globalThis.fetch
+    await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: '600519', sources: ['eastmoney'] })
+    expect(urls.some((u) => u.includes('search-api-web'))).toBe(false)
+  })
+
+  it('指数/非 A 股代码（000001.SH 上证指数、HSI.HK）→ 零请求', async () => {
+    const urls: string[] = []
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      urls.push(String(input))
+      return jsonResp({ data: { fastNewsList: [] } })
+    }) as unknown as typeof globalThis.fetch
+    await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: '000001.SH', sources: ['eastmoney-symbol-news'] })
+    await aggregateNews({ fetch: fetchImpl, now: NOW, symbol: 'HSI.HK', sources: ['eastmoney-symbol-news'] })
+    expect(urls.some((u) => u.includes('search-api-web'))).toBe(false)
   })
 })
 
@@ -445,6 +535,7 @@ describe('fetchEastmoneyFundAnnouncements（基金公告源，2026-09-12）', ()
     let referer = ''
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
+      if (url.includes('search-api-web')) return jsonResp({ result: { cmsArticleWebOld: [] } })
       if (url.includes('JJGG')) {
         referer = String((init?.headers as Record<string, string>)?.referer ?? '')
         return jsonResp(fundAnnJson)
@@ -478,6 +569,7 @@ describe('fetchEastmoneyFundAnnouncements（基金公告源，2026-09-12）', ()
     const urls: string[] = []
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       urls.push(String(input))
+      if (String(input).includes('search-api-web')) return jsonResp({ result: { cmsArticleWebOld: [] } })
       if (String(input).includes('JJGG')) return jsonResp(fundAnnJson)
       if (String(input).includes('np-anotice')) return jsonResp({ data: { list: [] } })
       return jsonResp({ data: { fastNewsList: [] } })

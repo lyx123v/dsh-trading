@@ -310,6 +310,7 @@ export type MarketLocaleKey =
   | 'news.source.eastmoneyAnnouncement'
   | 'news.source.eastmoneyFundAnnouncement'
   | 'news.source.eastmoney'
+  | 'news.source.eastmoneySymbolNews'
   | 'news.source.hkexAnnouncement'
   | 'news.source.cninfoAnnouncement'
   | 'news.source.secEdgar'

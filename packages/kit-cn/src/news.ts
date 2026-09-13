@@ -6,6 +6,11 @@
  * 字段：fastNewsList[] = { title, showTime(YYYY-MM-DD HH:MM:SS, 东八区), code, summary(正文) }；
  * url 由 code 构造 finance.eastmoney.com/a/<code>.html（实测可达）。
  * 铁律 #5：summary 是正文，**只引 title/showTime/链接**（元数据），不取 summary 再分发。
+ *
+ * 个股新闻源（2026-09-13，补缺口）：上面的快讯是**全市场流**、无 symbol 参数，客户端再按标的过滤，
+ * 结果多数个股 24h 恒空；新增 eastmoney-symbol-news = 东财站内新闻检索（search-api-web，keyword=代码、
+ * relevance 排序），同 publisher、免 key，回看窗下限 7 天（源自带窗，不随 windowHours 缩短）。
+ * 指数代码（如 000001.SH）全文命中噪声大，不进本源。
  * 每源失败 fail-soft（unavailable 注明）；时间窗/标的过滤 + 排序截尾；defineTool 在 index.ts。
  *
  * 公告双源（2026-09-03，多供应商冗余裁决；spikes/impl-hk-cn-announce-sources/ EVIDENCE）：
@@ -18,7 +23,7 @@
  * 走东财基金 F10 公告接口（JJGG type=0 全类、按 FUNDCODE 归因）。基金代码与股票代码同空间
  * （002714 = 牧原股份 = 鹏华金城混合基金），门控按场内基金代码段双向互斥——股票代码严禁进基金接口。
  */
-export type NewsSource = 'eastmoney' | 'eastmoney-announcement' | 'eastmoney-fund-announcement' | 'cninfo-announcement'
+export type NewsSource = 'eastmoney' | 'eastmoney-symbol-news' | 'eastmoney-announcement' | 'eastmoney-fund-announcement' | 'cninfo-announcement'
 
 export interface NewsItem {
   /** 来源名（铁律 #5 的来源标注）。 */
@@ -54,6 +59,8 @@ export interface AggregateNewsResult {
 }
 
 const EASTMONEY_URL = 'https://np-listapi.eastmoney.com/comm/web/getFastNewsList'
+/** 东财站内新闻检索（个股新闻源，2026-09-13）：keyword=代码、relevance 排序、JSONP。 */
+const EASTMONEY_SYMBOL_NEWS_URL = 'https://search-api-web.eastmoney.com/search/jsonp'
 const EASTMONEY_FUND_ANNOUNCEMENT_URL = 'https://api.fund.eastmoney.com/f10/JJGG'
 const EASTMONEY_FUND_ANNOUNCEMENT_DETAIL_BASE = 'https://fund.eastmoney.com/gonggao/'
 const CNINFO_BASE = 'https://www.cninfo.com.cn'
@@ -66,6 +73,8 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 const UPSTREAM_TIMEOUT_MS = 10_000
 /** 公告时间窗放宽：上市公司公告 90 天（一季度）内有效（法定披露低频，媒体快讯仍按 24h 窗）。 */
 const ANNOUNCEMENT_MAX_AGE_MS = 90 * 24 * 3_600_000
+/** 个股新闻回看窗（7 天）：媒体报道低频，24h 窗对多数标的恒空。源自带窗，不随 windowHours 缩短（与公告 90 天同款）。 */
+const SYMBOL_NEWS_WINDOW_MS = 7 * 24 * 3_600_000
 /** 巨潮公告检索请求窗：宽于 90 天过滤窗，避免日期边界裁剪（seDate 日精度）。 */
 const CNINFO_REQUEST_WINDOW_MS = 95 * 24 * 3_600_000
 
@@ -114,6 +123,73 @@ async function fetchEastmoney(fetchImpl: typeof globalThis.fetch, limit: number)
       url: `https://finance.eastmoney.com/a/${encodeURIComponent(String(it.code))}.html`,
       publishedAt: new Date(ts).toISOString(),
       ...(relatedCodes && relatedCodes.length > 0 ? { relatedCodes } : {}),
+    })
+  }
+  return items
+}
+
+/**
+ * 个股新闻源（2026-09-13）：东财站内新闻检索 `search-api-web`，keyword=代码、relevance 排序。
+ * 补「全市场快讯 + 客户端 symbol 过滤」的个股 24h 恒空缺口——检索直接以标的代码为查询词，
+ * 返回标的自身报道（A 股/基金代码实测 hitsTotal 数百至数千，前几条即标的新闻）。
+ * 与 fetchEastmoney 同 publisher、免 key；只取 title/date/url（正文 content 不下发）。
+ * 只接受 6 位数字代码；指数（如 000001.SH）全文命中噪声大，不走本源。
+ */
+async function fetchEastmoneySymbolNews(fetchImpl: typeof globalThis.fetch, rawSymbol: string, limit: number): Promise<NewsItem[]> {
+  const raw = rawSymbol.trim()
+  // 上证指数 000xxx.SH / 深证指数 399xxx.SZ：全文检索噪声大（实测 000001.SH 前 3 条全不相关），不走本源。
+  const indexMatch = /^(\d{6})\.(SH|SZ)$/i.exec(raw)
+  if (indexMatch !== null) {
+    const [, code = '', exchange = ''] = indexMatch as unknown as [string, string, string]
+    const ex = exchange.toUpperCase()
+    if ((ex === 'SH' && code.startsWith('000')) || (ex === 'SZ' && code.startsWith('399'))) return []
+  }
+  const stockCode = raw.replace(/\.(SH|SZ|BJ)$/i, '')
+  if (!/^\d{6}$/.test(stockCode)) return []
+  const param = {
+    uid: '',
+    keyword: stockCode,
+    type: ['cmsArticleWebOld'],
+    client: 'web',
+    clientType: 'web',
+    clientVersion: 'curr',
+    param: { cmsArticleWebOld: { searchScope: 'default', sort: 'default', pageIndex: 1, pageSize: Math.max(limit, 20), preTag: '', postTag: '' } },
+  }
+  const url = new URL(EASTMONEY_SYMBOL_NEWS_URL)
+  url.searchParams.set('cb', 'cb')
+  url.searchParams.set('param', JSON.stringify(param))
+  const response = await fetchImpl(url, {
+    headers: { accept: '*/*', 'user-agent': UA, referer: 'https://so.eastmoney.com/' },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`eastmoney-symbol-news: HTTP ${response.status}${body ? ` — ${body.slice(0, 160)}` : ''}`)
+  }
+  // 评审 L2 同款：坏载荷带来源前缀进 unavailable，不裸 SyntaxError。
+  let parsed: unknown
+  try {
+    // JSONP（`cb({...})`）；上游也可能直接回 JSON。
+    const payload = (await response.text()).trim().replace(/^[^ (]+\(/, '').replace(/\)\s*;?\s*$/, '')
+    parsed = JSON.parse(payload)
+  } catch {
+    throw new Error('eastmoney-symbol-news: unexpected payload (invalid JSONP/JSON)')
+  }
+  const list = (parsed as { result?: { cmsArticleWebOld?: Array<{ date?: string; title?: string; url?: string }> } }).result?.cmsArticleWebOld
+  if (!Array.isArray(list)) throw new Error('eastmoney-symbol-news: unexpected payload (expected result.cmsArticleWebOld[])')
+  const items: NewsItem[] = []
+  for (const it of list) {
+    // 标题含 <em> 高亮标签，剥标签后下发；时间解析失败丢弃该条，不回退「现在」。
+    const title = typeof it.title === 'string' ? it.title.replace(/<[^>]*>/g, '').trim() : ''
+    const ts = typeof it.date === 'string' ? parseCnShowTime(it.date) : NaN
+    const itemUrl = typeof it.url === 'string' ? it.url.trim() : ''
+    if (title.length === 0 || !Number.isFinite(ts) || !/^https?:\/\//.test(itemUrl)) continue
+    items.push({
+      source: 'eastmoney-symbol-news',
+      title,
+      url: itemUrl,
+      publishedAt: new Date(ts).toISOString(),
+      relatedCodes: [stockCode],
     })
   }
   return items
@@ -418,6 +494,29 @@ function dedupeCrossSourceAnnouncements(items: NewsItem[]): NewsItem[] {
   return kept
 }
 
+/**
+ * 新闻去重（2026-09-13）：全市场快讯（eastmoney）与个股检索（eastmoney-symbol-news）可能命中
+ * 同一篇报道。判据保守——标题归一化后**完全相同**且发布时间相差 ≤24h 才算重复（先到先得）；
+ * 不做前缀/相似匹配（同名不同文是合法的，如「报告」vs「报告摘要」）。公告源走 isCrossSourceDup。
+ */
+function dedupeNewsByTitle(items: NewsItem[]): NewsItem[] {
+  const kept: NewsItem[] = []
+  const seen = new Map<string, Array<{ ts: number; source: string }>>()
+  for (const item of items) {
+    const key = item.title.replace(/[\s\p{P}\p{S}]+/gu, '').toUpperCase()
+    const ts = Date.parse(item.publishedAt)
+    const entries = key.length > 0 ? seen.get(key) : undefined
+    // 只去跨源同篇；同源同名（合法的重复快讯）不在此处理，避免误删既有流。
+    if (entries !== undefined && entries.some((e) => e.source !== item.source && Math.abs(e.ts - ts) <= 24 * 3_600_000)) continue
+    if (key.length > 0) {
+      if (entries === undefined) seen.set(key, [{ ts, source: item.source }])
+      else entries.push({ ts, source: item.source })
+    }
+    kept.push(item)
+  }
+  return kept
+}
+
 function inWindow(publishedAt: string, nowMs: number, windowMs: number): boolean {
   const ts = Date.parse(publishedAt)
   if (!Number.isFinite(ts)) return false
@@ -452,6 +551,9 @@ export async function aggregateNews(options: AggregateNewsOptions = {}): Promise
   const windowHours = clampNumber(options.windowHours, DEFAULT_WINDOW_HOURS, 1, 24 * 7)
   const windowMs = windowHours * 3_600_000
   const limit = clampNumber(options.limit, DEFAULT_LIMIT, 1, MAX_LIMIT)
+  // 个股新闻回看窗下限（7 天）：与公告 90 天同款——源自带窗，不随 windowHours 缩短
+  // （GUI 桥固定传 windowHours=24，若按该值过滤则个股新闻几乎恒空）。
+  const symbolNewsWindowMs = Math.max(windowMs, SYMBOL_NEWS_WINDOW_MS)
 
   const tasks: Promise<NewsItem[]>[] = []
   // 源配置化（issue #96）：sources 缺省 = 全部默认源；公告双源仍受 symbol 门控。
@@ -459,6 +561,10 @@ export async function aggregateNews(options: AggregateNewsOptions = {}): Promise
   const isEnabled = (id: NewsSource): boolean => enabled === undefined || enabled.includes(id)
   if (isEnabled('eastmoney')) {
     tasks.push(fetchEastmoney(fetchImpl, limit))
+  }
+  if (options.symbol && isEnabled('eastmoney-symbol-news')) {
+    // 个股新闻源（2026-09-13）：以代码直查东财新闻检索，补全市场快讯按 symbol 过滤的恒空缺口。
+    tasks.push(fetchEastmoneySymbolNews(fetchImpl, options.symbol, limit))
   }
   if (options.symbol && isEnabled('eastmoney-announcement')) {
     // 公告双源并行（2026-09-03 多供应商冗余）：东财公告主源 + 巨潮备份源。
@@ -478,17 +584,20 @@ export async function aggregateNews(options: AggregateNewsOptions = {}): Promise
   for (const result of results) {
     if (result.status === 'fulfilled') {
       for (const item of result.value) {
-        // 公告放宽时间窗（上市公司公告 7 天内均有效展示），媒体快讯按 24h 时间窗
-        const maxAge = item.source.includes('announcement') ? ANNOUNCEMENT_MAX_AGE_MS : windowMs
+        // 时间窗：公告 90 天；个股新闻默认 7 天（显式 windowHours 时按用户值）；其余媒体快讯按 windowMs。
+        const maxAge = item.source.includes('announcement')
+          ? ANNOUNCEMENT_MAX_AGE_MS
+          : item.source === 'eastmoney-symbol-news' ? symbolNewsWindowMs : windowMs
         if (!inWindow(item.publishedAt, now, maxAge)) continue
-        if (!matchesSymbol(item, options.symbol)) continue
+        // 个股新闻源以代码检索、上游 relevance 负责相关性，不再叠加标题匹配（标题常不含代码）。
+        if (options.symbol !== undefined && item.source !== 'eastmoney-symbol-news' && !matchesSymbol(item, options.symbol)) continue
         items.push(item)
       }
     } else {
       unavailable.push(result.reason instanceof Error ? result.reason.message : String(result.reason))
     }
   }
-  const deduped = dedupeCrossSourceAnnouncements(items)
+  const deduped = dedupeNewsByTitle(dedupeCrossSourceAnnouncements(items))
   deduped.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
   return { items: deduped.slice(0, limit), unavailable }
 }

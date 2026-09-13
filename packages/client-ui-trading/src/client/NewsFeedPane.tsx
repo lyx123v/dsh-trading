@@ -66,6 +66,7 @@ const SOURCE_LABEL_KEY: Record<string, MarketLocaleKey> = {
   'eastmoney-announcement': 'news.source.eastmoneyAnnouncement',
   'eastmoney-fund-announcement': 'news.source.eastmoneyFundAnnouncement',
   'eastmoney': 'news.source.eastmoney',
+  'eastmoney-symbol-news': 'news.source.eastmoneySymbolNews',
   'hkex-announcement': 'news.source.hkexAnnouncement',
   'cninfo-announcement': 'news.source.cninfoAnnouncement',
   'sec-edgar': 'news.source.secEdgar',

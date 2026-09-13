@@ -236,9 +236,10 @@ function renderNewsItem(item: { source: string; title: string; url: string; publ
 
 export function createGetNewsTool(toolOptions: { getSources?: () => readonly string[] | undefined } = {}) {
   const description =
-    'Get recent China A-share market news, announcements, and macro financial updates from Eastmoney financial fast-news feed. '
-    + 'Aggregates and sorts newest-first; each item carries source name (东方财富), publish time and a link for traceability. '
-    + 'Optionally filter by symbol (A-share code, e.g. 600519 / 000001) and by a time window. '
+    'Get recent China A-share market news, announcements, and macro financial updates from Eastmoney. '
+    + 'Aggregates and sorts newest-first; each item carries source name, publish time and a link for traceability. '
+    + 'Without symbol it returns the market-wide fast-news feed (default 24h window). '
+    + 'With symbol (A-share code, e.g. 600519 / 000001) it additionally returns per-symbol news from Eastmoney news search (relevance-ranked, looking back up to 7 days) and per-symbol announcements. '
     + 'Fetches metadata only, never redistributes article bodies. No credentials required.'
   return defineTool({
     name: 'cn_get_news',
@@ -246,7 +247,7 @@ export function createGetNewsTool(toolOptions: { getSources?: () => readonly str
     parameters: {
       symbol: {
         type: 'string',
-        description: 'Optional symbol to filter by, market-canonical vocabulary, e.g. 600519 or 000001 (A-share code). Best-effort matched against Eastmoney stock tags.',
+        description: 'Optional A-share code (market-canonical, e.g. 600519 / 000001 / 600519.SH). Adds per-symbol news (Eastmoney news search, up to 7-day lookback) and per-symbol announcements; the market-wide feed is still included.',
       },
       windowHours: {
         type: 'number',

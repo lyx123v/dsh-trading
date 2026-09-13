@@ -1,0 +1,137 @@
+[
+  {
+    "label": "cn-stock-code-600519",
+    "keyword": "600519",
+    "http": 200,
+    "hitsTotal": 616,
+    "returned": 10,
+    "top3": [
+      {
+        "date": "2026-08-15 10:11:51",
+        "media": "界面新闻",
+        "title": "贵州茅台(600519.SH)：2026年中报净利润为445.17亿元、同比较去年同期下降1.95%",
+        "url": "http://finance.eastmoney.com/a/202608153842377958.html"
+      },
+      {
+        "date": "2026-09-08 18:24:44",
+        "media": "第一财经",
+        "title": "i茅台再调整规则：6款次新飞天9日起常态化投放",
+        "url": "http://finance.eastmoney.com/a/202609083868170263.html"
+      },
+      {
+        "date": "2026-09-10 09:16:00",
+        "media": "证券时报网",
+        "title": "19股受融资客青睐，净买入超亿元",
+        "url": "http://finance.eastmoney.com/a/202609103870152644.html"
+      }
+    ]
+  },
+  {
+    "label": "cn-stock-name-贵州茅台",
+    "keyword": "贵州茅台",
+    "http": 200,
+    "hitsTotal": 4630,
+    "returned": 10,
+    "top3": [
+      {
+        "date": "2026-09-09 09:59:52",
+        "media": "第一财经",
+        "title": "壹评级：贵州茅台线下自营店调价，短期催化值得关注",
+        "url": "http://finance.eastmoney.com/a/202609093869093015.html"
+      },
+      {
+        "date": "2026-09-04 12:45:35",
+        "media": "上海证券报",
+        "title": "贵州茅台回来了",
+        "url": "http://finance.eastmoney.com/a/202609043865222656.html"
+      },
+      {
+        "date": "2026-09-08 18:43:03",
+        "media": "每日经济新闻",
+        "title": "“i茅台”6款次新飞天改为“每日开抢”，贵州茅台：近期投放有所调整，但全年总量不增",
+        "url": "http://finance.eastmoney.com/a/202609083868182374.html"
+      }
+    ]
+  },
+  {
+    "label": "cn-index-000001.SH",
+    "keyword": "000001.SH",
+    "http": 200,
+    "hitsTotal": 10000,
+    "returned": 10,
+    "top3": [
+      {
+        "date": "2026-09-11 16:34:11",
+        "media": "上交所发布",
+        "title": "燧原科技（688801.SH）今日在上交所上市",
+        "url": "http://finance.eastmoney.com/a/202609113872465535.html"
+      },
+      {
+        "date": "2026-09-11 16:44:56",
+        "media": "界面新闻",
+        "title": "科力远(600478.SH)：选举岳英倩为职工代表董事",
+        "url": "http://finance.eastmoney.com/a/202609113872101278.html"
+      },
+      {
+        "date": "2026-09-11 16:44:31",
+        "media": "界面新闻",
+        "title": "金开新能(600821.SH)：独立董事秦海岩任期届满辞职",
+        "url": "http://finance.eastmoney.com/a/202609113872102694.html"
+      }
+    ]
+  },
+  {
+    "label": "hk-stock-00700",
+    "keyword": "00700",
+    "http": 200,
+    "hitsTotal": 941,
+    "returned": 10,
+    "top3": [
+      {
+        "date": "2026-09-11 23:24:00",
+        "media": "证券时报网",
+        "title": "腾讯控股(00700.HK)连续20日回购，累计回购901.10万股",
+        "url": "http://finance.eastmoney.com/a/202609113872431696.html"
+      },
+      {
+        "date": "2026-09-10 22:24:00",
+        "media": "证券时报网",
+        "title": "腾讯控股(00700.HK)连续19日回购，累计斥资39.07亿港元",
+        "url": "http://finance.eastmoney.com/a/202609103870884663.html"
+      },
+      {
+        "date": "2026-09-09 22:18:00",
+        "media": "证券时报网",
+        "title": "腾讯控股(00700.HK)连续18日回购，累计斥资38.06亿港元",
+        "url": "http://finance.eastmoney.com/a/202609093869618283.html"
+      }
+    ]
+  },
+  {
+    "label": "us-stock-AAPL",
+    "keyword": "AAPL",
+    "http": 200,
+    "hitsTotal": 93,
+    "returned": 10,
+    "top3": [
+      {
+        "date": "2026-09-12 09:11:13",
+        "media": "经纬科创",
+        "title": "美股盘后：存储芯片概念股、科技七巨头涨跌不一，SK海力士涨0.17%，闪迪跌0.08%",
+        "url": "http://finance.eastmoney.com/a/202609123872684597.html"
+      },
+      {
+        "date": "2026-09-11 09:02:00",
+        "media": "经纬科创",
+        "title": "美股盘后：存储芯片概念股、科技七巨头集体下跌，SK海力士跌1.29%，美光科技跌0.61%，谷歌跌0.42%，Meta跌0.49%",
+        "url": "http://finance.eastmoney.com/a/202609113871380039.html"
+      },
+      {
+        "date": "2026-09-09 09:06:04",
+        "media": "经纬科创",
+        "title": "9日美股盘后：大型科技股涨跌不一，SK海力士跌0.56%，闪迪涨0.33%，特斯拉跌0.42%",
+        "url": "http://stock.eastmoney.com/a/202609093868829589.html"
+      }
+    ]
+  }
+]
