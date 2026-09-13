@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { provider, providerForSkills } from '../src/role-skills.js'
 
 describe('dsh-trading-role-skills provider', () => {
-  it('bundles company-analysis and dynamic-capabilities with readable bodies', async () => {
+  it('bundles company-analysis, weekly-trading-plan and dynamic-capabilities with readable bodies', async () => {
     const candidates = await provider.list()
-    expect(candidates.map(c => c.name)).toEqual(['company-analysis', 'dynamic-capabilities'])
+    expect(candidates.map(c => c.name)).toEqual(['company-analysis', 'weekly-trading-plan', 'dynamic-capabilities'])
     for (const candidate of candidates) {
       const skill = await provider.get(candidate)
       expect(skill.name).toBe(candidate.name)
@@ -14,6 +14,11 @@ describe('dsh-trading-role-skills provider', () => {
     }
     const company = await provider.get({ name: 'company-analysis' })
     expect(company.content).toContain('company-analysis')
+
+    // Packaged skill body must survive the sync step (fetched from the portable directory).
+    const plan = await provider.get({ name: 'weekly-trading-plan' })
+    expect(plan.content).toContain('KDAS')
+    expect(plan.content).toContain('六道闸门')
   })
 
   it('rejects unknown role skills', async () => {

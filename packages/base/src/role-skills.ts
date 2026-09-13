@@ -7,6 +7,7 @@ export const name = 'dsh-trading-role-skills'
 export const inject = ['skills']
 const companyResourceBase = { kind: 'directory', path: fileURLToPath(new URL('../assets/skills/company-analysis/', import.meta.url)) } as const
 const flatResourceBase = { kind: 'directory', path: fileURLToPath(new URL('../assets/skills/', import.meta.url)) } as const
+const weeklyPlanResourceBase = { kind: 'directory', path: fileURLToPath(new URL('../assets/skills/weekly-trading-plan/', import.meta.url)) } as const
 /** Concrete candidate: this provider always supplies resourceBase and a URL locator. */
 type RoleCandidate = SkillCandidate & { resourceBase: SkillResourceBase; locator: URL }
 const CANDIDATES: RoleCandidate[] = [
@@ -19,6 +20,16 @@ const CANDIDATES: RoleCandidate[] = [
     resourceBase: companyResourceBase,
     rank: BUNDLED_SKILL_RANK,
     locator: new URL('../assets/skills/company-analysis/SKILL.md', import.meta.url),
+  },
+  {
+    name: 'weekly-trading-plan',
+    description: '每周交易计划：把本周复盘、持仓与资金、消息与公告、facts/ 与知识库、假设档案合成下周计划，按交易模式 A/B、分市场策略与 KDAS 买点分层逐条过六道闸门，输出双向预案与失效条件。',
+    invocation: { modelInvocable: true, userInvocable: true },
+    provider: name,
+    source: 'bundled',
+    resourceBase: weeklyPlanResourceBase,
+    rank: BUNDLED_SKILL_RANK,
+    locator: new URL('../assets/skills/weekly-trading-plan/SKILL.md', import.meta.url),
   },
   {
     name: 'dynamic-capabilities',

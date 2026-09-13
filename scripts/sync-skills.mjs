@@ -78,9 +78,10 @@ async function main() {
       }
     }
 
-    // Company research references/templates/scripts are relative to its own resourceBase.
-    // Keep the flattened compatibility asset, and distribute the complete portable skill.
-    if (skillName === 'company-analysis') {
+    // Skills that carry extra resources (references/templates/scripts) keep the flattened
+    // compatibility asset AND distribute the complete portable directory.
+    const PORTABLE_SKILLS = new Set(['company-analysis', 'weekly-trading-plan'])
+    if (PORTABLE_SKILLS.has(skillName)) {
       await cp(path.join(AGENTS_SKILLS_DIR, skillName), path.join(MARKET_PACKAGES.base, skillName), {
         recursive: true,
         dereference: true,
