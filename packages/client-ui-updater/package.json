@@ -1,6 +1,6 @@
 {
   "name": "@dshtrading/client-ui-updater",
-  "description": "dsh-trading auto-update plugin: GitHub Releases version check with release notes, incremental update of the @dshtrading/* plugin family inside a desktop-seeded profile (vendor payload zip, per-package swap), and the '软件更新' first-level settings section. Browser half registers the settings.section; node half registers the /dshtrading/api/updater routes and the update engine.",
+  "description": "dsh-trading auto-update plugin: GitHub Releases version check with release notes, incremental update of the @dshtrading/* plugin family inside a desktop-seeded profile (vendor payload zip, per-package swap), and the software-update dialog opened from the trading sidebar's update entry. Browser half registers the shell.overlay dialog; node half registers the /dshtrading/api/updater routes and the update engine.",
   "version": "0.2.1",
   "type": "module",
   "main": "lib/index.js",
@@ -36,6 +36,7 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
     "@deepseek-ai/dsh-client-locale": ">=0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-slots": ">=0.1.5-rc.1",
     "react": "^18.2.0",
     "@types/react": "~18.3.1"
@@ -52,6 +53,7 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-client-locale": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.5-rc.1",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.1",
     "@types/node": "^24.0.0",
     "@types/react": "~18.3.1",

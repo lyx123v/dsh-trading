@@ -35,6 +35,7 @@ export const zh: Record<UpdaterLocaleKey, string> = {
   restartManual: '请手动重启 DSH Trading 以完成更新。',
   checkError: '检查失败：{message}',
   retry: '重试',
+  close: '关闭',
 }
 
 export const en: Record<UpdaterLocaleKey, string> = {
@@ -65,4 +66,5 @@ export const en: Record<UpdaterLocaleKey, string> = {
   restartManual: 'Please restart DSH Trading manually to finish the update.',
   checkError: 'Check failed: {message}',
   retry: 'Retry',
+  close: 'Close',
 }

@@ -3,15 +3,16 @@
  *
  * 富途式双栏折叠：支持展开（272px 完整面板）与折叠（44px 超窄图标竖条）。
  * 工具详情列打开时测量其矩形自动右移避让。
- * 3.0 起设置入口迁驻底部（展开态 = 面板底栏，折叠态 = 竖条底部）：
- * 更新提示点轮询（自动更新插件 @dshtrading/client-ui-updater）随之从
- * SessionRail 移入——本组件两态恒挂载，是徽点的单一同步点。
+ * 3.0 起底部动作迁驻此面板（展开态 = 面板底栏，折叠态 = 竖条底部）：
+ * 设置入口 + 软件更新入口（自动更新插件 @dshtrading/client-ui-updater）。
+ * 更新可用性轮询在本组件（两态恒挂载，是徽标的单一同步点）；点击更新入口
+ * 经 window 事件 'dshtrading-updater-open' 唤起 updater 插件的更新对话框。
  */
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { MarketSidebar } from './MarketSidebar.tsx'
 import type { FoldStore } from './fold-store.ts'
-import { IconFoldPanel, IconQuotes, IconSettings, IconWatchlist } from './icons.tsx'
+import { IconFoldPanel, IconQuotes, IconSettings, IconUpdate, IconWatchlist } from './icons.tsx'
 import { fetchUpdateBadge } from './api.ts'
 import type { Observable, SelectionState, WatchlistGroupOpResult, WatchlistGroupsState, Watchlists } from './store.ts'
 import type { Instrument, MarketId } from './types.ts'
@@ -48,10 +49,15 @@ export function MarketDock(props: MarketDockProps) {
   const { t, useMarketFolded, toggleFold, openSettings } = props
   const folded = useMarketFolded(value => value)
   const [left, setLeft] = useState(0)
-  // 设置入口更新提示点（自动更新插件）：挂载 + 30 分钟轮询 host 快照；设置
-  // 面板里的即时动作经 window 自定义事件 'dshtrading-update-available'
+  // 软件更新入口（自动更新插件）：窗口自定义事件与 updater 插件的对话框对接
+  // （client 插件间不 import 彼此模块，更新可用性同款走 DOM 事件）。
+  const openUpdater = (): void => {
+    window.dispatchEvent(new CustomEvent('dshtrading-updater-open'))
+  }
+  // 更新可用性（自动更新插件）：挂载 + 30 分钟轮询 host 快照；更新对话框
+  // 里的即时动作经 window 自定义事件 'dshtrading-update-available'
   // （detail: { available: boolean }）同步翻转。桥缺席（老部署/404）→
-  // fetchUpdateBadge 返回 null，点永不亮。
+  // fetchUpdateBadge 返回 null，入口永不显示「有新版」。
   const [updateAvailable, setUpdateAvailable] = useState(false)
 
   useEffect(() => {
@@ -148,7 +154,18 @@ export function MarketDock(props: MarketDockProps) {
           >
             <IconQuotes size={16} />
           </button>
-          {/* 设置入口沉底：flex 尾部 + margin-top:auto，与展开态底栏同位。 */}
+          {/* 底部动作沉底（3.0）：软件更新 + 设置，与展开态底栏同序同位。
+              折叠态无文案空间，更新可用性退回红点。 */}
+          <button
+            type="button"
+            className={css.railButton + ' ' + css.railUpdate}
+            aria-label={t('entry.update')}
+            title={updateAvailable ? t('entry.updateAvailable') : t('entry.update')}
+            onClick={openUpdater}
+          >
+            <IconUpdate size={16} />
+            {updateAvailable && <span className={css.badgeDot} aria-hidden="true" />}
+          </button>
           <button
             type="button"
             className={css.railButton + ' ' + css.railSettings}
@@ -157,7 +174,6 @@ export function MarketDock(props: MarketDockProps) {
             onClick={openSettings}
           >
             <IconSettings size={16} />
-            {updateAvailable && <span className={css.badgeDot} aria-hidden="true" />}
           </button>
         </div>
       ) : (
@@ -165,6 +181,7 @@ export function MarketDock(props: MarketDockProps) {
           {...(props as unknown as import('./MarketSidebar.tsx').MarketSidebarProps)}
           onFold={toggleFold}
           updateAvailable={updateAvailable}
+          onOpenUpdater={openUpdater}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 /**
  * 富途式市场/自选面板（内容组件，由 MarketDock 停靠在左缘）：
  * 顶部自选分组下拉（全部/自定义分组/创建分组/自选管理，issue #82）+ 折叠按钮 +
- * 胶囊市场页签 + 表头 + 三段式自选标的列表 + 底部设置入口。
+ * 胶囊市场页签 + 表头 + 三段式自选标的列表 + 底部动作栏（软件更新 + 设置）。
  * 点击行 = 选中标的并切到行情模式（QuotePane 消费）；行内嵌迷你面积走势 +
  * 最新价 + 涨跌幅（红涨绿跌）。行情批量轮询、页面隐藏时暂停。
  * 分组视图（issue #82）：标题下拉选分组后列表按归属过滤（跨市场）；添加标的
@@ -18,7 +18,7 @@ import { intradayCandidates, intradayRequest, selectIntradaySeries } from './int
 import { colorModeStore } from './color-mode.ts'
 import { MARKET_TAB_KEY, normalizeSymbolInput } from './market-vocab.ts'
 import { Sparkline } from './Sparkline.tsx'
-import { IconChevronDown, IconFolder, IconFoldPanel, IconSettings } from './icons.tsx'
+import { IconChevronDown, IconFolder, IconFoldPanel, IconSettings, IconUpdate } from './icons.tsx'
 import { GroupMenu, GroupMembershipPopover, type GroupCreateOutcome } from './WatchlistGroups.tsx'
 import { WatchlistManager } from './WatchlistManager.tsx'
 import type { Instrument, MarketId, MarketInfo, ReferenceSeries, Ticker } from './types.ts'
@@ -55,7 +55,7 @@ export interface MarketSidebarInjected {
 export type MarketSidebarProps =
   PropsLocale<'dshtrading.market'>
   & InjectFace<MarketSidebarInjected>
-  & { onFold?: () => void; updateAvailable?: boolean }
+  & { onFold?: () => void; updateAvailable?: boolean; onOpenUpdater?: () => void }
 
 /** 日 K 降级序列的复用窗口：分钟内不重复打必失败的分钟线，TTL 过后重试。 */
 const SERIES_TTL_MS = 10 * 60 * 1000
@@ -98,7 +98,7 @@ export function displayTickerEqual(prev: Ticker | undefined, next: Ticker): bool
 
 export function MarketSidebar({
   t, useSelection, useWatchlists, useGroups, addInstrument, removeInstrument, selectInstrument, onFold, openSettings,
-  createGroup, renameGroup, deleteGroup, assignGroupMember, setActiveGroup, updateAvailable,
+  createGroup, renameGroup, deleteGroup, assignGroupMember, setActiveGroup, updateAvailable, onOpenUpdater,
 }: MarketSidebarProps) {
   const selection = useSelection(value => value.instrument)
   const watchlists = useWatchlists(value => value)
@@ -656,18 +656,29 @@ export function MarketSidebar({
         />
       )}
 
-      {/* 底部设置入口（3.0 自右缘竖条迁入）：沉底栏 + 更新提示点。 */}
+      {/* 底部动作栏（3.0 自右缘竖条迁入）：软件更新 + 设置并排沉底。
+          更新入口自身承载「有新版」文案（可用时红字高亮），不再挂设置按钮红点。 */}
       <div className={css.footBar}>
         <button
           type="button"
-          className={css.settingsBtn}
+          className={css.footBtn + ' ' + css.updateBtn}
+          data-available={updateAvailable === true ? 'true' : undefined}
+          aria-label={t('entry.update')}
+          title={updateAvailable === true ? t('entry.updateAvailable') : t('entry.update')}
+          onClick={() => { onOpenUpdater?.() }}
+        >
+          <IconUpdate size={15} />
+          <span>{updateAvailable === true ? t('entry.updateAvailable') : t('entry.update')}</span>
+        </button>
+        <button
+          type="button"
+          className={css.footBtn}
           aria-label={t('entry.settings')}
           title={t('entry.settings')}
           onClick={() => { openSettings() }}
         >
           <IconSettings size={15} />
           <span>{t('entry.settings')}</span>
-          {updateAvailable === true && <span className={css.badgeDot} aria-hidden="true" />}
         </button>
       </div>
     </div>

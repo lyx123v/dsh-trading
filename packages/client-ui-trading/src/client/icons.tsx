@@ -31,6 +31,16 @@ export function IconSettings({ size = 16 }: { size?: number }): ReactElement {
   )
 }
 
+/** 软件更新入口（循环箭头）。 */
+export function IconUpdate({ size = 16 }: { size?: number }): ReactElement {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13.25 8A5.25 5.25 0 1 1 8 2.75c1.63 0 3.08.74 4.04 1.9" />
+      <path d="M13.5 2.5v3.5h-3.5" />
+    </svg>
+  )
+}
+
 /** 面板折叠/展开（左栏 panel 图标）。 */
 export function IconFoldPanel({ size = 16 }: { size?: number }): ReactElement {
   return (

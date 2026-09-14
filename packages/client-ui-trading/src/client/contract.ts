@@ -609,6 +609,8 @@ export type MarketLocaleKey =
   | 'browser.ws.cancel'
   | 'entry.new'
   | 'entry.settings'
+  | 'entry.update'
+  | 'entry.updateAvailable'
   | 'chat.fold'
   | 'chat.expand'
   | 'chat.resize'

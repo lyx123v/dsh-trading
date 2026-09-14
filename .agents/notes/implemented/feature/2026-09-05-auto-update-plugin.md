@@ -78,6 +78,9 @@ arm64+x64、win nsis/zip x64）→ GitHub Release 附全部安装包 + SHA256SUM
 
 ### D6：UI 与联动
 
+- 2026-09-14 方向性调整：更新入口从设置一级菜单迁到左侧自选栏底栏（设置按钮旁），
+  面板改为 shell.overlay 对话框，新增「有新版」文案——见
+  [2026-09-14-updater-entry-in-sidebar](2026-09-14-updater-entry-in-sidebar.md)。
 - 设置一级菜单「软件更新」：版本卡（插件家族版本 + 桌面应用版本）→ 检查/状态行 →
   可用更新卡（版本号、发布日期、release notes 原文 pre-wrap、立即更新/发布页链接、
   payload 缺失时明确提示走完整安装包）→ 运行中进度条（下载百分比/校验安装不定态）→

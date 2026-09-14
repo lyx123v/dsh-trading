@@ -1,20 +1,18 @@
 /**
- * Software-update settings page (the first-level section registered by this
- * plugin). Pure view over /dshtrading/api/updater: renders the current
- * versions, the latest GitHub release with its notes, and drives the
- * incremental apply + restart flow. Polls the host snapshot while mounted
- * (faster while an apply is running); no SSE dependency.
+ * Software-update dialog body (rendered inside UpdaterDialog). Pure view over
+ * /dshtrading/api/updater: renders the current versions, the latest GitHub
+ * release with its notes, and drives the incremental apply + restart flow.
+ * Polls the host snapshot while mounted (faster while an apply is running);
+ * no SSE dependency.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UpdaterSnapshot } from '../updater-service.ts'
 import { desktopBridge, fetchUpdaterState, requestUpdaterApply, requestUpdaterCheck } from './api.ts'
 import { UPDATE_AVAILABLE_EVENT } from './contract.ts'
-import css from './updater-section.module.css'
+import css from './updater-panel.module.css'
 
-export type UpdaterSectionProps =
-  & PropsRuntime<'settings.section'>
-  & PropsLocale<'dshtrading.updater'>
+export type UpdaterPanelProps = PropsLocale<'dshtrading.updater'>
 
 /** Poll cadences: lazy when idle, tight while an apply pipeline is running. */
 const POLL_IDLE_MS = 30_000
@@ -28,7 +26,7 @@ function formatDay(iso: string | undefined): string {
   return parsed.toISOString().slice(0, 10)
 }
 
-export function UpdaterSection({ t }: UpdaterSectionProps) {
+export function UpdaterPanel({ t }: UpdaterPanelProps) {
   const [state, setState] = useState<UpdaterSnapshot | undefined>(undefined)
   const [actionError, setActionError] = useState<string | undefined>(undefined)
   const [checkBusy, setCheckBusy] = useState(false)
@@ -51,8 +49,8 @@ export function UpdaterSection({ t }: UpdaterSectionProps) {
     return () => { clearInterval(interval) }
   }, [refresh, running])
 
-  // Rail badge sync: mirror availability onto the window event the trading
-  // shell rail listens to (see UPDATE_AVAILABLE_EVENT in contract.ts).
+  // Sidebar badge sync: mirror availability onto the window event the trading
+  // shell sidebar listens to (see UPDATE_AVAILABLE_EVENT in contract.ts).
   useEffect(() => {
     if (state === undefined) return
     const available = state.check.available === true && state.apply.phase !== 'done'

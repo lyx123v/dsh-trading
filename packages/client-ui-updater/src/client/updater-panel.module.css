@@ -1,10 +1,10 @@
-/* UpdaterSection —— 软件更新一级菜单页面外壳样式（支持亮色/深色自适应） */
+/* UpdaterPanel —— 软件更新对话框内容样式（亮色/深色自适应；弹窗由 UpdaterDialog 承载） */
 
 .root {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 4px 0 24px;
+  padding: 0;
   font-size: 13px;
 
   /* 局部主题变量定义（亮色默认，优先走宿主 dsw-alias） */
