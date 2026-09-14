@@ -110,12 +110,12 @@ Without your signature, not a single cent moves.
 
 ## Quick start
 
-Three steps, and you're in:
+### Install
+
+Trading runs in its own DSH home (`~/.dsh-trading`) so it never mixes with your main dsh web home (`~/.dsh`); every dsh-trading package resolves data paths through `$DSH_HOME`.
 
 ```sh
 # Install into a dedicated DSH profile (pick your markets)
-# Trading lives in its own DSH home (~/.dsh-trading) so it never mixes with your
-# main dsh web home (~/.dsh); every dsh-trading package resolves data paths via $DSH_HOME
 export DSH_HOME=~/.dsh-trading
 dsh plugin --profile trading-web add @dshtrading/base @dshtrading/crypto @dshtrading/us
 # …or all four markets
@@ -124,12 +124,37 @@ dsh plugin --profile trading-web add @dshtrading/base @dshtrading/crypto @dshtra
 # Serve the browser UI in this profile (once): add the in-box web host layer
 # right after the dsh core layer in the profile manifest
 node -e "const f=(process.env.DSH_HOME||require('os').homedir()+'/.dsh')+'/profiles/trading-web/package.json',fs=require('fs'),m=JSON.parse(fs.readFileSync(f,'utf8'));m.dsh.profile.bundles.includes('@deepseek-ai/dsh-web-app')||m.dsh.profile.bundles.splice(1,0,'@deepseek-ai/dsh-web-app');fs.writeFileSync(f,JSON.stringify(m,null,2)+'\n')"
-
-# Launch the terminal
-dsh --profile trading-web
 ```
 
+### Run
+
+```sh
+# From a repository checkout: install the wrapper once, then launch
+cp scripts/home/dsh-trading ~/.local/bin/ && chmod +x ~/.local/bin/dsh-trading
+dsh-trading --profile trading-web        # serves on port 8888 by default
+
+# Installed from npm only? The wrapper sets DSH_HOME and the 8888 default:
+DSH_HOME=~/.dsh-trading dsh --profile trading-web --port 8888
+```
+
+Three profiles ship for different jobs:
+
+| Profile | Surface | Bundles |
+|---|---|---|
+| `trading-web` | Browser GUI (recommended) | dsh-base + dsh-web-app + base + crypto + us + cn + hk + futures |
+| `trading-dev` | Headless, single market | dsh-base + dsh-headless + base + crypto |
+| `trading-all` | Headless, all markets | dsh-base + dsh-headless + base + all + cn + crypto + hk + us |
+
 Open the printed URL: watchlist left, chart center, your agent right. New conversation → pick a market preset → first ask it what it sees.
+
+### From source
+
+```sh
+pnpm install && pnpm build && pnpm test   # Node per engines (^22.19.0 || >=24.0.0), pnpm 11
+./scripts/refresh-trading-web-profile.sh  # rebuild the profile's file: package copies
+```
+
+See [docs/running.md](docs/running.md) for the full run, profile and refresh contract.
 
 ## The architecture at a glance
 
@@ -176,6 +201,7 @@ No. The [PolyForm Noncommercial 1.0.0 license](LICENSE) permits noncommercial us
 
 ## Documentation
 
+- [Running, profiles & development](docs/running.md)
 - [Connectors onboarding & configuration](docs/connectors-guide.md)
 - [New connector playbook](docs/connector-playbook.md)
 - [Skills architecture](docs/skills-guide.md)

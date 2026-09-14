@@ -112,12 +112,12 @@ base 安装器按实际启用的市场生成四种角色，支持只安装部分
 
 ## 快速开始
 
-三条命令，装好即用：
+### 安装
+
+trading 走独立 DSH home（`~/.dsh-trading`），与主 dsh web home（`~/.dsh`）互不污染；全部 dsh-trading 包的数据路径都经 `$DSH_HOME` 解析。
 
 ```sh
 # 安装到独立 DSH profile（按需选择市场）
-# trading 走独立 DSH home（~/.dsh-trading），与主 dsh web home（~/.dsh）互不污染；
-# 全部 dsh-trading 包的数据路径都经 $DSH_HOME 解析
 export DSH_HOME=~/.dsh-trading
 dsh plugin --profile trading-web add @dshtrading/base @dshtrading/crypto @dshtrading/us
 # …或全市场一次装齐
@@ -126,12 +126,37 @@ dsh plugin --profile trading-web add @dshtrading/base @dshtrading/crypto @dshtra
 # 给该 profile 接上浏览器 UI（一次即可）：往 profile 清单的 dsh 核心层之后
 # 插入宿主内置 web 宿主层
 node -e "const f=(process.env.DSH_HOME||require('os').homedir()+'/.dsh')+'/profiles/trading-web/package.json',fs=require('fs'),m=JSON.parse(fs.readFileSync(f,'utf8'));m.dsh.profile.bundles.includes('@deepseek-ai/dsh-web-app')||m.dsh.profile.bundles.splice(1,0,'@deepseek-ai/dsh-web-app');fs.writeFileSync(f,JSON.stringify(m,null,2)+'\n')"
-
-# 启动终端
-dsh --profile trading-web
 ```
 
+### 运行
+
+```sh
+# 从本仓 checkout 运行：先装一次 wrapper，再启动
+cp scripts/home/dsh-trading ~/.local/bin/ && chmod +x ~/.local/bin/dsh-trading
+dsh-trading --profile trading-web        # 缺省监听 8888 端口
+
+# 只装了 npm 包、没有仓库？wrapper 负责 DSH_HOME 与 8888 缺省：
+DSH_HOME=~/.dsh-trading dsh --profile trading-web --port 8888
+```
+
+内置三个 profile，按用途选择：
+
+| profile | 界面 | 组合 |
+|---|---|---|
+| `trading-web` | 浏览器 GUI（推荐） | dsh-base + dsh-web-app + base + crypto + us + cn + hk + futures |
+| `trading-dev` | 无头，单市场 | dsh-base + dsh-headless + base + crypto |
+| `trading-all` | 无头，全市场 | dsh-base + dsh-headless + base + all + cn + crypto + hk + us |
+
 打开终端打印的 URL：左边自选，中间图表，右边是你的 Agent。新建会话 → 选市场预设 → 先问它「你看到了什么」。
+
+### 本地开发
+
+```sh
+pnpm install && pnpm build && pnpm test   # Node 见 engines（^22.19.0 || >=24.0.0），pnpm 11
+./scripts/refresh-trading-web-profile.sh  # 重建 profile 里的 file: 包副本
+```
+
+完整的运行、profile 与刷新契约见 [docs/running.md](docs/running.md)。
 
 ## 架构一瞥
 
@@ -177,6 +202,7 @@ dsh --profile trading-web
 
 ## 文档
 
+- [运行、profile 与本地开发](docs/running.md)
 - [连接器接入与配置指南](docs/connectors-guide.md)
 - [新连接器标准手册](docs/connector-playbook.md)
 - [Skills 架构指南](docs/skills-guide.md)
