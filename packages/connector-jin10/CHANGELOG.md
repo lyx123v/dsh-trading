@@ -1,4 +1,4 @@
-# @dshtrading/client-ui-settings
+# @dshtrading/connector-jin10
 
 ## 0.3.0
 
@@ -20,55 +20,15 @@
   - `@dshtrading/client-ui-settings`：交易设置区新增市场无关的「市场快讯数据源」卡片（金十 MCP Token，
     与 provider 凭据同键）与「全球」市场 tab（jin10 provider 卡片）。
 
+- e9bd316: 新增金十数据 MCP 连接器（跨市场快讯/资讯/财经日历）。`@dshtrading/connector-jin10`
+  封装 Jin10 标准 MCP 服务（Streamable HTTP，协议 2025-11-25，Bearer BYOK）：9 个市场无关
+  只读工具 `flash_list` / `flash_search` / `news_list` / `news_search` / `news_get` /
+  `econ_calendar` / `global_instruments` / `global_quote` / `global_klines`；
+  `structuredContent` 优先、`cursor → next_cursor / has_more` 分页、限流与未知品种错误映射；
+  快讯/资讯只下发标题/时间/链接（+ 文章导语），正文零再分发。`@dshtrading/base` 新增
+  host 平面工具行 `dsh-trading-connector-jin10`（市场无关共享行）并纳入安装闭包。
+
 ### Patch Changes
 
 - Updated dependencies [152c0c0]
-  - @dshtrading/router@0.3.0
-
-## 0.2.1
-
-### Patch Changes
-
-- @dshtrading/router@0.2.1
-
-## 0.2.0
-
-### Patch Changes
-
-- @dshtrading/router@0.2.0
-
-## 0.1.6
-
-### Patch Changes
-
-- @dshtrading/router@0.1.6
-
-## 0.1.5
-
-### Patch Changes
-
-- @dshtrading/router@0.1.5
-
-## 0.1.4
-
-### Patch Changes
-
-- @dshtrading/router@0.1.4
-
-## 0.1.3
-
-### Patch Changes
-
-- @dshtrading/router@0.1.3
-
-## 0.1.2
-
-### Patch Changes
-
-- @dshtrading/router@0.1.2
-
-## 0.1.1
-
-### Patch Changes
-
-- @dshtrading/router@0.1.1
+  - @dshtrading/api@0.3.0

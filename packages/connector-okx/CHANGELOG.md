@@ -1,5 +1,13 @@
 # @dshtrading/connector-okx
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [152c0c0]
+  - @dshtrading/api@0.3.0
+  - @dshtrading/indicators@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
