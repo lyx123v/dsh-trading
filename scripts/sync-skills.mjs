@@ -37,6 +37,9 @@ const MARKET_PACKAGES = {
   base: path.join(ROOT, 'packages', 'base', 'assets', 'skills'),
 }
 
+// 仅供维护者会话使用的技能，不随 npm 包分发
+const DISTRIBUTION_EXCLUDED = new Set(['dsh-trading-release'])
+
 function resolveTargetDirs(skillName) {
   if (
     skillName.startsWith('trading-') ||
@@ -68,6 +71,8 @@ async function main() {
     const skillName = dir.name
     const srcFile = path.join(AGENTS_SKILLS_DIR, skillName, 'SKILL.md')
     if (!existsSync(srcFile)) continue
+    // 会话级运维技能（含发布授权语义）不进包分发资产
+    if (DISTRIBUTION_EXCLUDED.has(skillName)) continue
 
     let content = await readFile(srcFile, 'utf8')
     // 兼容 Windows git 下未开启 symlink 导致的相对路径纯文本指针

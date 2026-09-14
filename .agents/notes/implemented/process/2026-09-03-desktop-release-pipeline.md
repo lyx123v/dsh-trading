@@ -33,8 +33,10 @@ Status: implemented
 - 新增 `.dsh/skills/dsh-trading-release/SKILL.md`（骨架移植自 dsh-web 的
   dsh-web-release skill：tag 即事实源 + 硬校验 + tag 触发管线 + 发布后验证；
   内容按本仓重写：changesets bump、无 npm 通道、同 tag 修复重推规则、
-  未签名安装包约定）。skill 放 .dsh/skills/ 而非 .agents/skills/，避免被
-  sync-skills.mjs 打进 kit 包资产——它是仓库流程 skill，不是用户侧技能。
+  未签名安装包约定）。skill 原放 .dsh/skills/；2026-09-14 起 skill 迁至
+  `.agents/skills/dsh-trading-release/` 并删除顶层 .dsh（owner 要求统一技能
+  目录，宿主会话技能发现统一走 .agents/skills），「不进分发资产」约束改由
+  sync-skills.mjs 的 `DISTRIBUTION_EXCLUDED` 排除集保留。
 
 ## Alternatives considered
 
@@ -49,8 +51,10 @@ Status: implemented
 - **本地脚本打包后手动上传 Release**：不可复现、依赖本机 electron/Xcode
   状态，且跨平台（win 安装器）无法在本机构建，放弃。
 - **skill 放 .agents/skills/ 走 sync-skills 分发**：会把仓库流程说明打进四个
-  kit 包资产，污染用户侧技能面；.dsh/skills/ 是会话级 skill 目录，与 dsh-web
-  的存放约定一致，放弃。
+  kit 包资产，污染用户侧技能面——该落败原因 2026-09-14 由 `DISTRIBUTION_EXCLUDED`
+  排除集化解（skill 迁入 .agents/skills 但不同步）；「保持 .dsh/skills/ 独立
+  顶层目录」随之放弃：双目录增加维护与发现成本，owner 明确要求统一到
+  .agents/skills。
 
 ## Consequences
 

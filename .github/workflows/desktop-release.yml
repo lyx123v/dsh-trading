@@ -23,7 +23,7 @@ name: desktop-release
 # 会自动跳过已发布包继续；发现坏包走 deprecate + 下一补丁版本。
 #
 # 决策记录：.agents/notes/implemented/process/2026-09-03-desktop-release-pipeline.md
-# 发版操作手册：.dsh/skills/dsh-trading-release/SKILL.md
+# 发版操作手册：.agents/skills/dsh-trading-release/SKILL.md
 
 on:
   push:

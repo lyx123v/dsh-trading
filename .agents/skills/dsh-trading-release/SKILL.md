@@ -21,7 +21,7 @@ whenToUse: 用户明确请求 dsh-trading 发版、桌面发布、指定发布 r
 - private 的 `desktop/package.json` 不参与 changesets；管线用 `scripts/set-desktop-version.mjs` 按 tag 重写。可在获授权的版本变更中对齐，不作强制手工步骤。
 - npm 由 `scripts/publish-npm.mjs` 按 workspace 拓扑序发布，已存在的 name@version 跳过；**跳过不证明内容一致，也不允许换代码复用已发布版本**。任何发布包内容变化需新版本。
 - 桌面产物经 GitHub Actions 构建，遵循 `desktop/electron-builder.yml` 未签名约定；签名/公证是独立决策。token 仅放受控 secret，不进文件或日志。
-- 本技能属于 `.dsh/skills/` 会话流程，不放 `.agents/skills/` 分发源；非平凡流程变化同步 Agent Note。
+- 本技能位于 `.agents/skills/` 但被 `scripts/sync-skills.mjs` 排除，不进包分发资产；非平凡流程变化同步 Agent Note。
 
 ## 0. 门禁与基线
 

@@ -5,7 +5,7 @@ DSH 交易插件 monorepo，按市场组织 bundle（crypto/us/cn/hk）。本文
 ## 安全与当前授权
 
 - bundle patch insert-only；知识进 skill 随包分发；base 拥有全部市场无关行；不内置密钥、不再分发数据。下单默认 dry-run，liveTrading 必须显式开启，base 统一审批闸门不得绕过。
-- 修 CI、管线、配置或文档不授权发布。版本发布 bump、提交/推送、tag、npm 与 GitHub Release 按当前请求确认范围；历史授权、token 和启用的 workflow 不构成当前许可。发布入口：[dsh-trading-release](.dsh/skills/dsh-trading-release/SKILL.md)。
+- 修 CI、管线、配置或文档不授权发布。版本发布 bump、提交/推送、tag、npm 与 GitHub Release 按当前请求确认范围；历史授权、token 和启用的 workflow 不构成当前许可。发布入口：[dsh-trading-release](.agents/skills/dsh-trading-release/SKILL.md)。
 - DSH 宿主安装与 SDK cohort 以当前实际安装及项目声明核验，不硬编码旧版本；宿主本体对本项目任务只读，不修改旧 deepseek-harness checkout。
 
 ## Home 与运行验证

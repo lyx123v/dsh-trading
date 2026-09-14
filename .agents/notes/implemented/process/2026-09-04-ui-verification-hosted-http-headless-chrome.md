@@ -52,7 +52,7 @@ v0.1.1 发版本地抽查（desktop 安装包冒烟）时用 macOS 全屏 `scree
 - 界面验证证据统一为 tokenized URL 的 headless Chrome 截图：可复现、
   不依赖桌面状态、不卷入用户隐私；[AGENTS.md](../../../../AGENTS.md) 工作流
   新增「UI 界面验证手法」bullet，
-  [release skill](../../../../.dsh/skills/dsh-trading-release/SKILL.md) §5
+  [release skill](../../../../.agents/skills/dsh-trading-release/SKILL.md) §5
   本地抽查改为引用本手法。
 - tokenized URL 只在本机日志与本地命令中出现，不写入仓库文件与对外材料；
   截图内容为交易台 UI 本身。
