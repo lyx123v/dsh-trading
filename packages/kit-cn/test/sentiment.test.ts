@@ -108,4 +108,110 @@ describe('A 股特色短线情绪与资金面数据 (sentiment)', () => {
       process.env.HITHINK_FINANCE_API_KEY = originalEnv
     }
   })
+
+  it('apiKeyProvider（设置中心链路）在无环境变量时提供凭证，fetchCnLimitUpPool 正常取数', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        code: 0,
+        message: 'success',
+        data: {
+          timestamp: 1725345600000,
+          item: [
+            {
+              thscode: '600519.SH',
+              ticker: '600519',
+              name: '贵州茅台',
+              last_price: 1680.5,
+              price_change_ratio_pct: 10.0,
+              continue_day_cnt: 1,
+              seal_money: 500000000,
+              limit_up_reason: '白酒+绩优',
+            },
+          ],
+        },
+      }),
+    })
+
+    const originalEnv = process.env.HITHINK_FINANCE_API_KEY
+    delete process.env.HITHINK_FINANCE_API_KEY
+    try {
+      const pool = await fetchCnLimitUpPool({}, {
+        apiKeyProvider: () => 'settings-key',
+        fetchImpl: mockFetch as unknown as typeof fetch,
+      })
+      expect(pool).toHaveLength(1)
+      expect(pool[0]?.name).toBe('贵州茅台')
+    } finally {
+      if (originalEnv === undefined) delete process.env.HITHINK_FINANCE_API_KEY
+      else process.env.HITHINK_FINANCE_API_KEY = originalEnv
+    }
+  })
+
+  it('cn_get_limit_up_pool 每次 execute 惰性解析凭证（settings 晚于插件 apply 也生效）', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        code: 0,
+        message: 'success',
+        data: {
+          timestamp: 1725345600000,
+          item: [
+            {
+              thscode: '000001.SZ',
+              ticker: '000001',
+              name: '平安银行',
+              last_price: 12.0,
+              price_change_ratio_pct: 10.0,
+              continue_day_cnt: 2,
+              seal_money: 300000000,
+              limit_up_reason: '银行降息红利',
+            },
+          ],
+        },
+      }),
+    })
+
+    let key: string | undefined
+    const originalEnv = process.env.HITHINK_FINANCE_API_KEY
+    delete process.env.HITHINK_FINANCE_API_KEY
+    try {
+      const tool = createGetLimitUpPoolTool({
+        fetch: mockFetch as unknown as typeof fetch,
+        apiKeyProvider: () => key,
+      })
+
+      const before = await tool.execute({})
+      expect(before).toContain('cn_get_limit_up_pool 获取失败')
+      expect(mockFetch).not.toHaveBeenCalled()
+
+      key = 'late-settings-key'
+      const after = await tool.execute({})
+      expect(after).toContain('A 股涨停池共 1 只股票')
+      expect(after).toContain('平安银行 (000001.SZ)')
+    } finally {
+      if (originalEnv === undefined) delete process.env.HITHINK_FINANCE_API_KEY
+      else process.env.HITHINK_FINANCE_API_KEY = originalEnv
+    }
+  })
+
+  it('cn_get_auction_strength 通过 apiKeyProvider 取到凭证后真正发起请求', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
+
+    const originalEnv = process.env.HITHINK_FINANCE_API_KEY
+    delete process.env.HITHINK_FINANCE_API_KEY
+    try {
+      const tool = createGetAuctionStrengthTool({
+        fetch: mockFetch as unknown as typeof fetch,
+        apiKeyProvider: () => 'settings-key',
+      })
+      await tool.execute({ symbol: '600519' })
+      expect(mockFetch).toHaveBeenCalled()
+    } finally {
+      if (originalEnv === undefined) delete process.env.HITHINK_FINANCE_API_KEY
+      else process.env.HITHINK_FINANCE_API_KEY = originalEnv
+    }
+  })
 })

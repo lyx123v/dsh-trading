@@ -14,7 +14,14 @@ import { HiThinkRestClient, normalizeThsCode } from '@dshtrading/connector-hithi
 
 export interface SentimentOptions {
   apiKey?: string | undefined
+  /** 惰性凭证源：`dshtrading.credentials.hithink.apiKey`（设置中心）优先，环境变量兜底；每次取数解析。 */
+  apiKeyProvider?: (() => string | undefined) | undefined
   fetchImpl?: typeof globalThis.fetch | undefined
+}
+
+/** 凭证解析顺序：显式 apiKey → 惰性 provider（设置中心）→ 环境变量。 */
+function resolveApiKey(options: SentimentOptions): string | undefined {
+  return options.apiKey ?? options.apiKeyProvider?.() ?? process.env.HITHINK_FINANCE_API_KEY
 }
 
 /** 获取当期 A 股涨跌停池与连板股票。 */
@@ -22,7 +29,7 @@ export async function fetchCnLimitUpPool(
   queryOptions: { dateMs?: number | undefined; page?: number | undefined; size?: number | undefined } = {},
   sentimentOptions: SentimentOptions = {},
 ): Promise<LimitUpPoolItem[]> {
-  const apiKey = sentimentOptions.apiKey ?? process.env.HITHINK_FINANCE_API_KEY
+  const apiKey = resolveApiKey(sentimentOptions)
   if (!apiKey) {
     throw new Error('HITHINK_FINANCE_API_KEY is not configured. Please set HITHINK_FINANCE_API_KEY in your environment or settings to access limit-up pool data.')
   }
@@ -39,7 +46,7 @@ export async function fetchCnLimitUpPool(
 
 /** 获取近 30 个交易日连板天梯矩阵。 */
 export async function fetchCnLimitUpLadder(sentimentOptions: SentimentOptions = {}) {
-  const apiKey = sentimentOptions.apiKey ?? process.env.HITHINK_FINANCE_API_KEY
+  const apiKey = resolveApiKey(sentimentOptions)
   if (!apiKey) {
     throw new Error('HITHINK_FINANCE_API_KEY is not configured. Please set HITHINK_FINANCE_API_KEY to access limit-up ladder data.')
   }
@@ -55,7 +62,7 @@ export async function fetchCnAuctionStrength(
   symbol: string,
   sentimentOptions: SentimentOptions = {},
 ): Promise<AuctionSnapshot | undefined> {
-  const apiKey = sentimentOptions.apiKey ?? process.env.HITHINK_FINANCE_API_KEY
+  const apiKey = resolveApiKey(sentimentOptions)
   if (!apiKey) {
     return undefined
   }

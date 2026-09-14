@@ -168,10 +168,17 @@ export function apply(ctx: Context, config: Config): void {
   const readNewsSources = (): readonly string[] | undefined =>
     (router.get?.('tradingMarketRouter', false) as { newsSources?: (market: string) => readonly string[] | undefined } | undefined)
       ?.newsSources?.('cn')
+  // 同花顺凭证（2026-09-14 修复）：设置中心 dshtrading.credentials.hithink.apiKey 优先、env 兜底。
+  // 与 connector-hithink 同款惰性 thunk——settings 用户层加载/修改晚于插件 apply 也生效。
+  const readHithinkApiKey = (): string | undefined =>
+    (router.get?.('tradingMarketRouter', false) as
+      | { getCredential?(provider: string): Record<string, string> | undefined }
+      | undefined)
+      ?.getCredential?.('hithink')?.apiKey || process.env.HITHINK_FINANCE_API_KEY
   const newsTool = createGetNewsTool({ getSources: readNewsSources })
   const fundamentalsTool = createGetFundamentalsTool()
-  const limitUpTool = createGetLimitUpPoolTool()
-  const auctionTool = createGetAuctionStrengthTool()
+  const limitUpTool = createGetLimitUpPoolTool({ apiKeyProvider: readHithinkApiKey })
+  const auctionTool = createGetAuctionStrengthTool({ apiKeyProvider: readHithinkApiKey })
 
   const tools = ctx.tools as unknown as {
     register(definition: { name: string }): unknown
@@ -325,11 +332,11 @@ export function createGetFundamentalsTool(options: { fetch?: typeof globalThis.f
 
 /* ── cn_get_limit_up_pool：A 股涨跌停池工具（同花顺数据源） ─────────────────── */
 
-export function createGetLimitUpPoolTool(options: { fetch?: typeof globalThis.fetch } = {}) {
+export function createGetLimitUpPoolTool(options: { fetch?: typeof globalThis.fetch; apiKeyProvider?: () => string | undefined } = {}) {
   return defineTool({
     name: 'cn_get_limit_up_pool',
     description:
-      '获取 A 股当日涨停股票池、连板天梯、封单金额与题材涨停原因（同花顺数据源，需配置 HITHINK_FINANCE_API_KEY）。',
+      '获取 A 股当日涨停股票池、连板天梯、封单金额与题材涨停原因（同花顺数据源，需在「设置 → 交易」配置同花顺 API Key，或设环境变量 HITHINK_FINANCE_API_KEY）。',
     parameters: {
       page: { type: 'number', description: '页码，默认 1' },
       size: { type: 'number', description: '每页条数，默认 50' },
@@ -346,7 +353,10 @@ export function createGetLimitUpPoolTool(options: { fetch?: typeof globalThis.fe
             ...(args.page !== undefined ? { page: args.page } : {}),
             ...(args.size !== undefined ? { size: args.size } : {}),
           },
-          options.fetch !== undefined ? { fetchImpl: options.fetch } : {},
+          {
+            ...(options.fetch !== undefined ? { fetchImpl: options.fetch } : {}),
+            ...(options.apiKeyProvider !== undefined ? { apiKeyProvider: options.apiKeyProvider } : {}),
+          },
         )
         if (pool.length === 0) return 'cn_get_limit_up_pool: 当前无涨停条目或非交易时间。'
         const lines = [
@@ -363,11 +373,11 @@ export function createGetLimitUpPoolTool(options: { fetch?: typeof globalThis.fe
 
 /* ── cn_get_auction_strength：A 股集合竞价快照工具（同花顺数据源） ─────────── */
 
-export function createGetAuctionStrengthTool(options: { fetch?: typeof globalThis.fetch } = {}) {
+export function createGetAuctionStrengthTool(options: { fetch?: typeof globalThis.fetch; apiKeyProvider?: () => string | undefined } = {}) {
   return defineTool({
     name: 'cn_get_auction_strength',
     description:
-      '获取 A 股标的早盘集合竞价匹配量、未匹配金额与强弱基准（同花顺数据源，需配置 HITHINK_FINANCE_API_KEY）。',
+      '获取 A 股标的早盘集合竞价匹配量、未匹配金额与强弱基准（同花顺数据源，需在「设置 → 交易」配置同花顺 API Key，或设环境变量 HITHINK_FINANCE_API_KEY）。',
     parameters: {
       symbol: {
         type: 'string',
@@ -386,9 +396,12 @@ export function createGetAuctionStrengthTool(options: { fetch?: typeof globalThi
       try {
         const auction = await fetchCnAuctionStrength(
           symbol,
-          options.fetch !== undefined ? { fetchImpl: options.fetch } : {},
+          {
+            ...(options.fetch !== undefined ? { fetchImpl: options.fetch } : {}),
+            ...(options.apiKeyProvider !== undefined ? { apiKeyProvider: options.apiKeyProvider } : {}),
+          },
         )
-        if (!auction) return `cn_get_auction_strength: 暂无 ${symbol} 集合竞价快照数据（非竞价时间或未配置 HITHINK_FINANCE_API_KEY）。`
+        if (!auction) return `cn_get_auction_strength: 暂无 ${symbol} 集合竞价快照数据（非竞价时间或未配置同花顺 API Key）。`
         return [
           `标的 ${auction.symbol} 集合竞价快照：`,
           `- 匹配价格: ￥${auction.matchPrice ?? 'N/A'}`,
