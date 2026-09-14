@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import type { Disposable, Interval, Kline, MarketDataService, Ticker } from '@dshtrading/api'
-import { HiThinkRestClient, type HiThinkRestOptions } from './rest.js'
+import { HiThinkRestClient, TradingServiceError, type HiThinkRestOptions } from './rest.js'
 import { aggregateDailyKlines, aggregateMinutePoints, dailyBarToKline } from './kline.js'
 
 export const TRADING_FUTURES_MARKET_DATA_KEY = 'tradingFuturesMarketData'
@@ -33,6 +33,17 @@ export function normalizeFuturesCode(input: string): string {
   return input.trim().toUpperCase()
 }
 
+/**
+ * 中金所(CFFEX) 8888「加权」连续码：上游代码表/检索可见，但行情端点不供数
+ * （daily 返回空 item、intraday 返回 code=5003；2026-09-14 实测 IF8888.CFE/
+ * IH8888.CFE/T8888.CFE）。其他交易所的 8888 加权码（如 RB8888.SHF）与中金所
+ * 主连 `…ZL.CFE` 均有完整数据，故只剔除 CFE 后缀的 8888。
+ * 用于列表/检索，避免用户加入无行情标的。
+ */
+export function isUnpricedCffexWeighted(symbol: string): boolean {
+  return /^[A-Z]+8888\.CFE$/i.test(symbol.trim())
+}
+
 export class HiThinkFuturesMarketDataService extends Service implements MarketDataService {
   private readonly client: HiThinkRestClient
 
@@ -45,15 +56,19 @@ export class HiThinkFuturesMarketDataService extends Service implements MarketDa
     this.client = new HiThinkRestClient(options)
   }
 
-  /** 最新价：分时末点优先（盘中即时），失败/为空回落日K最近根（收盘价）。 */
+  /**
+   * 最新价：分时末点优先（盘中即时），回落日K最近根（收盘价）。
+   * 两者都没有数据时抛 TRADING_UNSUPPORTED_SYMBOL——上游目录里存在但行情端点
+   * 不供数的代码（实测中金所 8888 加权码）不能被伪造成 price=0 的假行情。
+   */
   async getTicker(symbol: string): Promise<Ticker> {
     const thscode = normalizeFuturesCode(symbol)
     const dailyBars = await this.client.getFuturesDailyKlines(thscode, 2)
     const lastDaily = dailyBars[dailyBars.length - 1]
     const prevDaily = dailyBars.length >= 2 ? dailyBars[dailyBars.length - 2] : undefined
 
-    let price = lastDaily?.close_price ?? 0
-    let timestamp = lastDaily?.timestamp ?? Date.now()
+    let price: number | undefined = lastDaily?.close_price ?? undefined
+    let timestamp: number | undefined = lastDaily?.timestamp ?? undefined
     try {
       const intraday = await this.client.getFuturesIntraday(thscode)
       const points = (intraday?.item ?? []).filter(
@@ -67,6 +82,13 @@ export class HiThinkFuturesMarketDataService extends Service implements MarketDa
       }
     } catch {
       // 分时不可得（非交易时段/上游异常）时静默回落日K收盘价
+    }
+
+    if (price === undefined || timestamp === undefined) {
+      throw new TradingServiceError(
+        'TRADING_UNSUPPORTED_SYMBOL',
+        `HiThink: no futures quote for ${thscode}; daily bars and intraday are both empty (upstream has no data for this code)`,
+      )
     }
 
     return {
@@ -113,17 +135,21 @@ export class HiThinkFuturesMarketDataService extends Service implements MarketDa
   /**
    * 期货标的名册/检索（GUI 添加自选对话框）。带 query 走跨资产检索（asset_type=futures），
    * 无 query 返回全量代码表（过滤 last_trade_date 已过期的合约）。
+   * 两个分支都剔除上游无行情的中金所 8888 加权码（isUnpricedCffexWeighted）。
    */
   async listInstruments(query?: string): Promise<Array<{ symbol: string; name: string }>> {
     const trimmed = query?.trim()
     if (trimmed) {
       const items = await this.client.searchFuturesTickers(trimmed)
-      return items.map((item) => ({ symbol: item.thscode, name: item.name }))
+      return items
+        .filter((item) => !isUnpricedCffexWeighted(item.thscode))
+        .map((item) => ({ symbol: item.thscode, name: item.name }))
     }
     const items = await this.client.listFuturesTickers()
     const todayKey = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
     return items
       .filter((item) => item.last_trade_date === null || item.last_trade_date === undefined || item.last_trade_date >= todayKey)
+      .filter((item) => !isUnpricedCffexWeighted(item.thscode))
       .map((item) => ({ symbol: item.thscode, name: item.name }))
   }
 

@@ -26,7 +26,7 @@
 | us | 纯大写 ticker | `AAPL` | Yahoo/Stooq 原生形即规范形 |
 | cn | `NNNNNN.SH` / `NNNNNN.SZ` | `600519.SH`、`000001.SZ` | 大陆通行写法；裸 6 位数字为宽容输入（按首位推断：6/9→SH，0/3→SZ；北交所 4/8 暂不支持） |
 | hk | `NNNNN.HK`（5 位补零） | `00700.HK` | 裸 1-5 位数字为宽容输入（`700` → `00700.HK`） |
-| futures | `VARIANTNNNN.EXCHANGE`（品种大写 + 3-4 位年月 + 交易所后缀） | `RB2601.SHF`、`IF2612.CFE`、`IC2609.CFE` | 同花顺 thscode 形；后缀 SHF/INE=上期所/能源中心，DCE=大期所，CZC=郑商所，GFE=广期所，CFE=中金所；主力连续 `RB00.SHF` 由上游检索返回 |
+| futures | `VARIANTNNNN.EXCHANGE`（品种大写 + 3-4 位年月 + 交易所后缀） | `RB2601.SHF`、`IF2612.CFE`、`IC2609.CFE` | 同花顺 thscode 形；后缀 SHF/INE=上期所/能源中心，DCE=大期所，CZC=郑商所，GFE=广期所，CFE=中金所；主力连续 `RB00.SHF` 由上游检索返回；中金所 8888 加权码（`IF8888.CFE` 等）上游目录登记但行情端点不供数，连接器列表/检索已剔除（2026-09-14） |
 | global | 上游原生大写代码 | `XAUUSD`、`USOIL`、`USDJPY`、`SPX` | 金十数据原生形即规范形（现货贵金属/原油/铜、外汇、全球与 A 股指数共 97 个品种）；代码表经 `quote://codes` 动态全集注入，检索未命中时以原始大写形透传交上游裁决 |
 
 ## 连接器互译现状

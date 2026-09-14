@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { HiThinkRestClient } from '../src/rest.js'
 import { aggregateDailyKlines, aggregateMinutePoints, dailyBarToKline } from '../src/kline.js'
 import { HiThinkMarketDataService } from '../src/index.js'
-import { HiThinkFuturesMarketDataService, normalizeFuturesCode } from '../src/futures.js'
+import { HiThinkFuturesMarketDataService, isUnpricedCffexWeighted, normalizeFuturesCode } from '../src/futures.js'
 
 function makeServiceCtx(): Context {
   return {
@@ -307,5 +307,84 @@ describe('HiThinkFuturesMarketDataService', () => {
     expect(bars).toEqual([])
     expect(urls[0]).toContain('start=')
     expect(urls[0]).toContain('end=')
+  })
+
+  it('isUnpricedCffexWeighted: 只剔中金所 8888，其他交易所加权与其他连续码放行', () => {
+    expect(isUnpricedCffexWeighted('IF8888.CFE')).toBe(true)
+    expect(isUnpricedCffexWeighted(' t8888.cfe ')).toBe(true)
+    expect(isUnpricedCffexWeighted('TL8888.CFE')).toBe(true)
+    expect(isUnpricedCffexWeighted('RB8888.SHF')).toBe(false)
+    expect(isUnpricedCffexWeighted('AU8888.SHF')).toBe(false)
+    expect(isUnpricedCffexWeighted('IFZL.CFE')).toBe(false)
+    expect(isUnpricedCffexWeighted('IF2609.CFE')).toBe(false)
+  })
+
+  it('getTicker: 日K与分时皆空 → 抛 TRADING_UNSUPPORTED_SYMBOL（不返回假 0）', async () => {
+    const { impl } = stubFetch({
+      '/api/futures/prices/daily': {
+        body: { code: 0, message: 'success', data: { timestamp: null, thscode: 'IF8888.CFE', interval: '1d', item: [] } },
+      },
+      '/api/futures/prices/intraday': {
+        body: { code: 0, message: 'success', data: { timestamp: null, thscode: 'IF8888.CFE', date: '2026-09-14', session: 'intraday', item: [] } },
+      },
+    })
+    const service = new HiThinkFuturesMarketDataService(makeServiceCtx(), { apiKey: 'k', fetchImpl: impl })
+    await expect(service.getTicker('IF8888.CFE')).rejects.toMatchObject({ code: 'TRADING_UNSUPPORTED_SYMBOL' })
+  })
+
+  it('getTicker: 分时上游 5003 且日K为空 → 抛 TRADING_UNSUPPORTED_SYMBOL（5003 被吞后仍报错）', async () => {
+    const { impl } = stubFetch({
+      '/api/futures/prices/daily': {
+        body: { code: 0, message: 'success', data: { timestamp: null, thscode: 'IF8888.CFE', interval: '1d', item: [] } },
+      },
+      '/api/futures/prices/intraday': {
+        body: { code: 5003, message: 'Futures finance upstream returned failed parameters', data: null },
+      },
+    })
+    const service = new HiThinkFuturesMarketDataService(makeServiceCtx(), { apiKey: 'k', fetchImpl: impl })
+    await expect(service.getTicker('IF8888.CFE')).rejects.toMatchObject({ code: 'TRADING_UNSUPPORTED_SYMBOL' })
+  })
+
+  it('listInstruments: 检索与名册都剔除中金所 8888 加权码', async () => {
+    const search = stubFetch({
+      '/api/meta/tickers/search': {
+        body: {
+          code: 0,
+          message: 'success',
+          data: {
+            timestamp: null,
+            item: [
+              { thscode: 'IF8888.CFE', ticker: 'IF8888', name: '沪深300 加权', asset_type: 'futures' },
+              { thscode: 'IFZL.CFE', ticker: 'IF9999', name: '沪深300 主连', asset_type: 'futures' },
+              { thscode: 'RB8888.SHF', ticker: 'RB8888', name: '螺纹钢加权', asset_type: 'futures' },
+            ],
+          },
+        },
+      },
+    })
+    const service = new HiThinkFuturesMarketDataService(makeServiceCtx(), { apiKey: 'k', fetchImpl: search.impl })
+    const found = await service.listInstruments('加权')
+    expect(found.map((s) => s.symbol)).toEqual(['IFZL.CFE', 'RB8888.SHF'])
+
+    const list = stubFetch({
+      '/api/meta/tickers/list': {
+        body: {
+          code: 0,
+          message: 'success',
+          data: {
+            timestamp: null,
+            item: [
+              { thscode: 'IF8888.CFE', ticker: 'IF8888', name: '沪深300 加权', asset_type: 'futures', last_trade_date: null },
+              { thscode: 'T8888.CFE', ticker: 'T8888', name: '十年国债加权', asset_type: 'futures', last_trade_date: null },
+              { thscode: 'IFZL.CFE', ticker: 'IF9999', name: '沪深300 主连', asset_type: 'futures', last_trade_date: null },
+              { thscode: 'AU8888.SHF', ticker: 'AU8888', name: '沪金加权', asset_type: 'futures', last_trade_date: null },
+            ],
+          },
+        },
+      },
+    })
+    const service2 = new HiThinkFuturesMarketDataService(makeServiceCtx(), { apiKey: 'k', fetchImpl: list.impl })
+    const roster = await service2.listInstruments()
+    expect(roster.map((s) => s.symbol)).toEqual(['IFZL.CFE', 'AU8888.SHF'])
   })
 })
