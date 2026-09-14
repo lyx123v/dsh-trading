@@ -10,7 +10,7 @@
  * cursor 翻页 + 关键词搜索；面板挂载期间 60s 轮询（与新闻面板同款节奏，切走即卸载）。
  * 数据源未安装/凭证缺失时显示可操作提示，绝不把失败画成「没有快讯」。
  *
- * 热度筛选（2026-09-13）：金十网页版四级热度 火/热/沸/爆，服务端过滤；默认只看 热+爆。
+ * 热度筛选（2026-09-13）：金十网页版四级热度 火/热/沸/爆，服务端过滤；默认只看 沸+爆。
  * 官方 MCP 无热度字段，故 hot 非空时桥侧走金十网页版接口（见 connector-jin10/web-flash.ts）。
  */
 import { useEffect, useState } from 'react'
@@ -25,8 +25,8 @@ const PAGE_LIMIT = 30
 
 /** 四级热度（金十网页版 火/热/沸/爆；取值即上游 hot 参数词汇）。 */
 const HEAT_LEVELS = ['火', '热', '沸', '爆'] as const // i18n-allow: 上游热度枚举值（数据源词汇，非 UI 文案）
-/** 默认只看 热、爆（用户 2026-09-13 裁决）。 */
-const DEFAULT_HEAT: readonly string[] = ['热', '爆'] // i18n-allow: 上游热度枚举值（数据源词汇，非 UI 文案）
+/** 默认只看 沸、爆（用户 2026-09-13 裁决；2026-09-14 由 热+爆 收窄为 沸+爆）。 */
+const DEFAULT_HEAT: readonly string[] = ['沸', '爆'] // i18n-allow: 上游热度枚举值（数据源词汇，非 UI 文案）
 
 export type FlashPanelTranslate = (key: MarketLocaleKey) => string
 

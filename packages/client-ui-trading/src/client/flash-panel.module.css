@@ -66,7 +66,7 @@
   padding: 10px 12px 12px;
 }
 
-/* 热度筛选：4 段连体按钮（火/热/沸/爆），多选；默认由组件给 热+爆。 */
+/* 热度筛选：4 段连体按钮（火/热/沸/爆），多选；默认由组件给 沸+爆。 */
 .heatRow {
   display: flex;
   align-items: center;
