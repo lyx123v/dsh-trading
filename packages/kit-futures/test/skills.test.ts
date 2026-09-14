@@ -4,7 +4,7 @@
  * 少提供一项会在 apply 期 fail-fast，见 packages/base/src/presets.ts KIT_SKILLS）。
  */
 import { describe, expect, it } from 'vitest'
-import { provider, providerForSkills } from '../src/index.ts'
+import { Config, provider, providerForSkills } from '../src/index.ts'
 
 const EXPECTED = [
   'futures-risk-checklist',
@@ -55,5 +55,15 @@ describe('kit-futures skill provider', () => {
       expect(listed).toHaveLength(whitelist.length)
       expect([...listed].sort()).toEqual([...whitelist].sort())
     }
+  })
+
+  it('Config 缺席 skills 时保持全量目录（缺省不等于显式空名单）', async () => {
+    const parsed = Config({ dryRun: true, liveTrading: false })
+    expect(parsed.skills).toBeUndefined()
+    expect(providerForSkills(parsed.skills)).toBe(provider)
+
+    const empty = Config({ skills: [] })
+    expect(empty.skills).toEqual([])
+    expect(await providerForSkills(empty.skills).list()).toEqual([])
   })
 })

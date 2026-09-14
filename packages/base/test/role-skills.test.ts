@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { provider, providerForSkills } from '../src/role-skills.js'
+import { Config, provider, providerForSkills } from '../src/role-skills.js'
 
 describe('dsh-trading-role-skills provider', () => {
   it('bundles company-analysis, weekly-trading-plan and dynamic-capabilities with readable bodies', async () => {
@@ -32,5 +32,17 @@ describe('dsh-trading-role-skills provider', () => {
     await expect(scoped.get({ name: 'dynamic-capabilities' })).rejects.toThrow('Unknown role skill')
     expect(() => providerForSkills(['no-such-skill'])).toThrow('Unknown role skills')
     expect(providerForSkills()).toBe(provider) // absent whitelist keeps the full catalog
+  })
+
+  it('parses a missing whitelist as "no whitelist" rather than an empty catalog', async () => {
+    // Regression: the schema once normalized an absent field to [], so the master
+    // preset's role-skills provider registered zero bundled skills.
+    const parsed = Config({})
+    expect(parsed.skills).toBeUndefined()
+    expect(providerForSkills(parsed.skills)).toBe(provider)
+
+    const empty = Config({ skills: [] })
+    expect(empty.skills).toEqual([])
+    expect(await providerForSkills(empty.skills).list()).toEqual([])
   })
 })

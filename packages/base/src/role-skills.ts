@@ -52,10 +52,14 @@ export const provider: SkillProvider = {
       provider: name, source: 'bundled', resourceBase: candidate.resourceBase, content: await readFile(candidate.locator, 'utf8') }
   },
 }
-export interface Config { skills?: string[] }
-export const Config: Schema<Config> = Schema.object({ skills: Schema.array(Schema.string()) })
+export interface Config { skills?: string[] | null }
+export const Config: Schema<Config> = Schema.object({
+  // Missing must stay undefined: Schema.array() normalizes an absent field to [],
+  // which providerForSkills() reads as an explicit empty whitelist.
+  skills: Schema.union([Schema.array(Schema.string()), Schema.const(null)]).default(null),
+})
 /** Whitelist view for role presets; unknown names fail fast instead of silently shrinking the surface. */
-export function providerForSkills(allowed?: readonly string[]): SkillProvider {
+export function providerForSkills(allowed?: readonly string[] | null): SkillProvider {
   if (!allowed) return provider
   const unknown = allowed.filter(skill => !CANDIDATES.some(c => c.name === skill))
   if (unknown.length) throw new Error(`Unknown role skills: ${unknown.join(', ')}`)

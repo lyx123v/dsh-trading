@@ -2,7 +2,7 @@
  * kit-crypto skill provider：名册与按名分发。
  */
 import { describe, expect, it } from 'vitest'
-import { provider, providerForSkills } from '../src/index.ts'
+import { Config, provider, providerForSkills } from '../src/index.ts'
 
 describe('kit-crypto skill provider', () => {
   it('list 返回全部候选（risk-checklist + instrument-analysis + indicator-authoring + trading-strategy-paradigms + knowledge-curation + trading-notes-setup），名字唯一', async () => {
@@ -44,5 +44,15 @@ describe('kit-crypto skill provider', () => {
     await expect(scoped.get({ name: 'crypto-risk-checklist' } as never)).rejects.toThrow('not in whitelist')
     expect(() => providerForSkills(['no-such-skill'])).toThrow('unknown skills in whitelist')
     expect(providerForSkills()).toBe(provider)
+  })
+
+  it('Config 缺席 skills 时保持全量目录（缺省不等于显式空名单）', async () => {
+    const parsed = Config({ dryRun: true, liveTrading: false })
+    expect(parsed.skills).toBeUndefined()
+    expect(providerForSkills(parsed.skills)).toBe(provider)
+
+    const empty = Config({ skills: [] })
+    expect(empty.skills).toEqual([])
+    expect(await providerForSkills(empty.skills).list()).toEqual([])
   })
 })
