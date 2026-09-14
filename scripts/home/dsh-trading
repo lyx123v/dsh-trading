@@ -6,4 +6,29 @@
 # 已显式设置 DSH_HOME 时尊重现有值。
 DSH_HOME="${DSH_HOME:-$HOME/.dsh-trading}"
 export DSH_HOME
+
+# trading-web 缺省监听 8888：宿主 web-app 的缺省端口是 3080，会与主 dsh web 宿主撞车。
+# 显式 --port / --port=N 优先；只对 trading-web 注入（trading-dev / trading-all 是无头
+# profile，不接受 --port）；--dump-config / --help 这类 launcher 面不注入。
+profile_web=0
+has_port=0
+want_boot=1
+prev=""
+for arg in "$@"; do
+  case "$arg" in
+    --profile) prev="--profile" ;;
+    --profile=trading-web) profile_web=1; prev="" ;;
+    --profile=*) prev="" ;;
+    trading-web)
+      if [ "$prev" = "--profile" ]; then profile_web=1; fi
+      prev="" ;;
+    --port|--port=*) has_port=1; prev="" ;;
+    --dump-config|--dump-default-config|--help|-h) want_boot=0; prev="" ;;
+    *) prev="" ;;
+  esac
+done
+
+if [ "$profile_web" = 1 ] && [ "$has_port" = 0 ] && [ "$want_boot" = 1 ]; then
+  exec dsh "$@" --port 8888
+fi
 exec dsh "$@"

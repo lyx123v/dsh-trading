@@ -57,5 +57,5 @@ for pkg in "${CORE_PKGS[@]}"; do
              -not -path "$HOST_ROOT/*" 2>/dev/null)
 done
 
-echo "== 完成。启动实例：cd <你的工作目录> && dsh-trading --profile trading-web --port 3081 --no-open =="
+echo "== 完成。启动实例：cd <你的工作目录> && dsh-trading --profile trading-web --no-open（缺省 8888）=="
 echo "   （token 每次重启轮换，从启动日志取新值）"
