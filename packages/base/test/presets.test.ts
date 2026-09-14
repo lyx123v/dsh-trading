@@ -35,11 +35,25 @@ it('boots through the real loader with asynchronous preset installation', async 
     const ctx = new Context();
     await ctx.plugin(Loader);
     const loader = ctx.get('loader');
+    let applies = 0;
+    const wrapped = {
+      ...presets,
+      apply: async (pluginCtx, config) => { applies += 1; return presets.apply(pluginCtx, config); },
+    };
     const market = {
       apply() {},
-      async getPresetContribution() { return ${JSON.stringify(await crypto())}; },
+      async getPresetContribution() {
+        // A concurrent loader notify (another row finishing init, a tree
+        // update) must not cancel the in-flight installation. The old
+        // inject.loader.await form counted the installer's own init task in
+        // loader.getTasks(), so this notify flipped the loader service off and
+        // restarted the fiber forever (issue #99). Keeping this probe makes
+        // the regression test fail if that intercept form ever returns.
+        loader.ctx.reflect.notify(['loader']);
+        return ${JSON.stringify(await crypto())};
+      },
     };
-    loader.import = async name => name === '@dshtrading/base/presets' ? presets : market;
+    loader.import = async name => name === '@dshtrading/base/presets' ? wrapped : market;
     await Promise.all([
       loader.create({ id: 'presets', name: '@dshtrading/base/presets', config: { presetRoot: ${JSON.stringify(presetRoot)} } }),
       loader.create({ id: 'crypto', name: '@dshtrading/crypto' }),
@@ -47,7 +61,7 @@ it('boots through the real loader with asynchronous preset installation', async 
     ]);
     await loader.await();
     const text = await readFile(join(${JSON.stringify(presetRoot)}, 'trader', 'agent.cordis.yml'), 'utf8');
-    console.log(JSON.stringify({ crypto: text.includes('@dshtrading/kit-crypto'), us: text.includes('@dshtrading/kit-us') }));
+    console.log(JSON.stringify({ crypto: text.includes('@dshtrading/kit-crypto'), us: text.includes('@dshtrading/kit-us'), applies }));
     await ctx.fiber.dispose();
   `
   const tsx = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href
@@ -57,7 +71,7 @@ it('boots through the real loader with asynchronous preset installation', async 
   })
   expect(child.error, child.stderr).toBeUndefined()
   expect(child.status, child.stderr).toBe(0)
-  expect(JSON.parse(child.stdout.trim())).toEqual({ crypto: true, us: false })
+  expect(JSON.parse(child.stdout.trim())).toEqual({ crypto: true, us: false, applies: 1 })
 }, 10000)
 
 it('composes all 16 installed-market subsets deterministically, preserving connector realms for trader and master', async () => {

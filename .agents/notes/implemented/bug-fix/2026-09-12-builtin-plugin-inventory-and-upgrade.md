@@ -20,11 +20,13 @@ dependencies；三个插件由 `@dshtrading/base` 间接安装，未进入旧版
 - 直接使用 npm plugin-manager 0.3.20 的 bundle children 能力。base 的 24 个
   insert 行进入子列表，三个目标条目使用原有 id 启停；不向 profile bundles
   再添加独立插件，不复制上游实现。
-- base 的五个外部内置依赖升级并锁定本次解析结果：`@xmanrui/dsh-im` 4.20.0；
+- base 的五个外部内置依赖升级并锁定解析结果：2026-09-12 升到 `@xmanrui/dsh-im`
+  4.20.0 与 `@linxin666/*` 0.3.20；2026-09-13 再升到 `@xmanrui/dsh-im` 4.20.2 与
   `@linxin666/dsh-usage`、`dsh-session-archive`、`dsh-client-ui-plugin-manager`、
-  `dsh-client-ui-model-capabilities` 均为 0.3.20。版本来自本次 npm latest 查询。
-  IM 4.20.0 的发布年龄豁免只针对该精确版本。SDK 仍使用 0.1.5-rc.1，排除包管理器
-  更新时顺带解析出的无关 SDK、zod 与 CSS 依赖变化。
+  `dsh-client-ui-model-capabilities` 0.3.21。五个精确版本均按 npm latest 查询选取，
+  且在 24h 冷却期内，逐一进 `minimumReleaseAgeExclude`（`^0.3.21` 下限过新，
+  不豁免则无合格候选）。SDK 仍使用 0.1.5-rc.1，排除包管理器更新时顺带解析出的
+  无关 SDK、zod 与 CSS 依赖变化。
 - 构建阶段对 staged profile 的路径与文件内容计算 SHA-256，写入 VERSION.json
   的 profileHash。桌面启动把它纳入 seed stamp；保留旧 stamp 读取能力、无 marker
   的用户 profile 不自动覆盖、reseed 保留用户 cordis.patch.yml 及其备份。
@@ -34,6 +36,12 @@ dependencies；三个插件由 `@dshtrading/base` 间接安装，未进入旧版
   `inject.loader.await` 的就绪判断会把安装器自己的异步初始化计入 getTasks，
   反复撤销并重启该 fiber。真实 loader 子进程回归覆盖异步安装完成、启用市场
   保留与禁用市场排除，避免只断言 inject 对象形状。
+  2026-09-14（issue #99）复核：旧写法在安装期间收到任一 `notify(['loader'])`
+  就会自锁——3 秒内安装器 apply 被撤销重启 4455 次、getTasks 常驻 1；而原
+  回归脚本不含该并发通知，指向 0.2.1 旧模块也能通过，即当时并未真正守住该
+  修复。现 boot 用例让市场贡献回放 `notify(['loader'])` 并断言 `apply` 恰
+  一次：旧模块子进程 6 秒超时，当前 main 模块通过。npm 已发布的 0.2.1 仍是
+  旧写法，用户侧需等下一次发版。
 
 ## Alternatives considered
 
@@ -62,5 +70,8 @@ lockfile 可保留旧版，用户维护的 profile 也不会被自动 reseed。�
   `@linxin666/dsh-session-archive`、`@linxin666/dsh-client-ui-plugin-manager`、
   `dsh-client-ui-model-capabilities` 五行且均可独立启停，侧边栏存在 IM 机器人、
   使用统计、会话归档管理入口；检查更新返回「所有插件都是最新版本」。
+- 2026-09-13 五依赖再升最新版后复验：`pnpm build` 通过；`pnpm test` 181 文件
+  1518 用例通过；桌面 runtime 21 用例通过；`pnpm install` 后工作区 lockfile 与
+  base 实际物化版本均为 `@linxin666/*` 0.3.21 / `@xmanrui/dsh-im` 4.20.2。
 - 构建使用独立 checkout，仅带入本次文件，避免打包共享工作区的其他未完成变更。
   当前用户实例的刷新须在获得重启授权后执行，并保留应用/profile 回退副本。

@@ -209,20 +209,20 @@ importers:
         specifier: workspace:^
         version: link:../watchlist
       '@linxin666/dsh-client-ui-model-capabilities':
-        specifier: ^0.3.20
-        version: 0.3.20(react@18.3.1)
+        specifier: ^0.3.21
+        version: 0.3.21(react@18.3.1)
       '@linxin666/dsh-client-ui-plugin-manager':
-        specifier: ^0.3.20
-        version: 0.3.20(react@18.3.1)
+        specifier: ^0.3.21
+        version: 0.3.21(react@18.3.1)
       '@linxin666/dsh-session-archive':
-        specifier: ^0.3.20
-        version: 0.3.20(react@18.3.1)
+        specifier: ^0.3.21
+        version: 0.3.21(react@18.3.1)
       '@linxin666/dsh-usage':
-        specifier: ^0.3.20
-        version: 0.3.20(react@18.3.1)
+        specifier: ^0.3.21
+        version: 0.3.21(react@18.3.1)
       '@xmanrui/dsh-im':
-        specifier: ^4.20.0
-        version: 4.20.0(debug@4.4.3)
+        specifier: ^4.20.2
+        version: 4.20.2
     devDependencies:
       tsdown:
         specifier: ^0.22.0
@@ -2385,24 +2385,24 @@ packages:
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
 
-  '@linxin666/dsh-client-ui-model-capabilities@0.3.20':
-    resolution: {integrity: sha512-dUL6xJy+H4GK/k00OwXFpfmuEOBG2Ai9MV6xqm7aXi3IRtWxuKgOQX+jb2c+A1OXbpwCRv4OejuKlU93QT5NRg==}
+  '@linxin666/dsh-client-ui-model-capabilities@0.3.21':
+    resolution: {integrity: sha512-VFJbo0HofjhV8Ub+3umfkQB7KKqneQ/FHO2U8J37r5g66xcRbpAhZ/KExrJAddBzSNzeAXuqZfpDIvyPPixXtw==}
     peerDependencies:
       react: ^18.2.0
 
-  '@linxin666/dsh-client-ui-plugin-manager@0.3.20':
-    resolution: {integrity: sha512-ymybTl6Eiu2bPaYNfxwFha9A6R8yr3tR8L0uGc5aL0T0v5pNeILK66TdRhB71kHPpJ5tb7NKldcZbdLdM+/Hsw==}
+  '@linxin666/dsh-client-ui-plugin-manager@0.3.21':
+    resolution: {integrity: sha512-xKnb4nGEIIAkPD4SQdYhnP0GgcuCba3N6zgQAuLtWNRXiFOY8b3zOg9n3MTtK9pK460uk6km5OPfxav4W8ODJA==}
     peerDependencies:
       react: ^18.2.0
 
-  '@linxin666/dsh-session-archive@0.3.20':
-    resolution: {integrity: sha512-wfgzHLeEiqBObLMiL3ymmOuis+laZj+NSioWZ8dDYdD0zVZ5Fl2P26Sef2V1Yn8xt9yFPrMWccFmki5Q7rb9OQ==}
+  '@linxin666/dsh-session-archive@0.3.21':
+    resolution: {integrity: sha512-TgMNIzvqE9XnKTFC1GRkJ4jwodGpPmW05uQVDf0X+wfd+yNSWq7zwsrA0s5aJvelAKkV96/JIwEVxMNS0xZbpQ==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       react: ^18.2.0
 
-  '@linxin666/dsh-usage@0.3.20':
-    resolution: {integrity: sha512-7l7x9E0ydQ9kA3rFeW8TEu5pr6vCF98zp5Kpgi9OkcncQKec84dO5m1NiTK/JAZ8CYA6vlvgIcG86Y9N6pZBOA==}
+  '@linxin666/dsh-usage@0.3.21':
+    resolution: {integrity: sha512-Qhz2k/GkQ9v7jqoZQGj1iAPuhJC705GAJWwGf6QMwmRANcv486cDBdCryfFJ4oBjbge2VSSfZ25HzH5Sma7fmw==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       react: ^18.2.0
@@ -2777,8 +2777,8 @@ packages:
   '@wecom/aibot-node-sdk@1.0.7':
     resolution: {integrity: sha512-51w+sTqunry6GD3HFvmuh0gArMSJDFE418vyvR1wMJHj1N6DaFuGD3HuaY2fazZs3mb9FWeQFX3+vU5t0Qhwmw==}
 
-  '@xmanrui/dsh-im@4.20.0':
-    resolution: {integrity: sha512-c3PsHN3n2IYSgGJk3nTDGyo6oFX8/I5P+dLz0Vqf/Jp3UuMS6BGkNoSURsZWaEMKfkJOcqQ2MBfnMkSCV8VCQw==}
+  '@xmanrui/dsh-im@4.20.2':
+    resolution: {integrity: sha512-vZWScKLBLTkEc6Shi1f4lJHNg3anOKKWaumI0bFmNUSIFNq5AoJaKAK9UOHzDV+QQMPgqDkuga21iudRLKPxVA==}
     engines: {node: '>=22.19'}
     hasBin: true
 
@@ -4914,22 +4914,22 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
-  '@linxin666/dsh-client-ui-model-capabilities@0.3.20(react@18.3.1)':
+  '@linxin666/dsh-client-ui-model-capabilities@0.3.21(react@18.3.1)':
     dependencies:
       react: 18.3.1
       schemastery: 3.18.0
 
-  '@linxin666/dsh-client-ui-plugin-manager@0.3.20(react@18.3.1)':
+  '@linxin666/dsh-client-ui-plugin-manager@0.3.21(react@18.3.1)':
     dependencies:
       react: 18.3.1
       yaml: 2.9.0
 
-  '@linxin666/dsh-session-archive@0.3.20(react@18.3.1)':
+  '@linxin666/dsh-session-archive@0.3.21(react@18.3.1)':
     dependencies:
       react: 18.3.1
       schemastery: 3.18.0
 
-  '@linxin666/dsh-usage@0.3.20(react@18.3.1)':
+  '@linxin666/dsh-usage@0.3.21(react@18.3.1)':
     dependencies:
       react: 18.3.1
       schemastery: 3.18.0
@@ -5199,7 +5199,7 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@wecom/aibot-node-sdk@1.0.7(debug@4.4.3)':
+  '@wecom/aibot-node-sdk@1.0.7':
     dependencies:
       axios: 1.20.0(debug@4.4.3)
       eventemitter3: 5.0.4
@@ -5210,11 +5210,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@xmanrui/dsh-im@4.20.0(debug@4.4.3)':
+  '@xmanrui/dsh-im@4.20.2':
     dependencies:
       '@tencent-connect/qqbot-connector': 1.2.0
       '@tencent-connect/qqbot-nodejs': 1.0.4
-      '@wecom/aibot-node-sdk': 1.0.7(debug@4.4.3)
+      '@wecom/aibot-node-sdk': 1.0.7
       dingtalk-stream: 2.1.4
       qrcode: 1.5.4
       undici: 7.29.0
