@@ -1,10 +1,12 @@
-/* MarketProviderPanel —— 数据源 Provider 卡片网格与表单规范（支持亮色/深色自适应） */
+/* MarketProviderPanel —— 数据源 Provider 卡片网格与表单规范（支持亮色/深色自适应）
+ *
+ * 结构：subSection（行情提供方 / 新闻公告数据源）→ grid / 行 → actionBar（统一保存）。
+ */
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-top: 4px;
+  gap: 18px;
 }
 
 /* 局部主题变量定义（亮色默认，优先走宿主 dsw-alias） */
@@ -23,6 +25,7 @@
   --panel-btn-bg: var(--dsw-alias-bg-l1, #ffffff);
   --panel-btn-border: var(--dsw-alias-border-l2, #e3e6ea);
   --panel-btn-text: var(--dsw-alias-text-primary, #1a1e24);
+  --panel-focus: var(--dsw-alias-primary, #2563eb);
 }
 
 /* 显式深色模式变量注入（仅当宿主处于深色状态时生效，绝不干扰白天模式） */
@@ -45,36 +48,88 @@
   --panel-btn-bg: rgba(255, 255, 255, 0.08);
   --panel-btn-border: rgba(255, 255, 255, 0.14);
   --panel-btn-text: var(--dsw-alias-text-primary, #e5e7eb);
+  --panel-focus: #3b82f6;
 }
 
-.currentHeader {
+/* ---- 子分区 ---- */
+
+.subSection {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 两个子分区之间用分隔线表达层级，而不是只靠留白。 */
+.subSection + .subSection {
+  border-top: 1px solid var(--panel-border-card);
+  padding-top: 18px;
+}
+
+.subHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.subTitle {
   font-size: 13px;
+  font-weight: 600;
+  color: var(--panel-text-primary);
+  margin: 0;
+}
+
+.subHint {
+  font-size: 12.5px;
+  color: var(--panel-text-secondary);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 720px;
+}
+
+.currentBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: var(--panel-text-secondary);
+  white-space: nowrap;
+}
+
+.currentText {
   color: var(--panel-text-secondary);
 }
 
-.currentBadge {
-  font-weight: 600;
-  color: var(--panel-text-primary);
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--panel-bg-subtle);
-  border: 1px solid var(--panel-border-card);
+.defaultTag {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px dashed var(--panel-border-card);
+  color: var(--panel-text-muted);
 }
 
-/* Provider 网格卡片布局 */
+/* ---- Provider 网格卡片 ---- */
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: 8px;
   border: 1px solid var(--panel-border-card);
@@ -87,6 +142,10 @@
 .card:hover {
   border-color: var(--panel-border-card-selected);
   background: var(--panel-bg-card-hover);
+}
+
+.card:focus-within {
+  border-color: var(--panel-border-card-selected);
 }
 
 .card[data-selected='true'] {
@@ -118,7 +177,7 @@
 .typeBadge {
   font-size: 10.5px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border-radius: 4px;
   border: 1px solid var(--panel-border-card);
   background: var(--panel-bg-subtle);
@@ -132,8 +191,6 @@
   gap: 4px;
   font-size: 12px;
   color: var(--panel-text-muted);
-  padding-top: 6px;
-  border-top: 1px dashed var(--panel-border-card);
 }
 
 .link {
@@ -159,124 +216,47 @@
   border: 1px solid var(--panel-border-card);
 }
 
-/* 操作按钮栏 */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
+/* ---- 凭证配置（卡片内折叠抽屉：进出同路径，关闭反向播放） ---- */
 
-.saveBtn {
-  appearance: none;
-  border: 1px solid transparent;
-  background: var(--dsw-alias-primary, #2563eb);
-  color: #ffffff;
-  padding: 0 16px;
-  height: 32px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.saveBtn:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.saveBtn:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.discardBtn {
-  appearance: none;
-  border: 1px solid var(--panel-btn-border);
-  background: var(--panel-btn-bg);
-  color: var(--panel-btn-text);
-  padding: 0 14px;
-  height: 32px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.discardBtn:hover:not(:disabled) {
-  background: var(--panel-bg-card-hover);
-}
-
-.discardBtn:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.message {
-  font-size: 12.5px;
-  color: var(--panel-text-secondary);
-}
-
-/* 新闻 API Key 卡片 */
-.newsSection {
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--panel-border-card);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.newsLabel {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--panel-text-primary);
-}
-
-.newsInput {
-  width: 100%;
-  max-width: 380px;
-  height: 32px;
-  box-sizing: border-box;
-  padding: 0 10px;
-  border: 1px solid var(--panel-border-input);
-  border-radius: 6px;
-  font-size: 12.5px;
-  background: var(--panel-bg-input);
-  color: var(--panel-text-primary);
-}
-
-.newsInput:focus {
-  outline: none;
-  border-color: var(--panel-border-card-selected);
-}
-
-/* 凭证配置抽屉与表单 */
 .credentialBlock {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 6px;
+  padding-top: 8px;
   border-top: 1px dashed var(--panel-border-card);
+  cursor: auto;
 }
 
 .credentialHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .credentialStatus {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11.5px;
   color: var(--panel-text-muted);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .credentialStatus[data-configured='true'] {
   color: #22c55e;
   font-weight: 500;
+}
+
+.credentialStatus[data-configured='true'] .statusDot {
+  opacity: 1;
 }
 
 .credentialToggleBtn {
@@ -288,7 +268,7 @@
   border-radius: 4px;
   font-size: 11.5px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .credentialToggleBtn:hover {
@@ -297,21 +277,31 @@
 }
 
 .credentialDrawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 180ms ease, visibility 0s linear 180ms;
+}
+
+.credentialDrawer[data-open='true'] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 180ms ease, visibility 0s;
+}
+
+.credentialDrawerInner {
+  overflow: hidden;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  margin-top: 4px;
-  border-radius: 6px;
-  background: var(--panel-bg-subtle);
-  border: 1px solid var(--panel-border-card);
-  cursor: default;
 }
 
 .credentialFields {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding-top: 8px;
 }
 
 .fieldRow {
@@ -344,9 +334,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.credInput:focus {
-  outline: none;
-  border-color: var(--panel-border-card-selected);
+.credInput:focus-visible {
+  outline: 2px solid var(--panel-focus);
+  outline-offset: 1px;
 }
 
 .eyeBtn {
@@ -361,15 +351,20 @@
   opacity: 0.7;
 }
 
-.eyeBtn:hover {
+.eyeBtn:hover:not(:disabled) {
   opacity: 1;
+}
+
+.eyeBtn:disabled {
+  cursor: default;
 }
 
 .credActions {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 .credSaveBtn {
@@ -420,13 +415,12 @@
   color: #22c55e;
 }
 
+/* ---- 新闻/公告源 ---- */
 
-
-/* issue #96：新闻/公告源多选卡片 */
-.newsSourcesGrid {
+.newsGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
+  gap: 8px 18px;
 }
 
 .newsSourceItem {
@@ -442,8 +436,134 @@
   accent-color: var(--panel-border-card-selected);
 }
 
-.newsSourcesHint {
-  font-size: 11.5px;
-  color: var(--panel-text-secondary, var(--panel-text-primary));
-  opacity: 0.75;
+.newsInput {
+  width: 100%;
+  max-width: 420px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--panel-border-input);
+  border-radius: 6px;
+  font-size: 12.5px;
+  background: var(--panel-bg-input);
+  color: var(--panel-text-primary);
+}
+
+.newsInput:focus-visible {
+  outline: 2px solid var(--panel-focus);
+  outline-offset: 1px;
+}
+
+/* ---- 统一操作栏 ---- */
+
+.actionBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--panel-border-card);
+  /* 不透明底 = 宿主底色 + 卡片半透明层，sticky 悬浮时既不允许下层透出，又与卡片同色。 */
+  background-color: var(--dsw-alias-bg-base, #ffffff);
+  background-image: linear-gradient(var(--panel-bg-card), var(--panel-bg-card));
+}
+
+.actionStatus {
+  font-size: 12.5px;
+  color: var(--panel-text-secondary);
+  min-height: 18px;
+}
+
+.actionStatus[data-dirty='true'] {
+  color: var(--panel-text-primary);
+  font-weight: 500;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnPrimary,
+.btnGhost {
+  appearance: none;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btnPrimary {
+  border: 1px solid transparent;
+  background: var(--dsw-alias-primary, #2563eb);
+  color: #ffffff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btnGhost {
+  border: 1px solid var(--panel-btn-border);
+  background: var(--panel-btn-bg);
+  color: var(--panel-btn-text);
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--panel-bg-card-hover);
+}
+
+.btnPrimary:disabled,
+.btnGhost:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btnLink {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--panel-text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  flex-shrink: 0;
+}
+
+.btnLink:hover:not(:disabled) {
+  color: var(--panel-text-primary);
+}
+
+.btnLink:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btnPrimary:focus-visible,
+.btnGhost:focus-visible,
+.btnLink:focus-visible,
+.credentialToggleBtn:focus-visible,
+.credSaveBtn:focus-visible,
+.credDeleteBtn:focus-visible,
+.eyeBtn:focus-visible {
+  outline: 2px solid var(--panel-focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .credentialDrawer,
+  .credentialDrawer[data-open='true'] {
+    transition: none;
+  }
 }

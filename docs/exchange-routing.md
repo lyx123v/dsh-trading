@@ -300,6 +300,12 @@ task-board 全局锁导致无法另起 web 实例验证；待用户重启 GUI �
   renderSlot('dshtrading.market.tab', {}, { only: marketId }) 渲染；
 - MarketProviderPanel 编辑共享 dshtrading scope（store/actions），
   每 tab 独立 draft + 保存/重置（revision-fenced path mutation）。
+- section 内容分两组：**通用**（涨跌配色、市场快讯数据源——市场无关，即时生效）
+  在**市场数据源**（tab 切换 + 当前市场面板）之上，组标题与说明承担层级，避免全局项
+  读成市场项。
+- 单个市场面板内合并一个 draft 与一条底部操作栏（sticky，含「有未保存的更改」提示）：
+  行情提供方选择、CryptoPanic key、新闻/公告源共用一次保存；API 凭证仍在卡片内独立
+  即时保存（凭据按 provider 全局共享、语义不同于路由选择）。
 
 **兼容性演进**：
 

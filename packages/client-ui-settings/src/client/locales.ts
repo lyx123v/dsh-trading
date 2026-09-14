@@ -38,6 +38,17 @@ export type SettingsLocaleKey =
   | 'flashSourceFailed'
   | 'flashSourceConfigured'
   | 'flashSourceMissing'
+  | 'flashSourceChipOn'
+  | 'flashSourceChipOff'
+  | 'groupGeneral'
+  | 'groupGeneralHint'
+  | 'groupMarket'
+  | 'groupMarketHint'
+  | 'colorMode.hint'
+  | 'providerSectionTitle'
+  | 'providerSectionHint'
+  | 'newsKeyTitle'
+  | 'unsavedChanges'
   | 'newsSource.eastmoney'
   | 'newsSource.eastmoneyAnnouncement'
   | 'newsSource.eastmoneyFundAnnouncement'
@@ -171,6 +182,17 @@ export const zh: Record<SettingsLocaleKey, string> = {
       'flashSourceFailed': '保存失败',
       'flashSourceConfigured': '已配置',
       'flashSourceMissing': '未配置（快讯工具不可用）',
+      'flashSourceChipOn': '已启用',
+      'flashSourceChipOff': '未启用',
+      'groupGeneral': '通用',
+      'groupGeneralHint': '对全部市场生效的偏好设置。',
+      'groupMarket': '市场数据源',
+      'groupMarketHint': '按市场选择行情来源，并配置该市场的新闻与公告。',
+      'colorMode.hint': '控制行情面板中上涨与下跌的颜色。',
+      'providerSectionTitle': '行情提供方',
+      'providerSectionHint': '选择该市场使用的行情来源；带「配置 API 凭证」的提供方可填写 API Key，以获得更高额度或交易能力。',
+      'newsKeyTitle': 'CryptoPanic 密钥',
+      'unsavedChanges': '有未保存的更改',
       'newsSource.eastmoney': '东方财富快讯',
       'newsSource.eastmoneyAnnouncement': '东财公告',
       'newsSource.eastmoneyFundAnnouncement': '东财基金公告',
@@ -305,6 +327,17 @@ export const en: Record<SettingsLocaleKey, string> = {
       'flashSourceFailed': 'Save failed',
       'flashSourceConfigured': 'Configured',
       'flashSourceMissing': 'Not configured (flash tools unavailable)',
+      'flashSourceChipOn': 'Enabled',
+      'flashSourceChipOff': 'Disabled',
+      'groupGeneral': 'General',
+      'groupGeneralHint': 'Preferences that apply to every market.',
+      'groupMarket': 'Market data sources',
+      'groupMarketHint': 'Pick a quote source per market and configure that market\'s news and announcements.',
+      'colorMode.hint': 'Controls the up/down colors in quote panels.',
+      'providerSectionTitle': 'Quote providers',
+      'providerSectionHint': 'Choose the quote source for this market. Providers with “Configure API Credentials” accept an API key for higher limits or trading access.',
+      'newsKeyTitle': 'CryptoPanic key',
+      'unsavedChanges': 'Unsaved changes',
       'newsSource.eastmoney': 'Eastmoney fast news',
       'newsSource.eastmoneyAnnouncement': 'Eastmoney announcements',
       'newsSource.eastmoneyFundAnnouncement': 'Eastmoney fund announcements',

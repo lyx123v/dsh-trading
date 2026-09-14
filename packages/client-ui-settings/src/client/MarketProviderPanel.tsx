@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState, useEffect } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from './contract/slots.ts'
@@ -58,6 +58,16 @@ const TYPE_LABEL: Record<string, string> = {
 
 const EMPTY_RECORD: Record<string, string> = {}
 
+/** provider id → 词典键（PROVIDER_LABELS 的稳定投影）。 */
+const PROVIDER_KEY_BY_ID = new Map(PROVIDER_LABELS.map((entry) => [entry.id, entry.label] as const))
+
+/** 把 provider id 解析为本地化显示名（未知 slug 回落原 id）。 */
+function providerLabelOf(t: PanelT, id: string | undefined): string {
+  if (id === undefined) return t('default')
+  const key = PROVIDER_KEY_BY_ID.get(id)
+  return key !== undefined ? t(key) : id
+}
+
 function ProviderCredentialCard(props: {
   providerId: string
   spec: readonly CredentialField[]
@@ -69,6 +79,7 @@ function ProviderCredentialCard(props: {
 }) {
   const { providerId, spec, writable, onSave, onDelete, t } = props
   const currentValues = props.currentValues ?? EMPTY_RECORD
+  const drawerId = useId()
   const [open, setOpen] = useState(false)
   const [fields, setFields] = useState<Record<string, string>>(() => ({ ...currentValues }))
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({})
@@ -130,12 +141,14 @@ function ProviderCredentialCard(props: {
     <div className={css.credentialBlock} onClick={(e) => e.stopPropagation()}>
       <div className={css.credentialHeader}>
         <span className={css.credentialStatus} data-configured={isConfigured ? 'true' : 'false'}>
-          <span>{isConfigured ? '●' : '○'}</span>
+          <span className={css.statusDot} aria-hidden="true" />
           <span>{isConfigured ? t('credential.configured') : t('credential.notConfigured')}</span>
         </span>
         <button
           type="button"
           className={css.credentialToggleBtn}
+          aria-expanded={open}
+          aria-controls={drawerId}
           onClick={() => {
             setOpen(!open)
             setMsg(null)
@@ -145,21 +158,23 @@ function ProviderCredentialCard(props: {
         </button>
       </div>
 
-      {open && (
-        <div className={css.credentialDrawer}>
+      <div className={css.credentialDrawer} data-open={open ? 'true' : undefined}>
+        <div id={drawerId} className={css.credentialDrawerInner}>
           <div className={css.credentialFields}>
             {spec.map((field) => {
               const isPass = field.secret && !showSecret[field.key]
+              const inputId = `${drawerId}-${field.key}`
               return (
                 <div key={field.key} className={css.fieldRow}>
-                  <label className={css.fieldLabel}>{t(field.label)}</label>
+                  <label className={css.fieldLabel} htmlFor={inputId}>{t(field.label)}</label>
                   <div className={css.inputWrapper}>
                     <input
+                      id={inputId}
                       type={isPass ? 'password' : 'text'}
                       className={css.credInput}
                       value={fields[field.key] ?? ''}
                       placeholder={field.placeholder !== undefined ? t(field.placeholder) : undefined}
-                      disabled={!writable || saving}
+                      disabled={!writable || saving || !open}
                       autoComplete="off"
                       spellCheck={false}
                       onChange={(e) => setFields({ ...fields, [field.key]: e.target.value })}
@@ -174,8 +189,10 @@ function ProviderCredentialCard(props: {
                       <button
                         type="button"
                         className={css.eyeBtn}
+                        disabled={!open}
                         onClick={() => setShowSecret((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
                         title={showSecret[field.key] ? t('field.action.hide') : t('field.action.show')}
+                        aria-label={showSecret[field.key] ? t('field.action.hide') : t('field.action.show')}
                       >
                         {showSecret[field.key] ? '🙈' : '👁️'}
                       </button>
@@ -189,7 +206,7 @@ function ProviderCredentialCard(props: {
             <button
               type="button"
               className={css.credSaveBtn}
-              disabled={!isDirty || saving || !writable}
+              disabled={!isDirty || saving || !writable || !open}
               onClick={handleSave}
             >
               {t('credential.save')}
@@ -198,128 +215,44 @@ function ProviderCredentialCard(props: {
               <button
                 type="button"
                 className={css.credDeleteBtn}
-                disabled={saving || !writable}
+                disabled={saving || !writable || !open}
                 onClick={handleDelete}
               >
                 {t('credential.delete')}
               </button>
             )}
-            {msg && <span className={css.credMsg}>{msg}</span>}
+            {msg && <span className={css.credMsg} role="status">{msg}</span>}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-/** issue #96：单市场新闻/公告源多选卡片（draft 勾选集 + 保存/重置；空集 = 显式关闭）。 */
-function NewsSourcesSection(props: {
+/** issue #96：单市场新闻/公告源多选（受控：勾选集与脏标记由面板统一持有）。 */
+function NewsSourceGrid(props: {
   market: string
   catalog: readonly NewsSourceMeta[]
-  resolved: readonly string[] | undefined
-  overridden: boolean
-  writable: boolean
-  onSave: (ids: readonly string[]) => Promise<void>
-  onReset: () => Promise<void>
+  selected: readonly string[]
+  disabled: boolean
+  onToggle: (id: string) => void
   t: (key: string, params?: Record<string, unknown>) => string
 }) {
-  const { market, catalog, resolved, overridden, writable, onSave, onReset, t } = props
-  // draft === undefined：未改动（展示 resolved；未配置 = 全部默认源 = 全勾选展示）。
-  const [draft, setDraft] = useState<readonly string[] | undefined>(undefined)
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
-  const current = resolved ?? catalog.map((s) => s.id)
-
-  useEffect(() => {
-    setDraft(undefined)
-    setMsg(null)
-  }, [market])
-
-  // 保存/重置成功后 resolved 会变化：只重置草稿，保留「已保存」提示（失败提示依赖 resolved 不变）。
-  useEffect(() => {
-    setDraft(undefined)
-  }, [resolved])
-
-  const checked = (id: string): boolean => (draft ?? current).includes(id)
-  const dirty = useMemo(() => {
-    if (draft === undefined) return false
-    const a = [...draft].sort().join(',')
-    const b = [...current].sort().join(',')
-    return a !== b
-  }, [draft, current])
-
-  const toggle = (id: string): void => {
-    const base = draft ?? current
-    setDraft(base.includes(id) ? base.filter((x) => x !== id) : [...base, id])
-  }
-
-  const save = async (): Promise<void> => {
-    if (draft === undefined) return
-    setSaving(true)
-    setMsg(null)
-    try {
-      await onSave(draft)
-      setMsg(t('newsSaved'))
-    } catch (err) {
-      setMsg(`${t('newsSaveFailed')}: ${String(err)}`)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const reset = async (): Promise<void> => {
-    setSaving(true)
-    setMsg(null)
-    try {
-      await onReset()
-      setDraft(undefined)
-      setMsg(t('newsSaved'))
-    } catch (err) {
-      setMsg(`${t('newsSaveFailed')}: ${String(err)}`)
-    } finally {
-      setSaving(false)
-    }
-  }
-
+  const { market, catalog, selected, disabled, onToggle, t } = props
   if (catalog.length === 0) return null
   return (
-    <div className={css.newsSection}>
-      <label className={css.newsLabel}>{t('newsSourcesTitle')}</label>
-      <div className={css.newsSourcesGrid}>
-        {catalog.map((source) => (
-          <label key={`${market}-${source.id}`} className={css.newsSourceItem}>
-            <input
-              type="checkbox"
-              checked={checked(source.id)}
-              disabled={!writable || saving}
-              onChange={() => toggle(source.id)}
-            />
-            <span>{t(source.label)}</span>
-          </label>
-        ))}
-      </div>
-      <div className={css.newsSourcesHint}>{t('newsSourcesHint')}</div>
-      <div className={css.actions}>
-        <button
-          type="button"
-          className={css.saveBtn}
-          disabled={!dirty || saving || !writable}
-          onClick={() => void save()}
-        >
-          {t('save')}
-        </button>
-        {overridden && (
-          <button
-            type="button"
-            className={css.discardBtn}
-            disabled={saving || !writable}
-            onClick={() => void reset()}
-          >
-            {t('newsSourcesReset')}
-          </button>
-        )}
-        {msg !== null ? <span className={css.message}>{msg}</span> : null}
-      </div>
+    <div className={css.newsGrid}>
+      {catalog.map((source) => (
+        <label key={`${market}-${source.id}`} className={css.newsSourceItem}>
+          <input
+            type="checkbox"
+            checked={selected.includes(source.id)}
+            disabled={disabled}
+            onChange={() => onToggle(source.id)}
+          />
+          <span>{t(source.label)}</span>
+        </label>
+      ))}
     </div>
   )
 }
@@ -342,57 +275,44 @@ export function MarketProviderPanel({
   // TS2349 的根因）。本地遮蔽：运行时框架注入 t，签名与 SDK Translate 对齐。
   const t = tProp as unknown as PanelT
   const state = useController((value: TradingSettingsState) => value)
+  const writable = state.writable
   const resolved = state.resolved[market]
   const overridden = state.overridden[market]
+
   const [draft, setDraft] = useState<string | undefined>(undefined)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | undefined>(undefined)
 
-  // 首次进入或切换市场时，以当前市场的解析值初始化
-  useEffect(() => {
-    setDraft(resolved)
-    setMessage(undefined)
-  }, [market, resolved])
-
-  const dirty = useMemo(() => {
+  const providerSelected = draft ?? resolved
+  const providerDirty = useMemo(() => {
     const chosen = draft ?? resolved
     if (chosen === undefined) return overridden
     return chosen !== resolved
   }, [draft, resolved, overridden])
 
-  const writable = state.writable
-
-  // WS2c：CryptoPanic key
+  // WS2c：CryptoPanic key（全局字段，仅 crypto 市场展示）。
   const [newsDraft, setNewsDraft] = useState<string | undefined>(undefined)
-  const [newsSaving, setNewsSaving] = useState(false)
-  const [newsMessage, setNewsMessage] = useState<string | undefined>(undefined)
-  useEffect(() => {
-    if (newsDraft === undefined && state.status === 'ready') {
-      setNewsDraft(state.newsKey)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.status, state.newsKey])
+  const newsValue = newsDraft ?? state.newsKey ?? ''
+  const newsDirty = newsDraft !== undefined && newsDraft.trim() !== (state.newsKey ?? '')
 
-  async function saveNews() {
-    setNewsSaving(true)
-    setNewsMessage(undefined)
-    try {
-      const next = (newsDraft ?? '').trim()
-      const current = state.newsKey ?? ''
-      if (next !== current) {
-        await setNewsKey(next)
-      } else if (state.newsOverridden) {
-        await resetNewsKey()
-      }
-      setNewsMessage(t('newsSaved'))
-    } catch (error) {
-      setNewsMessage(`${t('newsSaveFailed')}: ${String((error as { message?: string })?.message ?? error)}`)
-    } finally {
-      setNewsSaving(false)
-    }
-  }
+  // issue #96：新闻/公告源勾选集（未改动 = 展示解析值；未配置 = 全部默认源）。
+  const catalog = NEWS_SOURCE_CATALOG[market] ?? []
+  const resolvedSources = state.newsSources[market]
+  const sourcesCurrent = useMemo(
+    () => resolvedSources ?? catalog.map((s) => s.id),
+    [resolvedSources, catalog],
+  )
+  const [sourcesDraft, setSourcesDraft] = useState<readonly string[] | undefined>(undefined)
+  const sourcesSelected = sourcesDraft ?? sourcesCurrent
+  const sourcesDirty = useMemo(() => {
+    if (sourcesDraft === undefined) return false
+    const a = [...sourcesDraft].sort().join(',')
+    const b = [...sourcesCurrent].sort().join(',')
+    return a !== b
+  }, [sourcesDraft, sourcesCurrent])
 
-  const newsDirty = (newsDraft === undefined ? state.newsKey ?? '' : newsDraft.trim()) !== (state.newsKey ?? '')
+  const newsKeyDirty = market === 'crypto' && newsDirty
+  const anyDirty = providerDirty || newsKeyDirty || sourcesDirty
 
   const options = useMemo(() => {
     const matched = PROVIDER_LABELS.filter((p) => p.markets.includes(market))
@@ -406,15 +326,31 @@ export function MarketProviderPanel({
     return [...matched, ...extras]
   }, [market, resolved, draft, t])
 
-  async function save() {
+  const toggleSource = (id: string): void => {
+    const base = sourcesDraft ?? sourcesCurrent
+    setSourcesDraft(base.includes(id) ? base.filter((x) => x !== id) : [...base, id])
+  }
+
+  async function saveAll(): Promise<void> {
     setSaving(true)
     setMessage(undefined)
     try {
-      const chosen = draft ?? resolved
-      if (chosen === undefined) {
-        if (overridden) await resetProvider(market)
-      } else if (chosen !== resolved || !overridden) {
-        await setProvider(market, chosen)
+      if (providerDirty) {
+        const chosen = draft ?? resolved
+        if (chosen === undefined) {
+          if (overridden) await resetProvider(market)
+        } else {
+          await setProvider(market, chosen)
+        }
+      }
+      if (newsKeyDirty) {
+        const next = (newsDraft ?? '').trim()
+        const current = state.newsKey ?? ''
+        if (next !== current) await setNewsKey(next)
+        else if (state.newsOverridden) await resetNewsKey()
+      }
+      if (sourcesDirty && sourcesDraft !== undefined) {
+        await setNewsSources(market, sourcesDraft)
       }
       setMessage(t('saved'))
     } catch (error) {
@@ -424,45 +360,73 @@ export function MarketProviderPanel({
     }
   }
 
-  const activeProvider = draft ?? resolved
+  function discardAll(): void {
+    setDraft(undefined)
+    setNewsDraft(undefined)
+    setSourcesDraft(undefined)
+    setMessage(undefined)
+  }
+
+  async function resetSourcesNow(): Promise<void> {
+    setSaving(true)
+    setMessage(undefined)
+    try {
+      await resetNewsSources(market)
+      setSourcesDraft(undefined)
+      setMessage(t('newsSaved'))
+    } catch (error) {
+      setMessage(`${t('newsSaveFailed')}: ${String((error as { message?: string })?.message ?? error)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const newsKeyId = useId()
 
   return (
     <div className={css.panel}>
-      <div className={css.currentHeader}>
-        <span>{t('current', { provider: '' })}</span>
-        <span className={css.currentBadge}>{resolved ?? t('default')}</span>
-      </div>
+      <section className={css.subSection}>
+        <div className={css.subHead}>
+          <div className={css.subHeadText}>
+            <h4 className={css.subTitle}>{t('providerSectionTitle')}</h4>
+            <p className={css.subHint}>{t('providerSectionHint')}</p>
+          </div>
+          <div className={css.currentBox}>
+            <span className={css.currentText}>{t('current', { provider: providerLabelOf(t, resolved) })}</span>
+            {resolved !== undefined && !overridden ? <span className={css.defaultTag}>{t('default')}</span> : null}
+          </div>
+        </div>
 
-      <div className={css.grid}>
-        {options.map((provider) => {
-          const selected = (draft === undefined ? resolved === provider.id : draft === provider.id)
-          const credSpec = PROVIDER_CREDENTIAL_SPECS[provider.id]
-          const currentCreds = state.credentials?.[provider.id]
-          return (
-            <div
-              key={`${market}-${provider.id}`}
-              className={css.card}
-              data-selected={selected ? 'true' : undefined}
-              onClick={() => { if (writable && !saving) setDraft(provider.id) }}
-            >
-              <div className={css.cardHeader}>
-                <input
-                  type="radio"
-                  name={`provider-${market}`}
-                  checked={selected}
-                  disabled={!writable || saving}
-                  onChange={() => setDraft(provider.id)}
-                />
-                <span className={css.cardTitle}>{t(provider.label)}</span>
-                {provider.type && (
-                  <span className={css.typeBadge}>{t(TYPE_LABEL[provider.type] ?? provider.type)}</span>
-                )}
-              </div>
+        <div className={css.grid}>
+          {options.map((provider) => {
+            const selected = providerSelected === provider.id
+            const credSpec = PROVIDER_CREDENTIAL_SPECS[provider.id]
+            const currentCreds = state.credentials?.[provider.id]
+            return (
+              <div
+                key={`${market}-${provider.id}`}
+                className={css.card}
+                data-selected={selected ? 'true' : undefined}
+                onClick={() => { if (writable && !saving) setDraft(provider.id) }}
+              >
+                <div className={css.cardHeader}>
+                  <input
+                    type="radio"
+                    name={`provider-${market}`}
+                    checked={selected}
+                    disabled={!writable || saving}
+                    onChange={() => setDraft(provider.id)}
+                    aria-label={t(provider.label)}
+                  />
+                  <span className={css.cardTitle}>{t(provider.label)}</span>
+                  {provider.type && (
+                    <span className={css.typeBadge}>{t(TYPE_LABEL[provider.type] ?? provider.type)}</span>
+                  )}
+                </div>
 
-              {(provider.url || provider.env) && (
-                <div className={css.cardMeta}>
-                  {provider.url && (
-                    <div>
+                {(provider.url || provider.env) && (
+                  <div className={css.cardMeta}>
+                    {provider.url && (
                       <a
                         href={provider.url}
                         target="_blank"
@@ -472,95 +436,103 @@ export function MarketProviderPanel({
                       >
                         {t('provider.docsLink')} ↗
                       </a>
-                    </div>
-                  )}
-                  {provider.env && (
-                    <div className={css.envBox}>
-                      {t('provider.envPrefix')}<code>{provider.env}</code>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                    {provider.env && (
+                      <div className={css.envBox}>
+                        {t('provider.envPrefix')}<code>{provider.env}</code>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {credSpec && credSpec.length > 0 && (
-                <ProviderCredentialCard
-                  providerId={provider.id}
-                  spec={credSpec}
-                  currentValues={currentCreds}
-                  writable={writable}
-                  onSave={(fields) => setCredential(provider.id, fields)}
-                  onDelete={() => deleteCredential(provider.id)}
-                  t={t as (k: string) => string}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      <div className={css.actions}>
-        <button
-          type="button"
-          className={css.saveBtn}
-          disabled={!dirty || saving || !writable}
-          onClick={() => void save()}
-        >
-          {t('save')}
-        </button>
-        <button
-          type="button"
-          className={css.discardBtn}
-          disabled={saving || !dirty}
-          onClick={() => { setDraft(undefined); setMessage(undefined) }}
-        >
-          {t('discard')}
-        </button>
-        {message !== undefined ? <span className={css.message}>{message}</span> : null}
-      </div>
-
-      {market === 'crypto' && (
-        <div className={css.newsSection}>
-          <label className={css.newsLabel}>{t('newsKeyLabel')}</label>
-          <input
-            type="password"
-            className={css.newsInput}
-            value={newsDraft ?? ''}
-            disabled={!writable || newsSaving}
-            onChange={(event) => setNewsDraft(event.target.value)}
-            placeholder={t('newsKeyPlaceholder')}
-          />
-          <div className={css.actions}>
-            <button
-              type="button"
-              className={css.saveBtn}
-              disabled={!newsDirty || newsSaving || !writable}
-              onClick={() => void saveNews()}
-            >
-              {t('save')}
-            </button>
-            <button
-              type="button"
-              className={css.discardBtn}
-              disabled={newsSaving || !newsDirty}
-              onClick={() => { setNewsDraft(undefined); setNewsMessage(undefined) }}
-            >
-              {t('discard')}
-            </button>
-            {newsMessage !== undefined ? <span className={css.message}>{newsMessage}</span> : null}
-          </div>
+                {credSpec && credSpec.length > 0 && (
+                  <ProviderCredentialCard
+                    providerId={provider.id}
+                    spec={credSpec}
+                    currentValues={currentCreds}
+                    writable={writable}
+                    onSave={(fields) => setCredential(provider.id, fields)}
+                    onDelete={() => deleteCredential(provider.id)}
+                    t={t as (k: string) => string}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
+      </section>
+
+      {(market === 'crypto' || catalog.length > 0) && (
+        <section className={css.subSection}>
+          <div className={css.subHead}>
+            <div className={css.subHeadText}>
+              <h4 className={css.subTitle}>{t('newsSourcesTitle')}</h4>
+              <p className={css.subHint}>{t('newsSourcesHint')}</p>
+            </div>
+            {state.newsSourcesOverridden[market] === true && (
+              <button
+                type="button"
+                className={css.btnLink}
+                disabled={saving || !writable}
+                onClick={() => { void resetSourcesNow() }}
+              >
+                {t('newsSourcesReset')}
+              </button>
+            )}
+          </div>
+
+          {market === 'crypto' && (
+            <div className={css.fieldRow}>
+              <label className={css.fieldLabel} htmlFor={newsKeyId}>{t('newsKeyTitle')}</label>
+              <input
+                id={newsKeyId}
+                type="password"
+                className={css.newsInput}
+                value={newsValue}
+                disabled={!writable || saving}
+                onChange={(event) => setNewsDraft(event.target.value)}
+                placeholder={t('newsKeyPlaceholder')}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p className={css.subHint}>{t('newsKeyLabel')}</p>
+            </div>
+          )}
+
+          <NewsSourceGrid
+            market={market}
+            catalog={catalog}
+            selected={sourcesSelected}
+            disabled={!writable || saving}
+            onToggle={toggleSource}
+            t={t}
+          />
+        </section>
       )}
 
-      <NewsSourcesSection
-        market={market}
-        catalog={NEWS_SOURCE_CATALOG[market] ?? []}
-        resolved={state.newsSources[market]}
-        overridden={state.newsSourcesOverridden[market] === true}
-        writable={writable}
-        onSave={(ids) => setNewsSources(market, ids)}
-        onReset={() => resetNewsSources(market)}
-        t={t}
-      />
+      <div className={css.actionBar}>
+        <span className={css.actionStatus} data-dirty={anyDirty ? 'true' : undefined} role="status">
+          {anyDirty ? t('unsavedChanges') : (message ?? '')}
+        </span>
+        <div className={css.actionButtons}>
+          <button
+            type="button"
+            className={css.btnGhost}
+            disabled={!anyDirty || saving || !writable}
+            onClick={discardAll}
+          >
+            {t('discard')}
+          </button>
+          <button
+            type="button"
+            className={css.btnPrimary}
+            disabled={!anyDirty || saving || !writable}
+            onClick={() => { void saveAll() }}
+          >
+            {t('save')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

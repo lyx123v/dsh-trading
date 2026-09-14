@@ -48,6 +48,7 @@
 ### 5. 设置界面卡片化与零内联 Style (`client-ui-settings`)
 - 彻底废除内联 style，全面抽离为 CSS Modules 并接入 Design Tokens。
 - 数据源 Provider 面板网格卡片化（Card Grid），每张卡片清晰展示类型 Badge、文档外链、环境变量配置提示与选中高亮。
+  - 后续演进（2026-09-13）：设置页分「通用 / 市场数据源」两组，市场面板合并为一个 draft + 一条 sticky 操作栏，见 [2026-09-13-trading-settings-ux-grouping.md](2026-09-13-trading-settings-ux-grouping.md)。
 
 ---
 
