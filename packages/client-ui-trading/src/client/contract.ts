@@ -540,6 +540,7 @@ export type MarketLocaleKey =
   | 'stage.strategy'
   | 'stage.knowledge'
   | 'stage.flash'
+  | 'files.open'
   | 'flash.searchPlaceholder'
   | 'flash.search'
   | 'flash.clear'

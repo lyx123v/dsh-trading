@@ -33,6 +33,7 @@ import { HomeHistory } from './HomeHistory.tsx'
 import { SessionRail } from './SessionRail.tsx'
 import { ChatResizeHandle } from './ChatResizeHandle.tsx'
 import { foldStore, marketFoldStore } from './fold-store.ts'
+import { rightbarStore } from './rightbar-store.ts'
 import { deleteCustomIndicator, fetchCustomIndicators, subscribeTradingEvents } from './api.ts'
 import { wireHostWatchlistSync } from './host-watchlist-sync.ts'
 import { wireHostChartSync } from './host-chart-sync.ts'
@@ -107,6 +108,26 @@ export function apply(ctx: ClientContext): void {
   const marketFolded = marketFoldStore()
   const toggleFold = (): void => { chatFolded.toggle() }
   const toggleMarketFold = (): void => { marketFolded.toggle() }
+
+  // 宿主右侧栏（官方 sidebar-right dock，0.1.5 起接管 details 列，承载文件/
+  // 预览等原生页签）：SessionRail 文件页签的开合动作面。最小结构面不 import
+  // SDK 类型（client 产物 purity gate 禁未声明 SDK 包，WorkspaceNavigation
+  // 同款边界）；服务在点击时惰性解析（apply 时序不保证，uiWorkspace 同款纪律）。
+  interface SidebarRightFace {
+    openTab(kind: string): void
+    isExpanded(): boolean
+    toggleExpanded(): void
+  }
+  const rightbar = rightbarStore()
+  const sidebarRight = (): SidebarRightFace | undefined =>
+    ctx.get('sidebarRight', false) as SidebarRightFace | undefined
+  // 文件页签 ON：官方导航通路 openTab('files')——页签幂等揭示 + 同步展开列。
+  const openFilesPanel = (): void => { sidebarRight()?.openTab('files') }
+  // 文件页签 OFF / 自有面板互斥：仅当前展开时收起（toggle 语义收窄为单向）。
+  const collapseRightbar = (): void => {
+    const svc = sidebarRight()
+    if (svc?.isExpanded()) svc.toggleExpanded()
+  }
 
   // 静态包的 slot 条目崩溃默认无人上报（监督缝只覆盖动态插件）——打到 console 可见化。
   ctx.slots.onEntryError((slot: string, _entry: unknown, error: unknown) => {
@@ -257,9 +278,9 @@ export function apply(ctx: ClientContext): void {
     }),
   }, HomeHistory))
 
-  // 会话竖条（shell.overlay）：右缘 44px 常驻（折叠/新会话/定时任务竖排），
-  // 恒挂载——首页、会话进行中、折叠态都是同一入口，不再按状态切换入口面。
-  // 设置入口 3.0 起迁往 MarketDock 底部，不再注入 openSettings。
+  // 会话竖条（shell.overlay）：右缘 44px 常驻（折叠/新会话/定时任务/资产/
+  // 快讯/文件竖排），恒挂载——首页、会话进行中、折叠态都是同一入口，不再按
+  // 状态切换入口面。设置入口 3.0 起迁往 MarketDock 底部，不再注入 openSettings。
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
     id: 'dshtrading-session-rail',
@@ -272,7 +293,10 @@ export function apply(ctx: ClientContext): void {
       openSession: (sessionId: string) => { sessions.open(sessionId as SessionIdParam) },
       // 资产面板「导入持仓」：会话输入框填入入口（只填不发）。
       fillComposer,
-      hooks: { folded: chatFolded },
+      // 文件页签（2026-09-15）：宿主右侧栏 dock 的容器化开合面。
+      openFilesPanel,
+      collapseRightbar,
+      hooks: { folded: chatFolded, rightbar },
     }),
   }, SessionRail))
 

@@ -192,3 +192,25 @@ body[data-dshtrading-holdings-open='on'] div:has(> [data-shell-overlay]) > div:n
 body[data-dshtrading-flash-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
   display: none !important;
 }
+
+/* 14) 2026-09-15 文件页签 = 宿主右侧栏 dock 的容器化（会话列容器的切换页签
+      4 号，与定时任务/资产/快讯互斥）：面板本体是官方 sidebar-right（文件/
+      预览等原生页签，逻辑与状态全在宿主），只是把宿主 rightbar 列
+      （0.1.5 起 AppFrame 的 data-rightbar-col 子树，rtl 下视觉落在左缘
+      360px 工具详情轨道）搬进第 2 轨——即各功能页签共用的对话列容器位；
+      对话列内容同步隐去，工具详情轨道归零防左缘留空。列锚点用宿主稳定
+      data 属性 data-rightbar-col（非位置序数，宿主加兄弟节点也不漂）。
+      开合状态不新增写方：body[data-dshtrading-files-open] 由 SessionRail
+      effect 依 rightbar-store（宿主 frame data-rightbar-collapsed 的反像）
+      写入，宿主侧入口（对话文件链接、dock 自身开合钮）走同一条镜像链。 */
+body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) {
+  --dshtrading-details-w: 0px !important;
+}
+
+body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > [data-rightbar-col] {
+  grid-column: 2 !important;
+}
+
+body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
+  display: none !important;
+}

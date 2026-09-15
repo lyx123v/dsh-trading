@@ -2,6 +2,10 @@
 
 .dock {
   position: fixed;
+  /* 水平偏移必须显式钉死：fixed 无 left 时水平位置走浏览器「静态位置」
+     解析，在宿主 rtl 栅格下会被轨道几何变化（如 shell-pad.css 规则 14 文件
+     页签搬轨）甩到视口外，左侧自选栏整体消失。设计上 dock 恒贴左缘。 */
+  left: 0;
   top: 0;
   bottom: 0;
   width: 272px;

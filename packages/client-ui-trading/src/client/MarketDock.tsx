@@ -91,7 +91,15 @@ export function MarketDock(props: MarketDockProps) {
     const measure = (): void => {
       const frame = document.querySelector('div:has(> [data-shell-overlay])')
       const details = frame?.children[2]
-      if (details !== undefined && details !== null) {
+      // 0.1.5 起 children[2] 是 sidebar-right 列（带 data-rightbar-col 标记）：
+      // 其面板已容器化进对话列轨道（shell-pad.css 规则 14），与自选栏无涉，
+      // 不避让——否则文件页签打开时 dock 会被「避让」到视口外（左栏空白，
+      // QuotePane 还会缓存跳走的 dock.right 令中栏白屏）。旧宿主该列是落左缘
+      // 的工具详情，无标记，保持原避让。
+      if (
+        details !== undefined && details !== null &&
+        !details.hasAttribute('data-rightbar-col')
+      ) {
         const rect = details.getBoundingClientRect()
         setLeft(Math.max(0, rect.right))
       } else {
