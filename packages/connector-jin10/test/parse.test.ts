@@ -124,10 +124,10 @@ describe('parseCalendar', () => {
     ])
     expect(entries).toHaveLength(2)
     expect(entries[0]).toEqual({
-      publishedAt: '2026-09-06T23:50:00.000Z', star: 2, title: '日本8月外汇储备(亿美元)',
+      publishedAt: '2026-09-06T23:50:00.000Z', star: 2, title: '日本8月外汇储备(亿美元)', region: '日本',
       previous: '12871', actual: '12075', affect: '利空',
     })
-    expect(entries[1]).toEqual({ publishedAt: '2026-09-08T01:00:00.000Z', star: 0, title: '无星级条目' })
+    expect(entries[1]).toEqual({ publishedAt: '2026-09-08T01:00:00.000Z', star: 0, title: '无星级条目', region: '' })
   })
 
   it('非数组抛错', () => {

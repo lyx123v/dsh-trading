@@ -238,6 +238,17 @@ export function IconFlash({ size = 16 }: { size?: number }): ReactElement {
   )
 }
 
+/** 宏观/利率入口（地球：经纬圈）。 */
+export function IconGlobe({ size = 16 }: { size?: number }): ReactElement {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6.25" />
+      <ellipse cx="8" cy="8" rx="2.7" ry="6.25" />
+      <path d="M1.75 8h12.5" />
+    </svg>
+  )
+}
+
 /** 勾选（分组选中态）。 */
 export function IconCheck({ size = 12 }: { size?: number }): ReactElement {
   return (

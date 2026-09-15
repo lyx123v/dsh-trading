@@ -8,6 +8,7 @@
 import { Jin10Error } from './errors.js'
 import { DEFAULT_TIMEOUT_MS, type Jin10McpClient } from './mcp.js'
 import { fetchJin10HotFlash, type Jin10FlashItem, type Jin10HeatLevel } from './web-flash.js'
+import { fetchJin10Rates, type Jin10RateEntry } from './web-rates.js'
 import {
   parseArticle,
   parseCalendar,
@@ -96,6 +97,11 @@ export class Jin10Service {
   /** 本周财经日历（周一~周日；上游一次返回整周）。 */
   async listCalendar(limit?: number): Promise<Jin10CalendarEntry[]> {
     return parseCalendar(await this.client.callToolData('list_calendar', {}), limit)
+  }
+
+  /** 央行最新利率（网页版接口，30 家全量；地区按 flag 名推断）。 */
+  async listRates(): Promise<Jin10RateEntry[]> {
+    return fetchJin10Rates(this.webFetch, { timeoutMs: this.webTimeoutMs })
   }
 
   /** 品种名册（quote://codes 资源）；query 按代码或中文名过滤。 */

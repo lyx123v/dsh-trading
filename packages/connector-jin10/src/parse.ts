@@ -9,6 +9,7 @@
  */
 import type { NewsItem } from '@dshtrading/api'
 import { Jin10Error } from './errors.js'
+import { regionOfTitle } from './regions.js'
 
 /** 快讯/资讯条目（NewsItem 契约 + 金十来源标识）。 */
 export interface Jin10NewsItem extends NewsItem {
@@ -38,6 +39,8 @@ export interface Jin10CalendarEntry {
   publishedAt: string
   star: number
   title: string
+  /** 地区（标题前缀推断，见 regions.ts；未识别 = 空串——GUI 地区过滤用）。 */
+  region: string
   previous?: string
   consensus?: string
   actual?: string
@@ -209,6 +212,7 @@ export function parseCalendar(data: unknown, limit?: number): Jin10CalendarEntry
       publishedAt,
       star: star ?? 0,
       title,
+      region: regionOfTitle(title),
       ...(previous !== undefined ? { previous } : {}),
       ...(consensus !== undefined ? { consensus } : {}),
       ...(actual !== undefined ? { actual } : {}),

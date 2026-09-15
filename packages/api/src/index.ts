@@ -716,6 +716,8 @@ declare module '@deepseek-ai/cordis' {
     tradingNewsRegistry: TradingNewsRegistry
     /** 跨市场快讯源（@dshtrading/connector-jin10 提供；缺席 = 未安装快讯连接器）。 */
     tradingFlashFeed: FlashFeedService
+    /** 宏观/利率源（@dshtrading/connector-jin10 提供；缺席 = 未安装金十连接器）。 */
+    tradingMacroFeed: MacroFeedService
   }
 }
 
@@ -849,6 +851,53 @@ export interface FlashFeedService {
   }>
   /** 关键词搜快讯（上游一次性返回、不支持翻页）。 */
   searchFlash(keyword: string, limit?: number | undefined): Promise<readonly NewsItem[]>
+}
+
+/**
+ * 宏观经济日历条目（金十当周经济数据，2026-09-15）：数值均为上游快照原样字符串，
+ * `actual` 缺省 = 未公布。
+ */
+export interface MacroCalendarEntry {
+  /** ISO 8601 公布时间（东八区解释，同 NewsItem 口径）。 */
+  readonly publishedAt: string
+  /** 重要度（上游 star，0–5）。 */
+  readonly star: number
+  /** 地区（标题前缀推断，如 美国/日本/中国；未识别 = 空串）。 */
+  readonly region: string
+  readonly title: string
+  readonly previous?: string
+  readonly consensus?: string
+  readonly actual?: string
+  readonly revised?: string
+  /** 上游公布影响词（利多/利空/影响较小…；原样透传）。 */
+  readonly affect?: string
+}
+
+/** 央行最新利率条目（金十网页版，2026-09-15）。 */
+export interface MacroRateEntry {
+  /** 地区（flag 名推断，如 美国/日本/中国；未识别 = 空串）。 */
+  readonly region: string
+  readonly bankName: string
+  /** 最新利率（上游原样字符串，如 "3.75"/"0"）。 */
+  readonly rate: string
+  /** 公布日（上游原样 YYYY-MM-DD）。 */
+  readonly publishedAt: string
+  /** 所属指标名（如「美联储利率决定(上限)」；部分央行缺省）。 */
+  readonly indicatorName?: string
+}
+
+/**
+ * 宏观/利率源契约（2026-09-15 金十接入）：host 平面由金十连接器 provide
+ * tradingMacroFeed，GUI 宏观面板（桥 /dshtrading/api/macro/*）消费；服务缺席 =
+ * 未安装/未启用该数据源 → 消费方报 TRADING_NOT_IMPLEMENTED，绝不把「没有数据源」
+ * 伪装成「没有数据」。日历走官方 MCP（list_calendar），利率走网页版公开接口
+ * （spikes/impl-jin10-macro-rates/EVIDENCE.md）。
+ */
+export interface MacroFeedService {
+  /** 当周经济日历（周一~周日，北京时间；limit 截尾，缺省全周）。 */
+  listCalendar(limit?: number | undefined): Promise<readonly MacroCalendarEntry[]>
+  /** 央行最新利率（全量，客户端按地区过滤）。 */
+  listRates(): Promise<readonly MacroRateEntry[]>
 }
 
 /** 新闻聚合器注册表契约（Issue #37，router 插件提供）。 */

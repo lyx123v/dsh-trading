@@ -5,13 +5,13 @@
  *   竖条始终占住右缘 44px（shell-pad.css 规则 8 预留的侧栏轨道），会话
  *   进行中也在——取代 2.8「右上浮动簇 + 会话头内联按钮」双入口。
  * - 结构自上而下：折叠/展开、新会话、分隔线、功能页签（定时任务、资产、
- *   快讯、文件）；设置入口 3.0 起迁往左侧自选面板底部（MarketDock），
+ *   快讯、宏观、文件）；设置入口 3.0 起迁往左侧自选面板底部（MarketDock），
  *   竖条不再承载。
  * - 功能页签 = 对话列容器的切换页签：激活时对话列内容被隐去（shell-pad.css
- *   规则 11/12），面板原位覆盖同一列——与对话非并排、同一容器二选一；
+ *   规则 11/12/13/15），面板原位覆盖同一列——与对话非并排、同一容器二选一；
  *   状态走 body[data-dshtrading-*] 联动。定时任务（3.0）、资产面板
- *   （2026-09-05）、快讯（2026-09-13）、文件（2026-09-15）互斥：
- *   同一条轨道同时只容一个覆盖面。
+ *   （2026-09-05）、快讯（2026-09-13）、宏观（2026-09-15）、文件（2026-09-15）
+ *   互斥：同一条轨道同时只容一个覆盖面。
  * - 文件页签（2026-09-15）是宿主右侧栏 dock 的容器化：面板本体是官方
  *   sidebar-right（文件/预览等原生页签，CSS 规则 14 把宿主列搬进本容器位），
  *   页签激活态 = 宿主 dock 展开态（rightbar-store 镜像 frame 的
@@ -26,10 +26,11 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { FoldStore } from './fold-store.ts'
 import type { RightbarStore } from './rightbar-store.ts'
 import { holdingsPanelStore, setHoldingsPanelOpen } from './holdings-store.ts'
-import { IconClock, IconFlash, IconFolder, IconFoldPanel, IconNewSession, IconWallet } from './icons.tsx'
+import { IconClock, IconFlash, IconFolder, IconFoldPanel, IconGlobe, IconNewSession, IconWallet } from './icons.tsx'
 import { ScheduledTasksPanel } from './ScheduledTasksPanel.tsx'
 import { HoldingsPanel } from './HoldingsPanel.tsx'
 import { FlashPanel } from './FlashPanel.tsx'
+import { MacroPanel } from './MacroPanel.tsx'
 import type { FillComposerFn } from './fill-composer.ts'
 import css from './session-rail.module.css'
 
@@ -61,7 +62,9 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
   const holdingsOpen = useSyncExternalStore(holdingsPanelStore.subscribe, holdingsPanelStore.getSnapshot)
   // 快讯页签（功能页签 3 号，2026-09-13）：从中间容器迁来；与定时任务/资产互斥。
   const [flashOpen, setFlashOpen] = useState(false)
-  // 文件页签（功能页签 4 号，2026-09-15）：宿主右侧栏 dock 展开态的镜像
+  // 宏观/利率页签（功能页签 4 号，2026-09-15）：金十经济数据+央行利率；与其余页签互斥。
+  const [macroOpen, setMacroOpen] = useState(false)
+  // 文件页签（功能页签 5 号，2026-09-15）：宿主右侧栏 dock 展开态的镜像
   // （rightbar-store），不是本组件的私有开关——宿主侧入口同样点亮/熄灭。
   const filesOpen = useRightbar(value => value)
 
@@ -86,34 +89,44 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
   }, [flashOpen])
 
   useEffect(() => {
+    document.body.dataset.dshtradingMacroOpen = macroOpen ? 'on' : 'off'
+    return () => { delete document.body.dataset.dshtradingMacroOpen }
+  }, [macroOpen])
+
+  useEffect(() => {
     document.body.dataset.dshtradingFilesOpen = filesOpen ? 'on' : 'off'
     return () => { delete document.body.dataset.dshtradingFilesOpen }
   }, [filesOpen])
 
-  // 互斥联动（四页签共用同一容器）：资产面板打开（含 QuoteStage 下单成功
-  // 的跨树联动）→ 收定时任务/快讯并收起宿主右侧栏。
+  // 互斥联动（五页签共用同一容器）：资产面板打开（含 QuoteStage 下单成功
+  // 的跨树联动）→ 收定时任务/快讯/宏观并收起宿主右侧栏。
   useEffect(() => {
-    if (holdingsOpen) { setTasksOpen(false); setFlashOpen(false); collapseRightbar() }
+    if (holdingsOpen) { setTasksOpen(false); setFlashOpen(false); setMacroOpen(false); collapseRightbar() }
   }, [holdingsOpen])
 
-  // 宿主右侧栏展开（含宿主侧打开，如对话内文件链接）→ 收定时任务/资产/快讯。
+  // 宿主右侧栏展开（含宿主侧打开，如对话内文件链接）→ 收定时任务/资产/快讯/宏观。
   useEffect(() => {
-    if (filesOpen) { setTasksOpen(false); setHoldingsPanelOpen(false); setFlashOpen(false) }
+    if (filesOpen) { setTasksOpen(false); setHoldingsPanelOpen(false); setFlashOpen(false); setMacroOpen(false) }
   }, [filesOpen])
 
   const toggleTasks = (next: boolean): void => {
     setTasksOpen(next)
-    if (next) { setHoldingsPanelOpen(false); setFlashOpen(false); collapseRightbar() }
+    if (next) { setHoldingsPanelOpen(false); setFlashOpen(false); setMacroOpen(false); collapseRightbar() }
   }
 
   const toggleFlash = (next: boolean): void => {
     setFlashOpen(next)
-    if (next) { setTasksOpen(false); setHoldingsPanelOpen(false); collapseRightbar() }
+    if (next) { setTasksOpen(false); setHoldingsPanelOpen(false); setMacroOpen(false); collapseRightbar() }
+  }
+
+  const toggleMacro = (next: boolean): void => {
+    setMacroOpen(next)
+    if (next) { setTasksOpen(false); setHoldingsPanelOpen(false); setFlashOpen(false); collapseRightbar() }
   }
 
   const toggleHoldings = (next: boolean): void => {
     setHoldingsPanelOpen(next)
-    if (next) { setTasksOpen(false); setFlashOpen(false); collapseRightbar() }
+    if (next) { setTasksOpen(false); setFlashOpen(false); setMacroOpen(false); collapseRightbar() }
   }
 
   return (
@@ -170,6 +183,18 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
       >
         <IconFlash size={16} />
       </button>
+      {/* 宏观/利率页签（功能页签 4 号，2026-09-15）：金十当周经济数据 + 央行
+          利率，默认只看美/日/中；与其余页签互斥，同容器二选一。 */}
+      <button
+        type="button"
+        className={css.button}
+        aria-pressed={macroOpen}
+        aria-label={t('stage.macro')}
+        title={t('stage.macro')}
+        onClick={() => { toggleMacro(!macroOpen) }}
+      >
+        <IconGlobe size={16} />
+      </button>
       {/* 文件页签 = 宿主右侧栏 dock（官方 sidebar-right）：ON 走官方导航
           openTab('files')（幂等揭示 + 展开列），OFF 收起列；激活态镜像自
           宿主（rightbar-store），故 aria-pressed 不是本地开关回写。 */}
@@ -201,6 +226,12 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
         <FlashPanel
           t={t}
           onClose={() => { setFlashOpen(false) }}
+        />
+      )}
+      {macroOpen && (
+        <MacroPanel
+          t={t}
+          onClose={() => { setMacroOpen(false) }}
         />
       )}
     </div>

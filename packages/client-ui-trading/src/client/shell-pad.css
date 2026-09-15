@@ -194,7 +194,7 @@ body[data-dshtrading-flash-open='on'] div:has(> [data-shell-overlay]) > div:nth-
 }
 
 /* 14) 2026-09-15 文件页签 = 宿主右侧栏 dock 的容器化（会话列容器的切换页签
-      4 号，与定时任务/资产/快讯互斥）：面板本体是官方 sidebar-right（文件/
+      5 号，与定时任务/资产/快讯/宏观互斥）：面板本体是官方 sidebar-right（文件/
       预览等原生页签，逻辑与状态全在宿主），只是把宿主 rightbar 列
       （0.1.5 起 AppFrame 的 data-rightbar-col 子树，rtl 下视觉落在左缘
       360px 工具详情轨道）搬进第 2 轨——即各功能页签共用的对话列容器位；
@@ -212,5 +212,13 @@ body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > [data-ri
 }
 
 body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
+  display: none !important;
+}
+
+/* 15) 2026-09-15 宏观/利率面板 = 会话列容器的切换页签 4 号（金十经济数据+
+      央行利率，与定时任务/资产/快讯/文件同款模式、互斥）：地球按钮激活时隐去
+      对话列直接子节点，MacroPanel（fixed，定位吃同一组轨道变量）原位覆盖。
+      body[data-dshtrading-macro-open] 由 SessionRail effect 写入。 */
+body[data-dshtrading-macro-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
   display: none !important;
 }

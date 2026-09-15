@@ -14,7 +14,7 @@
  * - Issue #24：提供 /knowledge/cards 端点（GET），供前端读取沉淀的知识卡片。
  * - Issue #65：提供 /holdings 七个端点 + /fx 端点（统一资产台账，契约 §3/§4）。
  */
-import type { AccountBalance, DerivativesData, DerivativesHistory, FundamentalsPackage, Interval, Kline, MarketDataService, NewsAggregator, NewsItem, Order, Orderbook, Position, StockFundamentals, Ticker, TradeFill, TradeService, TradeTick } from '@dshtrading/api'
+import type { AccountBalance, DerivativesData, DerivativesHistory, FundamentalsPackage, Interval, Kline, MacroCalendarEntry, MacroRateEntry, MarketDataService, NewsAggregator, NewsItem, Order, Orderbook, Position, StockFundamentals, Ticker, TradeFill, TradeService, TradeTick } from '@dshtrading/api'
 import { aggregateNews as aggregateCnNews, fetchCnFundamentalsPackage } from '@dshtrading/kit-cn'
 import { aggregateNews as aggregateHkNews, fetchHkFundamentalsPackage } from '@dshtrading/kit-hk'
 import { aggregateNews as aggregateUsNews, fetchUsFundamentalsPackage } from '@dshtrading/kit-us'
@@ -82,6 +82,15 @@ export interface FlashFeedLike {
   searchFlash(keyword: string, limit?: number | undefined): Promise<readonly NewsItem[]>
 }
 
+/**
+ * 宏观/利率源最小结构面（桥侧）：host 面 tradingMacroFeed 服务实现
+ * @dshtrading/api 的 MacroFeedService；鸭式声明避免 shell 包对连接器包的类型依赖。
+ */
+export interface MacroFeedLike {
+  listCalendar(limit?: number | undefined): Promise<readonly MacroCalendarEntry[]>
+  listRates(): Promise<readonly MacroRateEntry[]>
+}
+
 /** 快讯端点条目上限（保护上游公共配额；超出直接 400）。 */
 export const MAX_FLASH_LIMIT = 50
 
@@ -142,6 +151,8 @@ export function createBridgeHost(services: {
   newsSources?: ((market: string) => readonly string[] | undefined) | undefined
   /** 跨市场快讯源（2026-09-13 金十接入；缺席 = 未安装快讯连接器 → TRADING_NOT_IMPLEMENTED）。 */
   flashFeed?: FlashFeedLike | undefined
+  /** 宏观/利率源（2026-09-15 金十接入；缺席 = 未安装金十连接器 → TRADING_NOT_IMPLEMENTED）。 */
+  macroFeed?: MacroFeedLike | undefined
 }): BridgeHost {
   return {
     getMarketService: market => {
@@ -166,6 +177,7 @@ export function createBridgeHost(services: {
     newsKey: services.newsKey,
     newsSources: services.newsSources,
     flashFeed: services.flashFeed,
+    macroFeed: services.macroFeed,
   }
 }
 
@@ -217,6 +229,8 @@ export interface BridgeHost {
   newsSources?: ((market: string) => readonly string[] | undefined) | undefined
   /** 跨市场快讯源（2026-09-13 金十接入；缺席 = 未安装快讯连接器 → TRADING_NOT_IMPLEMENTED）。 */
   flashFeed?: FlashFeedLike | undefined
+  /** 宏观/利率源（2026-09-15 金十接入；缺席 = 未安装金十连接器 → TRADING_NOT_IMPLEMENTED）。 */
+  macroFeed?: MacroFeedLike | undefined
 }
 
 export interface MarketInfoWire {
@@ -544,8 +558,23 @@ export interface NewsWire {
   unavailable: readonly string[]
 }
 
+/** 宏观日历响应信封（桥 /macro/calendar；2026-09-15 金十接入）。 */
+export interface MacroCalendarWire {
+  ok: true
+  items: readonly MacroCalendarEntry[]
+}
+
+/** 央行利率响应信封（桥 /macro/rates）。 */
+export interface MacroRatesWire {
+  ok: true
+  items: readonly MacroRateEntry[]
+}
+
 /** 新闻端点条目上限（保护公共数据源；超出部分由 Kit 层截流）。 */
 export const MAX_NEWS_LIMIT = 50
+
+/** 宏观日历条目上限（上游一页即整周；与 connector MACRO_CALENDAR_MAX 对齐）。 */
+export const MAX_MACRO_CALENDAR_LIMIT = 250
 
 export class BridgeProtocolError extends Error {
   readonly status: number
@@ -1091,6 +1120,38 @@ export class TradingBridge {
       hasMore: page.hasMore,
       ...(page.nextCursor !== undefined ? { nextCursor: page.nextCursor } : {}),
     }
+  }
+
+  /**
+   * 宏观经济日历（金十接入，2026-09-15）：host 面 tradingMacroFeed 服务提供，
+   * 未安装/未启用 → TRADING_NOT_IMPLEMENTED（不是空列表）。条目只含元数据
+   * （时间/星级/地区/标题/数值快照），地区为标题前缀推断（上游无 country 参数）。
+   */
+  async macroCalendar(rawLimit: string | null): Promise<MacroCalendarWire> {
+    const feed = this.host.macroFeed
+    if (feed === undefined) {
+      throw Object.assign(
+        new Error('macro feed is not mounted (install/enable the jin10 connector)'),
+        { code: 'TRADING_NOT_IMPLEMENTED' },
+      )
+    }
+    const limit = rawLimit === null || rawLimit === '' ? undefined : Number(rawLimit)
+    if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0 || limit > MAX_MACRO_CALENDAR_LIMIT)) {
+      throw new BridgeProtocolError(400, 'macro/calendar: limit must be an integer in 1..' + MAX_MACRO_CALENDAR_LIMIT)
+    }
+    return { ok: true, items: await feed.listCalendar(limit) }
+  }
+
+  /** 央行最新利率（金十网页版，全量 30 家；地区过滤在客户端）。 */
+  async macroRates(): Promise<MacroRatesWire> {
+    const feed = this.host.macroFeed
+    if (feed === undefined) {
+      throw Object.assign(
+        new Error('macro feed is not mounted (install/enable the jin10 connector)'),
+        { code: 'TRADING_NOT_IMPLEMENTED' },
+      )
+    }
+    return { ok: true, items: await feed.listRates() }
   }
 
 
@@ -1911,6 +1972,12 @@ export async function dispatchBridgeRequest(
       }
       case '/flash': {
         return { status: 200, payload: await bridge.flash(search.get('cursor'), search.get('limit'), search.get('keyword'), search.get('hot')) }
+      }
+      case '/macro/calendar': {
+        return { status: 200, payload: await bridge.macroCalendar(search.get('limit')) }
+      }
+      case '/macro/rates': {
+        return { status: 200, payload: await bridge.macroRates() }
       }
       case '/news': {
         const market = search.get('market') ?? ''

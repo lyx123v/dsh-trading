@@ -1,0 +1,341 @@
+/* MacroPanel —— 右缘会话列容器的宏观/利率页签（快讯同款模式：fixed 原位
+ * 覆盖对话列，定位与宽度吃 frame 轨道变量，见 shell-pad.css 规则 15）。
+ * 视觉随容器走：base 底、左缘 default 分隔线，无圆角无投影。 */
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: var(--dshtrading-sidebar-w, 44px);
+  bottom: 0;
+  width: var(--dshtrading-chat-user-w, 380px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--dsw-futu-bg-base, #fff);
+  border: none;
+  border-left: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 45;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  flex: none;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.closeBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 16px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.08));
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding: 10px 12px 12px;
+}
+
+/* 控制行：左页签（经济数据/央行利率）+ 右地区段选（美日中/全部）。 */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  flex: none;
+}
+
+.tab {
+  appearance: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-left: none;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:first-child {
+  border-left: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 6px 0 0 6px;
+}
+
+.tab:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.tab[aria-pressed='true'] {
+  color: var(--dsw-futu-accent, #2563eb);
+  background: var(--dsw-futu-accent-subtle, rgba(37, 99, 235, 0.08));
+  border-color: var(--dsw-futu-accent, #2563eb);
+}
+
+.tab[aria-pressed='true'] + .tab {
+  border-left-color: var(--dsw-futu-accent, #2563eb);
+}
+
+.regionSeg {
+  margin-left: auto;
+  display: flex;
+  gap: 0;
+  flex: none;
+}
+
+.seg {
+  appearance: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-left: none;
+  background: transparent;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seg:first-child {
+  border-left: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 6px 0 0 6px;
+}
+
+.seg:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.seg[aria-pressed='true'] {
+  color: #fff;
+  background: var(--dsw-futu-accent, #2563eb);
+  border-color: var(--dsw-futu-accent, #2563eb);
+}
+
+.hint {
+  margin: 0;
+  padding: 2px 2px 0;
+  font-size: 11px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  flex: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.empty,
+.error {
+  margin: 0;
+  padding: 12px 4px;
+  font-size: 13px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  line-height: 1.6;
+}
+
+.error {
+  color: var(--dsw-alias-warning, #d97706);
+}
+
+/* 日历条目：上行 时间/星级/标题/地区，下行 前值/预期/公布/影响。 */
+.calItem {
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: var(--dsw-futu-bg-surface, #fff);
+}
+
+.calTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.calTime {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  flex: none;
+}
+
+.calStars {
+  font-size: 10px;
+  color: var(--dsw-futu-accent, #2563eb);
+  letter-spacing: 1px;
+  flex: none;
+}
+
+.calTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calRegion {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.06));
+  color: var(--dsw-futu-text-secondary, #5f6672);
+  flex: none;
+}
+
+.calValues {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.val b {
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+  font-variant-numeric: tabular-nums;
+}
+
+.actual[data-pending='false'] {
+  color: var(--dsw-futu-accent, #2563eb);
+}
+
+.affect {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.affect[data-kind='bull'] {
+  background: rgba(6, 118, 71, 0.12);
+  color: #067647;
+}
+
+.affect[data-kind='bear'] {
+  background: rgba(217, 45, 32, 0.12);
+  color: #d92d20;
+}
+
+.affect[data-kind='neutral'] {
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.06));
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+/* 利率条目：央行名 + 大号利率，下行 地区/指标/公布日。 */
+.rateItem {
+  border: 1px solid var(--dsw-futu-border-default, #e3e6ea);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--dsw-futu-bg-surface, #fff);
+}
+
+.rateMain {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rateBank {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dsw-futu-text-primary, #1a1e24);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rateValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dsw-futu-accent, #2563eb);
+  font-variant-numeric: tabular-nums;
+}
+
+.ratePct {
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 1px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.rateMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.rateRegion {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-futu-bg-surface-active, rgba(0, 0, 0, 0.06));
+  flex: none;
+}
+
+.rateIndicator {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rateDate {
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel button:focus-visible {
+  outline: 2px solid var(--dsw-futu-border-active, #3b82f6);
+  outline-offset: 1px;
+}

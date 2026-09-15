@@ -341,6 +341,56 @@ export interface ClientFlashPage {
 }
 
 /* ------------------------------------------------------------------ */
+/* 宏观/利率（金十接入，2026-09-15）                                        */
+/* ------------------------------------------------------------------ */
+
+/** 当周经济数据条目（数值为上游快照原样字符串；actual 缺省 = 未公布）。 */
+export interface ClientMacroCalendarEntry {
+  publishedAt: string
+  star: number
+  /** 地区（标题前缀推断；空串 = 未识别，仅「全部」视图可见）。 */
+  region: string
+  title: string
+  previous?: string
+  consensus?: string
+  actual?: string
+  revised?: string
+  affect?: string
+}
+
+/** 央行最新利率条目。 */
+export interface ClientMacroRateEntry {
+  region: string
+  bankName: string
+  rate: string
+  publishedAt: string
+  indicatorName?: string
+}
+
+/**
+ * 当周经济日历（桥 /macro/calendar；官方 MCP list_calendar）。失败（未装金十连接器/
+ * 上游故障）返回 null，由视图显示可操作提示——不回落成空列表冒充「没有数据」。
+ */
+export async function fetchMacroCalendar(limit: number, signal?: AbortSignal): Promise<ClientMacroCalendarEntry[] | null> {
+  try {
+    const wire = await getJson<{ ok: boolean; items: ClientMacroCalendarEntry[] }>(`/dshtrading/api/macro/calendar?limit=${limit}`, signal)
+    return Array.isArray(wire.items) ? wire.items : []
+  } catch {
+    return null
+  }
+}
+
+/** 央行最新利率（桥 /macro/rates；网页版接口全量，地区过滤在面板）。失败 → null。 */
+export async function fetchMacroRates(signal?: AbortSignal): Promise<ClientMacroRateEntry[] | null> {
+  try {
+    const wire = await getJson<{ ok: boolean; items: ClientMacroRateEntry[] }>('/dshtrading/api/macro/rates', signal)
+    return Array.isArray(wire.items) ? wire.items : []
+  } catch {
+    return null
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* SSE 失效信号订阅（issue #30 / P1）                                        */
 /* ------------------------------------------------------------------ */
 

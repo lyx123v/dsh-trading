@@ -1,0 +1,279 @@
+{
+ "status": 200,
+ "message": "OK",
+ "data": {
+  "list": [
+   {
+    "id": 1653468476634,
+    "bankName": "欧洲央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/欧元区.png",
+    "interestRate": "2.5",
+    "publishTime": "2026-09-10",
+    "fromIndicatorId": 395,
+    "fromIndicatorName": "欧洲央行存款机制利率"
+   },
+   {
+    "id": 1573116623810,
+    "bankName": "美国联邦储备局",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/美国.png",
+    "interestRate": "3.75",
+    "publishTime": "2025-12-11",
+    "fromIndicatorId": 77,
+    "fromIndicatorName": "美联储利率决定(上限)"
+   },
+   {
+    "id": 1573117047006,
+    "bankName": "中国人民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/中国.png",
+    "interestRate": "3",
+    "publishTime": "2025-05-20",
+    "fromIndicatorId": 1417,
+    "fromIndicatorName": "一年期贷款市场报价利率"
+   },
+   {
+    "id": 1573117222228,
+    "bankName": "英国央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/英国.png",
+    "interestRate": "3.75",
+    "publishTime": "2025-12-18",
+    "fromIndicatorId": 638,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573117152899,
+    "bankName": "日本央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/日本.png",
+    "interestRate": "1",
+    "publishTime": "2026-06-16",
+    "fromIndicatorId": 8060,
+    "fromIndicatorName": "央行目标利率（上限）"
+   },
+   {
+    "id": 1573535036112,
+    "bankName": "加拿大央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/加拿大.png",
+    "interestRate": "2.25",
+    "publishTime": "2025-10-29",
+    "fromIndicatorId": 800,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573535139973,
+    "bankName": "瑞士央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/瑞士.png",
+    "interestRate": "0",
+    "publishTime": "2025-06-19",
+    "fromIndicatorId": 1420,
+    "fromIndicatorName": "央行政策利率"
+   },
+   {
+    "id": 1573535090856,
+    "bankName": "澳洲联储",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/澳大利亚.png",
+    "interestRate": "4.35",
+    "publishTime": "2026-05-05",
+    "fromIndicatorId": 862,
+    "fromIndicatorName": "澳洲联储利率决定"
+   },
+   {
+    "id": 1573573700775,
+    "bankName": "新西兰联储",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/新西兰.png",
+    "interestRate": "2.75",
+    "publishTime": "2026-09-02",
+    "fromIndicatorId": 591,
+    "fromIndicatorName": "联储利率决定"
+   },
+   {
+    "id": 1573535071738,
+    "bankName": "韩国央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/韩国.png",
+    "interestRate": "3",
+    "publishTime": "2026-08-27",
+    "fromIndicatorId": 615,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573535052742,
+    "bankName": "俄罗斯央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/俄罗斯.png",
+    "interestRate": "14",
+    "publishTime": "2026-07-24",
+    "fromIndicatorId": 1017,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573117250054,
+    "bankName": "印度储备银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/印度.png",
+    "interestRate": "5.25",
+    "publishTime": "2025-12-05",
+    "fromIndicatorId": 897,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573535360246,
+    "bankName": "泰国央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/泰国.png",
+    "interestRate": "1",
+    "publishTime": "2026-02-25",
+    "fromIndicatorId": 1461,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573535125453,
+    "bankName": "土耳其央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/土耳其.png",
+    "interestRate": "37",
+    "publishTime": "2026-01-22",
+    "fromIndicatorId": 1016,
+    "fromIndicatorName": "一周回购利率"
+   },
+   {
+    "id": 1573535408481,
+    "bankName": "挪威央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/挪威.png",
+    "interestRate": "4.25",
+    "publishTime": "2026-05-07",
+    "fromIndicatorId": 1456,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573535538824,
+    "bankName": "菲律宾央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/菲律宾.png",
+    "interestRate": "5",
+    "publishTime": "2026-08-27",
+    "fromIndicatorId": 1457,
+    "fromIndicatorName": "央行政策利率"
+   },
+   {
+    "id": 1573535022296,
+    "bankName": "巴西央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/巴西.png",
+    "interestRate": "14",
+    "publishTime": "2026-08-06",
+    "fromIndicatorId": 1015,
+    "fromIndicatorName": "Selic利率"
+   },
+   {
+    "id": 1573535106408,
+    "bankName": "墨西哥央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/墨西哥.png",
+    "interestRate": "6.5",
+    "publishTime": "2026-05-08",
+    "fromIndicatorId": 1019,
+    "fromIndicatorName": "央行利率决定"
+   },
+   {
+    "id": 1573573765410,
+    "bankName": "南非央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/南非.png",
+    "interestRate": "7",
+    "publishTime": "2026-05-28",
+    "fromIndicatorId": 1018,
+    "fromIndicatorName": "回购利率"
+   },
+   {
+    "id": 1573535510752,
+    "bankName": "丹麦国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/丹麦.png",
+    "interestRate": "1.6",
+    "publishTime": "2025-06-05",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535460702,
+    "bankName": "以色列央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/以色列.png",
+    "interestRate": "3.75",
+    "publishTime": "2026-05-25",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535006404,
+    "bankName": "印尼央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/印尼.png",
+    "interestRate": "5.75",
+    "publishTime": "2026-06-18",
+    "fromIndicatorId": 1020,
+    "fromIndicatorName": "7天逆回购利率"
+   },
+   {
+    "id": 1573535702974,
+    "bankName": "匈牙利国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/匈牙利.png",
+    "interestRate": "6.25",
+    "publishTime": "2026-02-24",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535626199,
+    "bankName": "捷克国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/捷克.png",
+    "interestRate": "3.5",
+    "publishTime": "2025-05-07",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535731024,
+    "bankName": "乌克兰国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/乌克兰.png",
+    "interestRate": "15.5",
+    "publishTime": "2026-07-30",
+    "fromIndicatorId": 1495,
+    "fromIndicatorName": "央行利率"
+   },
+   {
+    "id": 1573535560349,
+    "bankName": "哥伦比亚央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/哥伦比亚.png",
+    "interestRate": "11.25",
+    "publishTime": "2026-04-02",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535435782,
+    "bankName": "尼日利亚央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/尼日利亚.png",
+    "interestRate": "26.5",
+    "publishTime": "2026-02-24",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535664392,
+    "bankName": "罗马尼亚国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/罗马尼亚.png",
+    "interestRate": "6.5",
+    "publishTime": "2024-08-07",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535333443,
+    "bankName": "波兰国民银行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/波兰.png",
+    "interestRate": "3.75",
+    "publishTime": "2026-03-04",
+    "fromIndicatorId": null,
+    "fromIndicatorName": ""
+   },
+   {
+    "id": 1573535597155,
+    "bankName": "智利央行",
+    "flagImgUrl": "//cdn.jin10.com/assets/img/commons/flag/智利.png",
+    "interestRate": "5",
+    "publishTime": "2024-12-18",
+    "fromIndicatorId": 8098,
+    "fromIndicatorName": "央行基准利率"
+   }
+  ],
+  "updated_at": "2026-09-15T05:08:00.032Z"
+ }
+}

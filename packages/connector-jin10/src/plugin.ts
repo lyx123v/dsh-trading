@@ -15,6 +15,7 @@ import { DEFAULT_ENDPOINT, DEFAULT_TIMEOUT_MS, Jin10McpClient } from './mcp.js'
 import { Jin10Service } from './service.js'
 import { createJin10Tools } from './tools.js'
 import { TRADING_FLASH_FEED_KEY, createJin10FlashFeed } from './flash-service.js'
+import { TRADING_MACRO_FEED_KEY, createJin10MacroFeed } from './macro-service.js'
 
 /** Cordis 插件名 = patch 行 id（TEMPLATES §8）。 */
 export const name = 'dsh-trading-connector-jin10'
@@ -62,6 +63,8 @@ export function apply(ctx: Context, config: Config): void {
   const service = createJin10Service(ctx, config)
   // GUI 快讯面板经桥读本服务（tradingFlashFeed）；与工具面共用同一取数实例。
   ctx.reflect.provide(TRADING_FLASH_FEED_KEY, createJin10FlashFeed(service))
+  // GUI 宏观/利率面板经桥读本服务（tradingMacroFeed）；日历与 econ_calendar 工具同源。
+  ctx.reflect.provide(TRADING_MACRO_FEED_KEY, createJin10MacroFeed(service))
   const tools = ctx.tools as unknown as { register(definition: unknown): void; get(name: string): unknown }
   for (const tool of createJin10Tools(service)) {
     // 同名先到先得，绝不重复注册（dsh-tools 对同名重复注册直接抛错）。

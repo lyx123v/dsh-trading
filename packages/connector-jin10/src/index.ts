@@ -9,19 +9,22 @@
  *   mcp.ts     —— MCP 传输层：initialize → notifications/initialized → tools/list /
  *                 resources/list / resources/read / tools/call，structuredContent 优先
  *   parse.ts   —— 上游 payload → 本仓契约形状的纯解析（严格校验，坏形状不静默吞）
- *   service.ts —— 按业务读法封装的取数层（快讯/资讯/财经日历/品种报价/K线）
+ *   service.ts —— 按业务读法封装的取数层（快讯/资讯/财经日历/利率/品种报价/K线）
  *   tools.ts   —— agent 工具面（市场无关命名，provider 可替换）
  *   index.ts   —— 插件入口（tool 注册 + 凭证解析）
  */
 
 export * from './errors.js'
 export * from './flash-service.js'
+export * from './macro-service.js'
 export * from './market-data.js'
 export * from './mcp.js'
 export * from './parse.js'
+export * from './regions.js'
 export * from './service.js'
 export * from './tools.js'
 export * from './web-flash.js'
+export * from './web-rates.js'
 
 // patch 行按包名解析（@dshtrading/connector-jin10 → lib/index.js）：loader 只从**本入口**读
 // 插件元信息，故 name/inject/Config/apply 必须在此重导出——漏 inject 的后果不是报错跳过，
