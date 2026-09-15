@@ -25,6 +25,7 @@ import { OrderbookPane } from './OrderbookPane.tsx'
 import { OrderPanel } from './OrderPanel.tsx'
 import { paperTradingStore } from './paper-trading-store.ts'
 import { computeRangeStats } from './range-stats.ts'
+import { readoutItems } from './indicator-readout.ts'
 import { IconChevronDown, IconIndicators, IconSend } from './icons.tsx'
 import type { MarketLocaleKey } from './contract.ts'
 import {
@@ -1144,10 +1145,18 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
       )}
 
       {/* 主图指标悬停/最新读数分量（各分量独立着色）。VOL/MACD 等副图指标
-          的读数在 TvChart 各自 pane 内渲染，不进主图读数行。 */}
+          的读数在 TvChart 各自 pane 内渲染，不进主图读数行。
+          布局契约：本行是流内元素，行数即下方图表容器高度——项目数与每项宽度
+          必须与十字光标位置无关，否则悬停跨过指标锚点时整图跳动（见
+          indicator-readout.ts 模块头注）。 */}
       {viewTab === 'chart' && mainOverlays.length > 0 && (
         <div className={css.indicatorReadout}>
-          {mainOverlays.flatMap(group => outputReadouts(group, readoutIndex))}
+          {readoutItems(mainOverlays, readoutIndex).map(item => (
+            <span key={item.key} style={{ color: item.color, fontWeight: 500 }}>
+              {item.title} {item.label}:{' '}
+              <span className={css.readoutValue} style={{ minWidth: `${item.width}ch` }}>{item.text}</span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -1619,22 +1628,6 @@ function IndicatorParamEditor(props: {
       </div>
     </div>
   )
-}
-
-function outputReadouts(
-  group: TvIndicatorGroup & { id: string; pane: 'main' | 'sub'; title: string },
-  readoutIndex: number | null,
-): Array<React.JSX.Element | null> {
-  if (readoutIndex === null) return []
-  return group.outputs.map((output) => {
-    const value = output.values[readoutIndex]
-    if (value === undefined || !Number.isFinite(value)) return null
-    return (
-      <span key={`${group.key}.${output.key}`} style={{ color: output.color, fontWeight: 500 }}>
-        {group.title} {output.key}: {value.toFixed(output.precision ?? 2)}
-      </span>
-    )
-  })
 }
 
 function withTickerBar(prev: Kline[], ticker: Ticker): Kline[] {

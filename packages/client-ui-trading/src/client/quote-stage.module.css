@@ -612,7 +612,8 @@
   background: #1d4ed8;
 }
 
-/* 指标读数栏 */
+/* 指标读数栏（主图指标；流内元素——行数即下方图表容器高度，
+   布局契约见 indicator-readout.ts 模块头注） */
 .indicatorReadout {
   display: flex;
   gap: 12px;
@@ -622,6 +623,12 @@
   min-height: 15px;
   color: var(--dsw-futu-text-secondary, #5f6672);
   flex: none;
+}
+
+/* 读数值列：定宽（min-width 由组件按该 output 全序列最大字符数给 ch），
+   值与缺值占位同宽——行内每项宽度与十字光标位置无关，行数才不会抖动。 */
+.readoutValue {
+  display: inline-block;
 }
 
 .chartBox {
