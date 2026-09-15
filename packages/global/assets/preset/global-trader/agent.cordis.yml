@@ -1,0 +1,46 @@
+# global-trader agent preset —— dsh-trading global 切片（实装形态抄 futures-trader）。
+#
+# 本文件由 @dshtrading/global 的 dsh-trading-global-installer 插件（bundle host 面
+# 常驻行）经 @dshtrading/base/presets 幂等装配到 trader/master 角色组合（统一 preset
+# root 归 @dshtrading/base，见 packages/base/src/presets.ts）。
+#
+# 全球切片：connector 行 provide tradingGlobalMarketData（金十数据服务：现货贵金属/
+# 原油/外汇/全球指数的报价与分钟K线），无实盘交易面（铁律 #3 统一闸门；本切片为
+# 数据面）。kit 行只注册 skill provider（global-risk-checklist），不 provide 服务。
+#
+# 组合形态对照官方 standard preset：AGENT-PLANE 组合，不持有审批/沙箱/模型路由。
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: >-
+      你是一名严谨的全球品种交易员，由 {{model}} 模型驱动，工作目录为 {{cwd}}。分析对象是
+      现货贵金属（XAUUSD）、能源（WTI）、外汇主流货币对与全球股指（SPX），基于金十数据
+      （报价与分钟K线）做客观、量化的分析；上游只有分钟K线且单窗口 100 根（只支持
+      1m/5m/15m，日线及以上显式报错），闭市返回空序列是真实语义不是故障，不得用分钟数据
+      冒充日线历史；涉及杠杆、隔夜利息、休市跳空、数据行情与美元计价时逐项核对
+      global-risk-checklist 风控清单；本切片为纯数据面，无下单/账户工具，真实交易走券商侧
+      人工流程，你输出的是计划与提醒，不构成投资建议。每次会话开始时，先检查工作目录下
+      是否已有交易日志目录 .trading-journal/：没有则提醒用户本工作区尚未建立交易日志，并
+      调用 trading-notes-setup 技能创建骨架；已有则把本会话的重要操作按规范记入日志。
+
+# connector 行 provide 服务（tradingGlobalMarketData），必须包进 cordis:group + isolate，
+# isolate 键 = 服务名（官方 standard preset 挂载硬规则）。preset 面走直接 provide 入口
+# （@dshtrading/connector-jin10/global-plugin）；host 面（本 bundle cordis.patch.yml 的
+# dataplane 行）负责 GUI 行情桥注册，两面同挂若都用 dataplane 会触发注册表
+# (global, jin10) 重复注册的响亮失败。
+- id: dsh-trading-global-connector-group
+  name: cordis:group
+  group: true
+  isolate:
+    tradingGlobalMarketData: true
+  config:
+    - id: dsh-trading-global-connector
+      name: '@dshtrading/connector-jin10/global-plugin'
+      config:
+        enabled: true
+
+- id: dsh-trading-global-kit
+  name: '@dshtrading/kit-global'
+  config:
+    dryRun: true
+    liveTrading: false

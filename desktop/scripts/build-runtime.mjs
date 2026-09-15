@@ -47,6 +47,7 @@ const DIRECT_TRADING_PACKAGES = [
   '@dshtrading/cn',
   '@dshtrading/hk',
   '@dshtrading/futures',
+  '@dshtrading/global',
   '@dshtrading/indicator-supertrend',
   '@dshtrading/dsh-i18n',
   '@dshtrading/client-ui-updater',
@@ -65,6 +66,7 @@ const PROFILE_BUNDLES = [
   '@dshtrading/cn',
   '@dshtrading/hk',
   '@dshtrading/futures',
+  '@dshtrading/global',
 ];
 
 const HOST_PACKAGE = '@deepseek-ai/dsh';

@@ -135,15 +135,12 @@
       config:
         enabled: true
 
-    # global 市场数据面（2026-09-13 金十接入）：provide tradingGlobalMarketData +
-    # 向 tradingMarketDataRegistry 注册 (global, jin10)——GUI 行情桥与 <market>
-    # 工具族经注册表惰性解析（registry-first，docs/exchange-routing.md §2）。
-    # 行归 base 的原因：global 是纯数据市场（无 bundle/kit/交易面），没有市场
-    # bundle 会认领它，而连接器行本身也在 base（铁律 #1）。凭证同上一行（设置中心
-    # dshtrading.credentials.jin10.token 优先、JIN10_MCP_TOKEN 兜底，逐请求惰性解析）；
-    # 未配置/未装时桥报 TRADING_CREDENTIALS_MISSING / 未激活，不伪装成空行情。
-    - id: dsh-trading-global-dataplane-jin10
-      name: '@dshtrading/connector-jin10/dataplane'
+    # global 市场数据面：行 dsh-trading-global-dataplane-jin10（provide
+    # tradingGlobalMarketData + 注册 (global, jin10) 进 tradingMarketDataRegistry）
+    # 2026-09-15 market-group 平权起由 @dshtrading/global bundle 认领，不再归 base
+    # （铁律 #1 的「市场无关」边界回到原位——global 有了自己的市场 bundle）。凭证
+    # 仍由上一行的主连接器闭包承载（设置中心 dshtrading.credentials.jin10.token
+    # 优先、JIN10_MCP_TOKEN 兜底，逐请求惰性解析）。
 
     # 中心化 i18n 语言包（feat/i18n-zh-cn）：注册「简体中文」(zh-CN) 进宿主
     # Settings → General 语言目录，并为全部 dshtrading.* 命名空间注册 zh-CN

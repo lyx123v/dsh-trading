@@ -1,6 +1,6 @@
 {
-  "name": "@dshtrading/connector-jin10",
-  "description": "金十数据 MCP 连接器：把 mcp.jin10.com 的行情/快讯/资讯/财经日历封装成本仓的连接器（市场无关，host 面工具行）",
+  "name": "@dshtrading/kit-global",
+  "description": "Global instruments toolkit plugin for dsh-trading: global risk checklist skill provider (leverage/swap/overnight-gap/event-driven-volatility/USD-denomination for spot metals, oil, FX and global indices); runs as a global-trader preset row (session-scoped)",
   "version": "0.3.0",
   "type": "module",
   "main": "lib/index.js",
@@ -10,18 +10,11 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./dataplane": {
-      "types": "./lib/dataplane.d.ts",
-      "default": "./lib/dataplane.js"
-    },
-    "./global-plugin": {
-      "types": "./lib/global-plugin.d.ts",
-      "default": "./lib/global-plugin.js"
-    },
     "./package.json": "./package.json"
   },
   "files": [
-    "lib"
+    "lib",
+    "assets"
   ],
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
@@ -29,10 +22,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dshtrading/api": "workspace:^"
+    "@dshtrading/api": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/dsh-skill": ">=0.1.5-rc.1",
     "@deepseek-ai/dsh-tools": ">=0.1.5-rc.1",
     "@deepseek-ai/schemastery": ">=3.18.0"
   },

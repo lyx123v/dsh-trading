@@ -15,7 +15,7 @@
  *   绝不返回空数组冒充「无持仓 / 无挂单 / 空盘口」。
  * - **账户数据是券商/交易所真实状态**，与资产台账（holdings，导入型记账）无关；
  *   核对真实持仓必须用本族工具。
- * - 纯只读：不命中 ORDER_GATE_PATTERN（/^(?:crypto|us|cn|hk)_(?:place|cancel)_order$/），
+ * - 纯只读：不命中 ORDER_GATE_PATTERN（/^(?:crypto|us|cn|hk|futures|global)_(?:place|cancel)_order$/），
  *   无交易语义，不进审批闸门（铁律 #3 不涉及）。
  *
  * @module @dshtrading/base/market-tools
@@ -31,7 +31,7 @@ export const name = 'dsh-trading-market-tools'
 /** 工具注册需要 tools 服务；两个注册表经 ctx.get 惰性解析（可能缺席的老部署）。 */
 export const inject = ['tools']
 
-export const MARKETS = ['crypto', 'us', 'cn', 'hk', 'futures'] as const
+export const MARKETS = ['crypto', 'us', 'cn', 'hk', 'futures', 'global'] as const
 export type MarketSlug = (typeof MARKETS)[number]
 
 export interface Config {
@@ -66,7 +66,7 @@ function notImplementedError(market: string, provider: string, method: string, l
 function noMarketProviderError(market: string): Error {
   return new Error(
     `TRADING_NO_PROVIDER: no active market-data provider for market "${market}" — market keys are lowercase slugs `
-    + '(crypto | us | cn | hk | futures); if the key is right, check routing_get and installed connectors.',
+    + '(crypto | us | cn | hk | futures | global); if the key is right, check routing_get and installed connectors.',
   )
 }
 

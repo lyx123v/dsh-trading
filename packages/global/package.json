@@ -1,0 +1,41 @@
+{
+  "name": "@dshtrading/global",
+  "description": "Global market bundle for dsh-trading: host-plane global-trader preset installer + insert-only aggregation of the Jin10 global connector dataplane row and global kit row (design rule #1)",
+  "version": "0.3.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml"
+  ],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {
+    "@dshtrading/connector-jin10": "workspace:*",
+    "@dshtrading/kit-global": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/schemastery": ">=3.18.0"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.0"
+  }
+}

@@ -31,7 +31,7 @@ Status: implemented
 - 工具清单 +9（全角色、全市场会话可见）。这是 context 成本，换来跨市场快讯/资讯/日历/全球品种行情能力；工具描述里写明元数据边界、翻页与限流语义，避免模型拿 `news_get` 去要正文。
 - 出网限制：`global_klines` 在闭市（周末）返回空数组（上游 `status: 200` + `klines: []`），属真实语义而非故障；2026-09-13（周日）实测全品种为空，非空 K 线待交易日复测。工具描述已写明「空 = 窗口内无数据（闭市）≠ 故障」。
 - 用户启用路径：设置中心 `credentials.jin10.token`（settings.yaml 可直接写）或环境变量 `JIN10_MCP_TOKEN`；**已装 profile 需刷新**（坑 #15 overrides 行 + 重装 base bundle）才能拿到新行与包。
-- 后续步骤（未做）：更多快讯源（财联社等，工具面已 provider 无关）、按标过滤的新闻面板接入（原口径：需要上游给 `relatedCodes` 才算真关联）、global 的 market-group 平权（bundle + kit + `global_get_ticker` 命名族）。
+- 后续步骤（未做）：更多快讯源（财联社等，工具面已 provider 无关）、按标过滤的新闻面板接入（原口径：需要上游给 `relatedCodes` 才算真关联）。global 的 market-group 平权（bundle + kit + `global_get_ticker` 命名族）已于 2026-09-15 交付，见 [global 市场 market-group 平权](./2026-09-15-global-market-group.md)。
 ## 续作（2026-09-13 同日）：设置卡片 / GUI 快讯面板 / global 市场数据面
 
 首轮 Decision #7 的「边界」三项（设置面板 Token 卡片、GUI 快讯面板、行情路由接入）在同一变更窗口内补齐；「不接按标过滤的新闻面板与 `news.sources` 源配置」的原口径不变（金十快讯无 relatedCodes，塞进按标面板只能靠关键词猜标的 = 伪造关联）。

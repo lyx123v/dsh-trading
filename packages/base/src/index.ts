@@ -44,11 +44,12 @@ export const Config: Schema<Config> = Schema.object({
 
 /**
  * 下单/撤单工具名模式（跨市场统一词汇：`<market>_<action>_order`，如
- * `crypto_place_order`）。工具名是模型面向词汇，用短市场前缀（crypto/us/cn/hk/futures）；
+ * `crypto_place_order`）。工具名是模型面向词汇，用短市场前缀
+ * （crypto/us/cn/hk/futures/global；global 为预防性收口——纯数据市场无下单工具）；
  * `dsh-trading-` 前缀只属于插件名/patch 行 id，不进工具名（与 crypto_get_ticker
  * 等只读工具一致）。锚定首尾 + 市场段枚举，避免误拦同名他方工具。
  */
-export const ORDER_GATE_PATTERN = /^(?:crypto|us|cn|hk|futures)_(?:place|cancel)_order$/
+export const ORDER_GATE_PATTERN = /^(?:crypto|us|cn|hk|futures|global)_(?:place|cancel)_order$/
 
 export function isOrderGateTool(toolName: string): boolean {
   return ORDER_GATE_PATTERN.test(toolName)

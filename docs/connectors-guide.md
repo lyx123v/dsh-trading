@@ -84,7 +84,7 @@ dshtrading:
 | 项 | 值 |
 | :--- | :--- |
 | 市场 id / provider | `global` / `jin10`（`DEFAULT_MARKETS.global = { provider: 'jin10' }`） |
-| patch 行 | `dsh-trading-global-dataplane-jin10`（`@dshtrading/connector-jin10/dataplane`，归 base：global 无 bundle/kit） |
+| patch 行 | `dsh-trading-global-dataplane-jin10`（`@dshtrading/connector-jin10/dataplane`，归 `@dshtrading/global` bundle；2026-09-13 首轮曾归 base，market-group 平权后由 bundle 认领） |
 | 服务与注册 | provide `tradingGlobalMarketData` + `tradingMarketDataRegistry.register('global', 'jin10', service)` |
 | 品种词汇 | 金十原生大写代码即规范形（`XAUUSD`/`USOIL`/`USDJPY`/`SPX`，97 品种），见 [symbol-vocabulary](symbol-vocabulary.md) |
 | 周期 | 上游只有分钟 K 线且单次上限 100 根 → 本层最多拼 300 分钟窗口，支持 `1m/3m/5m/15m/30m/1h`，GUI 只上 `1m/5m/15m`；`1d` 及以上显式报错 |

@@ -1,8 +1,7 @@
 import { defineConfig } from 'tsdown'
 
-// 与 connector-eastmoney 同款：单步 tsdown（dts: true），官方两段式 tsc -b 不采纳（S5 评审结论 2）。
 export default defineConfig({
-  entry: ['src/index.ts', 'src/dataplane.ts', 'src/global-plugin.ts'],
+  entry: ['src/index.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',
