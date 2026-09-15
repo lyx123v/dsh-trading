@@ -43,6 +43,14 @@ export type NewHolding = Omit<Holding, 'id' | 'source' | 'importedAt' | 'updated
   `confirm(ids, edits?)`、`discard(ids)`、`add(item)`、`update(id, patch)`、`remove(id)`；
   全部写操作自增 revision 并落盘。
 - 默认值推导（currency/account/kind）在 store 写入侧完成，读侧不做猜测。
+- **现金行约定（2026-09-15）**：现金余额按同一模型记入——`symbol` 用币种代码
+  （`USD` / `CNY` / `HKD` / `USDT`）、`size` 为余额、不填 `entryPrice`
+  （现金无成本价、无 uPnL），例：「现金(USD) 8,746.49」→
+  `{ market:'us', symbol:'USD', size:8746.49, currency:'USD' }`。客户端聚合把
+  「`symbol` === 行币种」的行识别为现金（client 半 `isCashPosition`）并**按面值估值**
+  （1 单位现金 = 1 单位该币种，再按 FX 折算），**不参与行情盯市**——`USD` / `HKD` /
+  `CNY` 在行情 API 里都是真实标的（`us:USD` = ProShares Ultra Semiconductors），
+  套用其报价会把现金余额乘成几十倍的伪总资产。
 
 ## 3. REST 契约（/dshtrading/api 桥，认证栅栏后）
 
@@ -119,6 +127,9 @@ export interface TaggedPosition extends Position {   // 结构扩展，契约不
 - 汇总行：按 `market:symbol` 聚合（总 size、加权成本、总市值、总 uPnL、来源/账户分布）；
 - 顶部小计：按 origin 分（真实/模拟/实盘）、按币种分；总资产 = Σ折算市值。
 - FX stale 或缺汇率 → 该币种进「未折算小计」分区，总资产仍给出但标注近似。
+- 现金行（`symbol` === 行币种，见 §2）：markPrice 恒 1、市值 = `size` 原币（再折算），
+  无成本价、无 uPnL，也不进成本合计（否则浮动盈亏比例的分母被现金稀释）；同市场同币种的
+  多账户现金合并成一条汇总行（可展开分账户明细）。
 
 ### 6.3 UI（TradeDrawer 重构 → 2026-09-05 侧栏化为 HoldingsPanel）
 
@@ -138,7 +149,8 @@ export interface TaggedPosition extends Position {   // 结构扩展，契约不
   文案提示用户把截图贴进 composer；按钮 title 明示「截图将发送给当前 AI 模型解析」。
   同时提供「手动新增」对话框（同字段表单）。
 - 价格供给：面板展开时对全部持仓按 market 分组 fetchTickers 批量盯市，
-  30s 轮询；折叠时暂停。paper 持仓维持现有 updatePrices 链路不变。
+  30s 轮询；折叠时暂停（现金行不是报价标的，不进盯市目标）。paper 持仓维持现有
+  updatePrices 链路不变。
 - 委托/成交/资金 tab 语义不变（仍随 live/paper 模式）。
 
 ### 6.4 其他

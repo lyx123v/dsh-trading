@@ -39,7 +39,7 @@ import type { AccountBalance, MarketId, Order, TradeFill } from './types.ts'
 import { colorModeStore } from './color-mode.ts'
 import type { MarketLocaleKey } from './contract.ts'
 import { directionColor, fmtPercent, fmtPrice } from './format.ts'
-import { aggregateHoldings } from './holdings-aggregate.ts'
+import { aggregateHoldings, isCashPosition } from './holdings-aggregate.ts'
 import type { HoldingDetailRow, HoldingSummaryRow } from './holdings-aggregate.ts'
 import { convertUsdToBase, derivePositionRounds } from './position-rounds.ts'
 import type { SymbolRoundHistory } from './position-rounds.ts'
@@ -444,11 +444,12 @@ export function HoldingsPanel({ t, onClose, fillComposer }: HoldingsPanelProps):
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paperTick, data.liveTagged, data.book, t])
 
-  // 盯市目标：全部已知市场持仓去重（未知市场的旧 paper 数据不参与批量盯市）。
+  // 盯市目标：全部已知市场持仓去重（未知市场的旧 paper 数据与现金行不参与批量盯市——
+  // 现金按面值估值，而 USD/HKD/CNY 本身是行情 API 里的真实标的）。
   const m2mTargetsKey = useMemo(() => {
     const keys = new Set<string>()
     for (const p of taggedPositions) {
-      if (p.market !== undefined) keys.add(`${p.market}:${p.symbol}`)
+      if (p.market !== undefined && !isCashPosition(p)) keys.add(`${p.market}:${p.symbol}`)
     }
     return [...keys].sort().join(',')
   }, [taggedPositions])

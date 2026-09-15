@@ -20,7 +20,11 @@
  * - 浮动总盈亏（2026-09-06）：totalPnlBase = Σ 可折算 uPnL，totalCostBase =
  *   Σ 可折算成本（entryPrice×size）；pnlRatio 只在「盈亏行集合 === 成本行集合」
  *   时给出（每条行要么两者都有、要么都没有），避免缺成本价或缺现价的行让
- *   分子分母口径错位——不一致时宁缺勿错（undefined，UI 显示 —）。
+ *   分子分母口径错位——不一致时宁缺勿错（undefined，UI 显示 —）；
+ * - 现金行（2026-09-15）：symbol 恰为行币种代码（如 `{market:'us', symbol:'USD',
+ *   size:8746.49, currency:'USD'}` = 「现金(USD)」）→ 按面值估值：markPrice 恒 1、
+ *   市值 = size 原币（再按 FX 折算）、无成本价无浮动盈亏，且**永不走行情盯市**
+ *   （USD/HKD/CNY 在行情 API 里都是真实标的，见 isCashPosition）。
  */
 import type { FxSnapshot, HoldingsBaseCurrency, HoldingCurrency, PositionOrigin, TaggedPosition } from './holdings-types.ts'
 import { DEFAULT_HOLDINGS_BASE_CURRENCY, MARKET_DEFAULT_CURRENCY, holdingsPriceKey } from './holdings-types.ts'
@@ -121,23 +125,44 @@ function convert(value: number | undefined, currency: string | undefined, fx: Fx
   return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? value * rate : undefined
 }
 
+/**
+ * 现金行判定（2026-09-15）：symbol 恰为行币种代码（去空白、大小写宽容），币种按
+ * position.currency ?? market 推导。
+ *
+ * 台账没有独立现金实体，现金余额按「symbol = 币种代码」的约定记成持仓
+ * （`{market:'us', symbol:'USD', size:8746.49, currency:'USD'}`，不填 entryPrice）。
+ * 这类行必须按面值估值：`us:USD`（ProShares Ultra Semiconductors，78.43）、
+ * `hk:HKD` 在行情 API 里都是真实标的，把它们的报价乘现金余额会算出几十倍的伪总资产
+ * （2026-09-15 实测 8746.49 美元现金被算成 685,987 美元）。
+ */
+export function isCashPosition(position: Pick<TaggedPosition, 'symbol' | 'market' | 'currency'>): boolean {
+  const currency = position.currency ?? (position.market === undefined ? undefined : MARKET_DEFAULT_CURRENCY[position.market])
+  return currency !== undefined && position.symbol.trim().toUpperCase() === currency
+}
+
 /** 单持仓 → 明细行（导出供 UI 单行场景复用；聚合主入口是 aggregateHoldings）。 */
 export function detailRowOf(
   position: TaggedPosition,
   prices: Readonly<Record<string, number>>,
   fx: FxSnapshot | undefined,
 ): HoldingDetailRow {
-  const key = position.market === undefined ? undefined : holdingsPriceKey(position.market, position.symbol)
+  const cash = isCashPosition(position)
+  const key = cash || position.market === undefined ? undefined : holdingsPriceKey(position.market, position.symbol)
   const batch = key === undefined ? undefined : prices[key]
-  const markPrice = batch !== undefined && batch > 0 ? batch : position.markPrice
+  // 现金按面值（1 单位现金 = 1 单位该币种），行情报价一律不参与。
+  const markPrice = cash ? 1 : batch !== undefined && batch > 0 ? batch : position.markPrice
   const marketValue = markPrice !== undefined ? markPrice * position.size : undefined
-  const unrealizedPnl =
-    position.entryPrice !== undefined && markPrice !== undefined
+  const unrealizedPnl = cash
+    ? undefined
+    : position.entryPrice !== undefined && markPrice !== undefined
       ? (markPrice - position.entryPrice) * position.size
       : position.unrealizedPnl
   const currency = position.currency ?? (position.market === undefined ? undefined : MARKET_DEFAULT_CURRENCY[position.market])
   const marketValueBase = convert(marketValue, currency, fx)
-  const costBase = convert(position.entryPrice !== undefined ? position.entryPrice * position.size : undefined, currency, fx)
+  // 现金面值即成本，不进成本合计（否则浮动盈亏比例的分母被现金稀释）。
+  const costBase = cash
+    ? undefined
+    : convert(position.entryPrice !== undefined ? position.entryPrice * position.size : undefined, currency, fx)
   return {
     position,
     currency,

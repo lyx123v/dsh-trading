@@ -4,7 +4,7 @@
  * 多币种、未知市场旧 paper 数据、批量价优先/自带 markPrice 兜底。
  */
 import { describe, expect, it } from 'vitest'
-import { aggregateHoldings, detailRowOf, UNKNOWN_CURRENCY_BUCKET } from '../src/client/holdings-aggregate.ts'
+import { aggregateHoldings, detailRowOf, isCashPosition, UNKNOWN_CURRENCY_BUCKET } from '../src/client/holdings-aggregate.ts'
 import type { FxSnapshot, TaggedPosition } from '../src/client/holdings-types.ts'
 
 function pos(overrides: Partial<TaggedPosition> & Pick<TaggedPosition, 'symbol' | 'size' | 'origin' | 'account' | 'market'>): TaggedPosition {
@@ -280,5 +280,58 @@ describe('aggregateHoldings 浮动总盈亏（2026-09-06）', () => {
     expect(agg.totalPnlBase).toBeUndefined()
     expect(agg.totalCostBase).toBeUndefined()
     expect(agg.pnlRatio).toBeUndefined()
+  })
+})
+
+describe('aggregateHoldings 现金行（2026-09-15）', () => {
+  it('symbol=币种代码 → 按面值估值，行情报价不得参与（us:USD 是真实标的）', () => {
+    const cash = pos({ symbol: 'USD', size: 8746.49, origin: 'imported', account: '大象银行', market: 'us', currency: 'USD', holdingId: 'hd-c1' })
+    expect(isCashPosition(cash)).toBe(true)
+    // us:USD = ProShares Ultra Semiconductors（78.43）——现金行必须无视它
+    const row = detailRowOf(cash, { 'us:USD': 78.43 }, FX_USD)
+    expect(row.markPrice).toBe(1)
+    expect(row.marketValue).toBe(8746.49)
+    expect(row.marketValueBase).toBe(8746.49)
+    expect(row.unrealizedPnl).toBeUndefined()
+    expect(row.unrealizedPnlBase).toBeUndefined()
+    expect(row.costBase).toBeUndefined()
+    expect(row.converted).toBe(true)
+  })
+
+  it('现金按原币面值折算：HKD/CNY 走 FX，无行情价也算得出市值（不进未折算分区）', () => {
+    const hkd = pos({ symbol: 'HKD', size: 120.87, origin: 'imported', account: '盈立证券(港股融资)', market: 'hk', currency: 'HKD', holdingId: 'hd-c2' })
+    const cny = pos({ symbol: 'CNY', size: 45_482.84, origin: 'imported', account: '国金证券', market: 'cn', currency: 'CNY', holdingId: 'hd-c3' })
+    const agg = aggregateHoldings([hkd, cny], {}, FX_USD) // 现金不需要盯市价（cn:CNY 行情本就查不到）
+    expect(agg.rows[0]?.marketValue).toBe(120.87)
+    expect(agg.rows[1]?.marketValue).toBe(45_482.84)
+    expect(agg.totalBase).toBeCloseTo(120.87 * 0.128 + 45_482.84 * 0.14, 6)
+    expect(agg.unconverted).toEqual([])
+    expect(agg.approximate).toBe(false)
+  })
+
+  it('币种代码作 symbol 但 currency 不是它 → 仍是普通标的（行情价照用）', () => {
+    const security = pos({ symbol: 'CNY', size: 10, origin: 'imported', account: '某券商', market: 'us', currency: 'USD', holdingId: 'hd-c4' })
+    expect(isCashPosition(security)).toBe(false)
+    expect(detailRowOf(security, { 'us:CNY': 5 }, FX_USD).marketValue).toBe(50)
+  })
+
+  it('无显式 currency 时按 market 推导（大小写/空白宽容）', () => {
+    expect(isCashPosition(pos({ symbol: 'usd', size: 100, origin: 'imported', account: '券商', market: 'us', holdingId: 'hd-c5' }))).toBe(true)
+    expect(isCashPosition(pos({ symbol: ' USDT ', size: 100, origin: 'live', account: 'binance', market: 'crypto' }))).toBe(true)
+    // 市场未知（旧 paper）无法推导币种 → 不判现金
+    expect(isCashPosition(pos({ symbol: 'USD', size: 100, origin: 'paper', account: '模拟账户', market: undefined }))).toBe(false)
+    expect(isCashPosition(pos({ symbol: 'AAPL', size: 100, origin: 'live', account: 'ibkr', market: 'us' }))).toBe(false)
+  })
+
+  it('总资产：现金按面值计入，同币种现金按 market:symbol 汇总（复盘 2026-09-15 误算）', () => {
+    const rows = [
+      pos({ symbol: 'USD', size: 8746.49, origin: 'imported', account: '大象银行', market: 'us', currency: 'USD', holdingId: 'hd-c6' }),
+      pos({ symbol: 'USD', size: 2432.04, origin: 'imported', account: '盈立证券(美股融资)', market: 'us', currency: 'USD', holdingId: 'hd-c7' }),
+    ]
+    const agg = aggregateHoldings(rows, { 'us:USD': 78.43 }, FX_USD)
+    expect(agg.totalBase).toBeCloseTo(8746.49 + 2432.04, 6) // 不是 11178.53 × 78.43
+    expect(agg.summaries[0]?.key).toBe('us:USD')
+    expect(agg.summaries[0]?.marketValue).toBeCloseTo(11_178.53, 6)
+    expect(agg.summaries[0]?.accounts).toEqual(['大象银行', '盈立证券(美股融资)'])
   })
 })

@@ -185,7 +185,9 @@ export function createHoldingsStageTool(store: HoldingsStore, options: HoldingsW
       + '③ 数字（size/entryPrice）必须原样取自截图，看不清就缺省，绝不编造；entryPrice 截图没有就不填；'
       + '④ 一张截图一个 account 名：用户未说明时用截图里的券商/交易所名（如「富途」「币安」），都拿不准则缺省；'
       + '⑤ 模拟盘截图须显式 kind="sim"，拿不准时缺省（缺省按真实账户 real 处理）；'
-      + '⑥ currency 一般缺省（按 market 自动推导 crypto→USDT/us→USD/cn→CNY/hk→HKD），仅截图明示币种与推导不符时才覆盖。',
+      + '⑥ currency 一般缺省（按 market 自动推导 crypto→USDT/us→USD/cn→CNY/hk→HKD），仅截图明示币种与推导不符时才覆盖；'
+      + '⑦ 截图里的现金/可用余额按现金行约定记入：symbol 用币种代码（USD/CNY/HKD/USDT）、size 为余额、'
+      + '不填 entryPrice（如 {"market":"us","symbol":"USD","size":8746.49,"currency":"USD","name":"现金(USD)","account":"大象银行"}）。',
     parameters: {
       itemsJson: {
         type: 'string',
@@ -405,6 +407,8 @@ export function createHoldingsAddTool(store: HoldingsStore, options: HoldingsWri
       + '或手动补录。截图导入仍优先走 holdings_stage（待确认区），让用户先复核。'
       + '纪律：数字原样取自用户口述，不编造、不四舍五入；不确定的字段整个缺省；'
       + 'symbol 用连接器词汇（AAPL / 002714.SZ / BTCUSDT / 00700.HK），中文名放 name；'
+      + '现金余额同表记入：symbol 用币种代码（USD/CNY/HKD/USDT）、size 为余额、不填 entryPrice，'
+      + '资产面板按面值估值；'
       + '录入后回显 id 与关键字段，提醒用户可在资产面板复核/编辑。',
     parameters: {
       itemsJson: {
