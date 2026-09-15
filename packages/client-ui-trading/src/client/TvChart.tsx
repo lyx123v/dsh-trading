@@ -23,6 +23,7 @@ import type {
 } from 'lightweight-charts'
 import type { BarPrice, PriceFormatCustom } from 'lightweight-charts'
 import { fmtAxis, fmtCompact, priceDigits } from './format.ts'
+import { AXIS_FONT_FAMILY, AXIS_FONT_SIZE, axisMinimumWidth, percentLabelCandidates } from './axis-width.ts'
 import { getColorPalette, type ColorMode } from './color-mode.ts'
 import type { IndicatorOutput } from '@dshtrading/indicators'
 import type { Kline } from './types.ts'
@@ -187,8 +188,8 @@ export function getChartThemeOptions(dark: boolean) {
       layout: {
         background: { type: ColorType.Solid, color: '#131722' },
         textColor: '#787b86',
-        fontSize: 10.5,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif',
+        fontSize: AXIS_FONT_SIZE,
+        fontFamily: AXIS_FONT_FAMILY,
         panes: {
           separatorColor: '#2a2e39',
           separatorHoverColor: '#363a45',
@@ -241,8 +242,8 @@ export function getChartThemeOptions(dark: boolean) {
     layout: {
       background: { type: ColorType.Solid, color: '#ffffff' },
       textColor: '#5f6672',
-      fontSize: 10.5,
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif',
+      fontSize: AXIS_FONT_SIZE,
+      fontFamily: AXIS_FONT_FAMILY,
       panes: {
         separatorColor: '#e3e6ea',
         separatorHoverColor: '#c8cdd4',
@@ -312,6 +313,8 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
   /** 右轴百分比参考价（可视区最左一根K线收盘；null = 未定）。 */
   const refPriceRef = useRef<number | null>(null)
   const mirrorFormatRafRef = useRef(0)
+  /** 右轴宽度下限（px；0 = 未锁）。锁住「轴宽 ↔ 绘图区宽」正反馈，见 axis-width.ts。 */
+  const rightAxisMinWidthRef = useRef(0)
   /** 主图/副图各一张序列表：groupKey → outputKey → series（结构 diff 用）。 */
   const mainRefs = useRef(new Map<string, Map<string, ISeriesApi<SeriesType>>>())
   const subRefs = useRef(new Map<string, Map<string, ISeriesApi<SeriesType>>>())
@@ -603,6 +606,11 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
     const topData: Array<{ time: UTCTimestamp; value: number }> = []
     const bottomData: Array<{ time: UTCTimestamp; value: number }> = []
     const closeData: Array<{ time: UTCTimestamp; value: number }> = []
+    // 包络与收盘极值：右轴宽度下限的输入（见下）。可视区无关，只随数据变化。
+    let minPrice = Number.POSITIVE_INFINITY
+    let maxPrice = Number.NEGATIVE_INFINITY
+    let minClose = Number.POSITIVE_INFINITY
+    let maxClose = Number.NEGATIVE_INFINITY
     for (let index = 0; index < bars.length; index++) {
       const bar = bars[index]
       if (bar === undefined) continue
@@ -616,6 +624,10 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
           if (value < low) low = value
         }
       }
+      if (high > maxPrice) maxPrice = high
+      if (low < minPrice) minPrice = low
+      if (bar.close > maxClose) maxClose = bar.close
+      if (bar.close < minClose) minClose = bar.close
       topData.push({ time: bar.time, value: high })
       bottomData.push({ time: bar.time, value: low })
       closeData.push({ time: bar.time, value: bar.close })
@@ -623,6 +635,18 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
     top.setData(topData)
     bottom.setData(bottomData)
     badge.setData(closeData)
+    // 右轴宽度下限：轴宽 = 最宽刻度标签宽度，百分号标签正数不带号、量级跨 10/100
+    // 各差一个字符，宽度随可视区在 5/6/7 字符间跳 → 绘图区宽 → 可视 K 线 → 自缩放
+    // → 标签 → 轴宽 正反馈（实测 625px 容器宽下无限抖动）。按数据极值给出的最宽
+    // 标签锁死下限，反馈即断开。下限只随数据变化，不随可视区变化。
+    if (Number.isFinite(minPrice) && Number.isFinite(maxPrice)) {
+      const chart = chartRef.current
+      const minWidth = axisMinimumWidth(percentLabelCandidates({ minPrice, maxPrice, minClose, maxClose }))
+      if (chart !== null && minWidth > 0 && minWidth !== rightAxisMinWidthRef.current) {
+        rightAxisMinWidthRef.current = minWidth
+        chart.applyOptions({ rightPriceScale: { minimumWidth: minWidth } })
+      }
+    }
     // 徽标底色跟随最新一根K线方向（与左轴价格徽标同款着色逻辑）。
     const last = bars[bars.length - 1]
     const prev = bars[bars.length - 2]
@@ -764,7 +788,7 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
     return null
   })()
 
-  const monoFont = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif'
+  const monoFont = AXIS_FONT_FAMILY
   const volumeReadout = readoutIndex !== null ? volumes[readoutIndex] : undefined
 
   return (

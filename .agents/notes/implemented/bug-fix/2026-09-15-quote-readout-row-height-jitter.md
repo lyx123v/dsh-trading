@@ -35,3 +35,4 @@ headless Chrome（trading-web 宿主 55001）复现，布局与截图一致（�
 - 值列按全序列最大字符数定宽，每项比旧实现宽约 3.6 px（172.9 vs 169.3 px，6 项时约 +21 px），极窄窗口下可能多占一行——换来行数不随悬停变化。数据量级变化（价格跨过 10/100 整数位）仍会一次性改变列宽，但那是数据事实而非悬停位置，且全序列取最大值时只在极值变化时发生。
 - 验证：`packages/client-ui-trading` 401 用例全绿（新增 `test/indicator-readout.test.ts` 7 例）；`node scripts/typecheck-gate.mjs` 472 ≤ 基线 473；`node scripts/i18n-audit.mjs --check` OK；`tsdown` 重建 `lib/client.js`（与 profile 内 file: 副本同 inode，运行中的宿主按盘读取新产物，未重启、未 plugin install）。
 - 残留：行数仍受「激活的指标集合」与「窗口宽度」影响（增删主图指标或改窗口宽度时读数行会有一次布局变化），这是内容事实变化，非本 bug 的悬停抖动。
+- 后续（2026-09-15）：用户复测仍见"无操作时疯狂抖动"，且关掉 KDAS 后照抖 —— 那是另一条链路（右轴百分比标签宽度 ↔ 绘图区宽度互馈），见 [行情图蜡烛持续抖动](./2026-09-15-chart-axis-width-feedback-jitter.md)。本记录的缺陷（悬停跨锚点 23 px 跳变）已实测修复且独立成立。
