@@ -52,9 +52,13 @@ lwc 自带的左轴（价位标签）在这条链上基本稳定（价位量级�
 新增纯函数模块 `packages/client-ui-trading/src/client/axis-width.ts`，给右轴一个**与可视区
 无关**的宽度下限（lwc `rightPriceScale.minimumWidth`）：
 
+- `percentLabel(value, ref)`：百分比标签的唯一口径，右轴 formatter 与宽度下限共用（避免两份
+  实现漂移后下限静默偏窄）；
 - `percentLabelCandidates({minPrice, maxPrice, minClose, maxClose})`：按当前数据给出可能出现的
-  两个最宽百分比标签——正向极值在「参考价取最小收盘、价格取最高」时取到，负向极值在
-  「参考价取最大收盘、价格取最低」时取到（参考价必落在收盘极值区间内，故这是保守界）；
+  两个最宽百分比标签——正向极值在「参考价取最小收盘、价格取轴范围上界」时取到，负向极值在
+  「参考价取最大收盘、价格取轴范围下界」时取到（参考价必落在收盘极值区间内）。轴范围上/下界
+  按 `AXIS_SCALE_MARGIN`（= TvChart 的 `scaleMargins` 0.08，同一常量来源）各外扩
+  `区间×m/(1−2m)`——留白会把顶端刻度撑到数据最高价之上，不外扩就会少算一个字符；
 - `axisMinimumWidth(labels)`：用 canvas `measureText` 取最宽标签的浏览器文本宽度 +
   `AXIS_LABEL_MARGIN`（lwc 轴内边距实测 26.4–28.1 px，取 32 保守值；无 DOM 环境回 0，
   调用方据此跳过 `applyOptions`）；
@@ -63,6 +67,23 @@ lwc 自带的左轴（价位标签）在这条链上基本稳定（价位量级�
 
 轴字体同时提为模块常量 `AXIS_FONT_SIZE/AXIS_FONT_FAMILY`，`getChartThemeOptions` 与测量共用
 （字串与 10.5 px 原值一致，视觉不变）。
+
+## 评审后续修复（2026-09-15）
+
+同日 review-spd（三个提交）对本修复提出两条，已同变更修掉：
+
+- **下界漏算轴留白**：候选标签原只按数据极值算，没算 `scaleMargins`（两轴各 0.08）把可见价格
+  范围撑出数据区间的部分——轴范围 = 数据区间/(1−2m)，顶端刻度可比最高价高约 9.52%·区间，于是
+  真实最大标签可达候选值的 1.0952 倍。数据区间恰好落在量级边界下方约 9% 时（如最大涨幅 9.5%），
+  真实标签已是 `10.40%`（6 字符）而候选只给 `9.50%`（5 字符）；`AXIS_LABEL_MARGIN` 相对实测
+  内边距的余量（3.9–5.6 px）小于一个等宽字符（10.5 px 字号约 6.3 px），下限压不住自然轴宽，
+  抖动在这一档标的上仍有回归路径。修法：候选先按 `span·m/(1−2m)` 外扩上下界，
+  `AXIS_SCALE_MARGIN` 常量与 TvChart 四处 `scaleMargins` 共用同一来源。
+- **标签口径两份实现**：候选文本与 `mirrorPercentFormat` 各写一份百分比格式化，任何一侧改动都
+  会静默让下限偏窄且无测试可发现。抽出 `percentLabel` 供两侧共用。
+
+回归：`test/axis-width.test.ts` 新增「最大涨幅 9.5% → 候选必须覆盖 10.40%」与 `percentLabel`
+参考价守卫用例（9 例）。
 
 ## Alternatives considered
 

@@ -17,6 +17,9 @@
 export const AXIS_FONT_SIZE = 10.5
 export const AXIS_FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif'
 
+/** lwc 价格轴上下留白（与 TvChart 的 scaleMargins 同源：两轴同值，刻度行才逐行对齐）。 */
+export const AXIS_SCALE_MARGIN = 0.08
+
 /** lwc 轴标签内边距（实测 26.4-28.1px，取 32 保守值：偏大只多几像素留白，偏小会重新抖）。 */
 const AXIS_LABEL_MARGIN = 32
 
@@ -29,20 +32,36 @@ export interface PercentAxisExtremes {
   maxClose: number
 }
 
-/** 与 TvChart 的 mirrorPercentFormat 同口径：正数不带正号、两位小数、带 %。 */
-function percentLabel(percent: number): string {
-  return `${percent.toFixed(2)}%`
+/**
+ * 相对参考价的百分比标签（右轴 formatter 与宽度下限同源，杜绝两份口径漂移）。
+ * 正数不带正号、两位小数、带 %（同花顺式）；参考价非正/非有限 → 空串。
+ */
+export function percentLabel(value: number, ref: number | null): string {
+  if (ref === null || !Number.isFinite(ref) || ref <= 0 || !Number.isFinite(value)) return ''
+  return `${((value - ref) / ref * 100).toFixed(2)}%`
 }
 
 /**
- * 右轴可能出现的两个最宽标签：正向极值在「参考价取最小收盘、价格取最高」时取到，
- * 负向极值在「参考价取最大收盘、价格取最低」时取到。返回文本即 formatter 输出。
+ * 轴留白外扩量：scaleMargins 把可见价格范围撑到数据范围之外——数据区间 D 只占轴高的
+ * 1-2m，故轴范围 = D/(1-2m)，上/下各多出 D·m/(1-2m)（m=0.08 时 ≈ 9.52%·D）。顶端
+ * 刻度因此可以高于数据最高价，候选标签必须按外扩后的边界取；否则在量级边界附近会少算
+ * 一个字符（如数据最大涨幅 9.5% 时真实标签已是 10.40%），下限压不住自然轴宽，抖动回来。
+ */
+function axisPadding(span: number): number {
+  return span * AXIS_SCALE_MARGIN / (1 - 2 * AXIS_SCALE_MARGIN)
+}
+
+/**
+ * 右轴可能出现的两个最宽标签：正向极值在「参考价取最小收盘、价格取轴范围上界」时取到，
+ * 负向极值在「参考价取最大收盘、价格取轴范围下界」时取到。返回文本即 formatter 输出。
  */
 export function percentLabelCandidates(extremes: PercentAxisExtremes): string[] {
   const { minPrice, maxPrice, minClose, maxClose } = extremes
-  const rise = minClose > 0 ? (maxPrice - minClose) / minClose * 100 : 0
-  const fall = maxClose > 0 ? (minPrice - maxClose) / maxClose * 100 : 0
-  return [percentLabel(rise), percentLabel(fall)]
+  const span = Number.isFinite(minPrice) && Number.isFinite(maxPrice) ? Math.max(0, maxPrice - minPrice) : 0
+  const pad = axisPadding(span)
+  const rise = minClose > 0 ? percentLabel(maxPrice + pad, minClose) : ''
+  const fall = maxClose > 0 ? percentLabel(minPrice - pad, maxClose) : ''
+  return [rise === '' ? '0.00%' : rise, fall === '' ? '0.00%' : fall]
 }
 
 /** 标签集合里最宽一条的浏览器文本宽度 + 轴内边距；无 DOM（node 单测）时回 0。 */

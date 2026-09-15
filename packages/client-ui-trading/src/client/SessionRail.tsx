@@ -19,7 +19,8 @@
  * - 资产面板开关走 holdings-store 的 holdingsPanelStore（共享单例）：
  *   QuoteStage 下单成功后 setHoldingsPanelOpen(true) 跨树联动打开。
  * - 折叠态同步 body[data-dshtrading-chat-folded] 的 effect 从旧 WindowChrome
- *   移入本组件（竖条恒挂载，单一同步点）。
+ *   移入本组件（竖条恒挂载，单一同步点）。新建会话先收起该容器上的全部覆盖面
+ *   （closeContainer）；折叠时面板改由 shell-pad.css 规则 14b 浮动兜底。
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -129,6 +130,19 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
     if (next) { setTasksOpen(false); setFlashOpen(false); setMacroOpen(false); collapseRightbar() }
   }
 
+  /**
+   * 收起全部功能性覆盖面（五个页签共用的对话列容器 + 宿主右侧栏）。
+   * 新建会话 = 换一个对话列容器，旧容器上的覆盖面必须整体让位；此前只收定时任务，
+   * 资产/快讯/宏观/文件会继续盖住新会话（2026-09-15 评审 L4）。
+   */
+  const closeContainer = (): void => {
+    setTasksOpen(false)
+    setFlashOpen(false)
+    setMacroOpen(false)
+    setHoldingsPanelOpen(false)
+    collapseRightbar()
+  }
+
   return (
     <div className={css.rail} data-dshtrading-rail="" role="toolbar" aria-orientation="vertical">
       <button
@@ -146,7 +160,7 @@ export function SessionRail({ t, useFolded, useRightbar, startNewSession, toggle
         className={css.button}
         aria-label={t('entry.new')}
         title={t('entry.new')}
-        onClick={() => { toggleTasks(false); collapseRightbar(); startNewSession() }}
+        onClick={() => { closeContainer(); startNewSession() }}
       >
         <IconNewSession size={16} />
       </button>

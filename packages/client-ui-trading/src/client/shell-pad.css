@@ -201,8 +201,9 @@ body[data-dshtrading-flash-open='on'] div:has(> [data-shell-overlay]) > div:nth-
       对话列内容同步隐去，工具详情轨道归零防左缘留空。列锚点用宿主稳定
       data 属性 data-rightbar-col（非位置序数，宿主加兄弟节点也不漂）。
       开合状态不新增写方：body[data-dshtrading-files-open] 由 SessionRail
-      effect 依 rightbar-store（宿主 frame data-rightbar-collapsed 的反像）
-      写入，宿主侧入口（对话文件链接、dock 自身开合钮）走同一条镜像链。 */
+      effect 依 rightbar-store（宿主面板 data-sidebar-right-open 的正像）写入，
+      宿主侧入口（对话文件链接、dock 自身开合钮）走同一条镜像链。
+      会话列折叠态见规则 14b。 */
 body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) {
   --dshtrading-details-w: 0px !important;
 }
@@ -213,6 +214,21 @@ body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > [data-ri
 
 body[data-dshtrading-files-open='on'] div:has(> [data-shell-overlay]) > div:nth-child(2) > * {
   display: none !important;
+}
+
+/* 14b) 会话列折叠（规则 9 把第 2 轨归零）× 文件页签：规则 14 把宿主 rightbar
+       列搬进的正是那条 0 宽轨道，面板会塌成 0 宽不可见，而页签仍亮、宿主状态仍
+       是展开（2026-09-15 评审 M2；「先折叠再开文件」与「开着文件再折叠」两条路
+       都命中）。折叠态一律改判宿主面板本身：与定时任务/资产/快讯/宏观四块 fixed
+       面板同款退路——钉在右缘 44px 起、用户拖出的对话列宽（ChatResizeHandle 在
+       折叠态撤走该变量时回落 380px），栅格里的列归零无妨。只对 push 形态生效：
+       fullscreen 形态由宿主自己的 inset:0 规则自理，本规则不得压过它。 */
+body[data-dshtrading-files-open='on'][data-dshtrading-chat-folded='on'] div:has(> [data-shell-overlay]) [data-sidebar-right-panel='push'] {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: var(--dshtrading-sidebar-w, 44px) !important;
+  width: var(--dshtrading-chat-user-w, 380px) !important;
 }
 
 /* 15) 2026-09-15 宏观/利率面板 = 会话列容器的切换页签 4 号（金十经济数据+

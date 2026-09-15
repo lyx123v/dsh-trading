@@ -17,10 +17,10 @@ Status: implemented
 
 四件套，全部走既有契约，不改宿主：
 
-1. **镜像 store**（新模块 `rightbar-store.ts`）：宿主 frame 在右栏轨道为 0（收起）时写 `data-rightbar-collapsed`、展开时移除（dsh-client-ui-layout `AppFrame`，布局 store 驱动）。MutationObserver 把该属性镜像成布尔快照（订阅时安装、末退订断开），作为「文件页签激活态」的唯一事实源——宿主侧入口（对话文件链接、dock 自身折叠钮）与本侧按钮共用同一状态，任何一方开合另一方即时同步。
+1. **镜像 store**（新模块 `rightbar-store.ts`）：宿主 sidebar-right 面板展开时写 `data-sidebar-right-open`、收起时移除（面板收起后仍挂载在 DOM 里，只被 transform 推出 frame 右缘）。MutationObserver 把该属性镜像成布尔快照（订阅时安装、末退订断开），作为「文件页签激活态」的唯一事实源——宿主侧入口（对话文件链接、dock 自身折叠钮）与本侧按钮共用同一状态，任何一方开合另一方即时同步。读的是**面板**属性而不是 frame 的 `data-rightbar-collapsed`（那是「右栏轨道宽为 0」，窄窗口下与展开态同现，见「评审后续修复」）。
 2. **页签开合面**（`client/index.ts` 注入）：ON = `ctx.get('sidebarRight').openTab('files')`（官方导航通路：页签幂等揭示 + 同步展开列）；OFF/互斥 = `isExpanded()` 为真时 `toggleExpanded()`。类型用本地最小结构面（`WorkspaceNavigation` 先例），不 import SDK 包（client 产物 purity gate 禁未声明外部包）；服务点击时惰性解析（apply 时序不保证纪律）。
-3. **CSS 搬移**（shell-pad.css 规则 14）：`body[data-dshtrading-files-open='on']` 时把 `[data-rightbar-col]` 列从 grid-column 4 改判到 2（对话列轨道，即各功能页签的容器位），对话列直接子节点隐去（规则 11-13 同款），`--dshtrading-details-w: 0px` 防左缘留空。列锚点用宿主稳定 data 属性 `data-rightbar-col`，不用位置序数。
-4. **页签与互斥**（`SessionRail.tsx`）：竖条新增第 4 个功能页签（文件夹图标，`files.open` = 文件/Files）；激活态 `useSyncExternalStore` 消费镜像 store；`files-open` 写 body 属性驱动规则 14。四页签互斥闭环：文件开 → 收任务/资产/快讯；任务/资产/快讯开、新会话 → 收宿主右栏。
+3. **CSS 搬移**（shell-pad.css 规则 14）：`body[data-dshtrading-files-open='on']` 时把 `[data-rightbar-col]` 列从 grid-column 4 改判到 2（对话列轨道，即各功能页签的容器位），对话列直接子节点隐去（规则 11-13 同款），`--dshtrading-details-w: 0px` 防左缘留空。列锚点用宿主稳定 data 属性 `data-rightbar-col`，不用位置序数。会话列折叠态另见规则 14b（把宿主面板改判 fixed，见「评审后续修复」）。
+4. **页签与互斥**（`SessionRail.tsx`）：竖条新增功能页签（文件夹图标，`files.open` = 文件/Files）；激活态 `useSyncExternalStore` 消费镜像 store；`files-open` 写 body 属性驱动规则 14。页签互斥闭环：文件开 → 收任务/资产/快讯/宏观；其余页签开 → 收宿主右栏；新建会话走 `closeContainer()` 统一收起全部覆盖面 + 宿主右栏（先前只收定时任务，见「评审后续修复」）。
 
 ## Bugfix（2026-09-15 用户回归：文件打开时左侧自选栏空白）
 
@@ -33,6 +33,29 @@ Status: implemented
 
 - `MarketDock.tsx`：避让仅对**旧宿主**生效——children[2] 带 `data-rightbar-col` 标记（0.1.5 sidebar-right 列）时恒 `setLeft(0)`；无标记（≤0.1.4 真工具详情列）保持原避让，不破坏旧 cohort 契约。
 - `market-dock.module.css`：`.dock` 显式钉 `left: 0`——fixed 无水平偏移时水平位置走浏览器「静态位置」解析，在 rtl 栅格下随轨道几何漂移，属潜伏脆弱点，与内联避让双保险。
+
+## 评审后续修复（2026-09-15）
+
+同日 review-spd（三个提交）对本容器化提出两条，已同变更修掉：
+
+- **镜像读错信号**：原读 frame 的 `data-rightbar-collapsed`，那是「右栏**轨道**宽为 0」而非
+  「面板收起」——宿主在视口 < 768px 的 autoFullscreen 下 `track = shown && !autoFullscreen`
+  同样为 0，于是「面板已展开但属性在位」：页签不亮、点不掉（`openTab` 幂等展开不会收）、
+  五页签互斥对「宿主侧打开文件」这一路不生效；旧宿主（≤0.1.4 无该属性）则读到常亮，
+  隐去对话列却无面板可看。改读面板自己的
+  `[data-sidebar-right-panel][data-sidebar-right-open]`，观察器 attributeFilter 同步换到该属性。
+- **折叠态面板塌成 0 宽**：规则 14 把 `data-rightbar-col` 搬进第 2 轨、规则 9 折叠时把该轨
+  归零，面板被 `width:100% !important` 压成 0 宽而页签仍亮（「先折叠再开文件」与「开着文件
+  再折叠」两条路都命中）。新增规则 14b：折叠态把宿主面板本身改判为与定时任务/资产/快讯/
+  宏观四块面板同款 fixed（右缘 `--dshtrading-sidebar-w` 起、对话列宽，变量缺席回落 380px），
+  只对 `push` 形态生效，`fullscreen` 交宿主 `inset:0` 规则自理。
+- **新建会话只收定时任务**：`onClick` 原先只 `setTasksOpen(false)`，资产/快讯/宏观/文件会
+  继续盖住新会话。抽 `closeContainer()`（五个覆盖面 + 宿主右栏）供新建会话调用；折叠仍只切
+  折叠态（折叠态由规则 14b 兜底，不联动收起）。
+
+回归：`test/rightbar-store.test.ts` 改为面板属性契约，新增「轨道为 0 但面板已展开 → 快照仍
+true」与「旧宿主恒 false」；新增 `test/session-rail.smoke.test.tsx` 钉住新建会话的容器让位、
+折叠不联动、文件页签开合分流。
 
 ## Alternatives considered
 

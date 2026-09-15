@@ -23,7 +23,7 @@ import type {
 } from 'lightweight-charts'
 import type { BarPrice, PriceFormatCustom } from 'lightweight-charts'
 import { fmtAxis, fmtCompact, priceDigits } from './format.ts'
-import { AXIS_FONT_FAMILY, AXIS_FONT_SIZE, axisMinimumWidth, percentLabelCandidates } from './axis-width.ts'
+import { AXIS_FONT_FAMILY, AXIS_FONT_SIZE, AXIS_SCALE_MARGIN, axisMinimumWidth, percentLabel, percentLabelCandidates } from './axis-width.ts'
 import { getColorPalette, type ColorMode } from './color-mode.ts'
 import type { IndicatorOutput } from '@dshtrading/indicators'
 import type { Kline } from './types.ts'
@@ -142,13 +142,9 @@ function mirrorPercentFormat(refPriceRef: { current: number | null }): PriceForm
   return {
     type: 'custom',
     minMove: 0.01,
-    formatter: (price: BarPrice): string => {
-      const ref = refPriceRef.current
-      const value = Number(price)
-      if (ref === null || !Number.isFinite(ref) || ref <= 0 || !Number.isFinite(value)) return ''
-      const pct = (value - ref) / ref * 100
-      return `${pct.toFixed(2)}%`
-    },
+    // 口径与右轴宽度下限（axis-width.ts）共用同一个 percentLabel——两份实现漂移会让
+    // minimumWidth 偏窄、抖动回归，且没有任何测试能发现。
+    formatter: (price: BarPrice): string => percentLabel(Number(price), refPriceRef.current),
   }
 }
 
@@ -203,12 +199,12 @@ export function getChartThemeOptions(dark: boolean) {
       leftPriceScale: {
         visible: true,
         borderColor: '#2a2e39',
-        scaleMargins: { top: 0.08, bottom: 0.08 },
+        scaleMargins: { top: AXIS_SCALE_MARGIN, bottom: AXIS_SCALE_MARGIN },
         entireTextOnly: true,
       },
       rightPriceScale: {
         borderColor: '#2a2e39',
-        scaleMargins: { top: 0.08, bottom: 0.08 },
+        scaleMargins: { top: AXIS_SCALE_MARGIN, bottom: AXIS_SCALE_MARGIN },
         entireTextOnly: true,
       },
       timeScale: {
@@ -260,12 +256,12 @@ export function getChartThemeOptions(dark: boolean) {
     leftPriceScale: {
       visible: true,
       borderColor: '#e5e7eb',
-      scaleMargins: { top: 0.08, bottom: 0.08 },
+      scaleMargins: { top: AXIS_SCALE_MARGIN, bottom: AXIS_SCALE_MARGIN },
       entireTextOnly: true,
     },
     rightPriceScale: {
       borderColor: '#e5e7eb',
-      scaleMargins: { top: 0.08, bottom: 0.08 },
+      scaleMargins: { top: AXIS_SCALE_MARGIN, bottom: AXIS_SCALE_MARGIN },
       entireTextOnly: true,
     },
     timeScale: {
@@ -638,7 +634,8 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
     // 右轴宽度下限：轴宽 = 最宽刻度标签宽度，百分号标签正数不带号、量级跨 10/100
     // 各差一个字符，宽度随可视区在 5/6/7 字符间跳 → 绘图区宽 → 可视 K 线 → 自缩放
     // → 标签 → 轴宽 正反馈（实测 625px 容器宽下无限抖动）。按数据极值给出的最宽
-    // 标签锁死下限，反馈即断开。下限只随数据变化，不随可视区变化。
+    // 标签锁死下限，反馈即断开。下限只随数据变化，不随可视区变化。候选标签已把
+    // scaleMargins 把轴范围撑出数据区间的部分算进去（axis-width.ts）。
     if (Number.isFinite(minPrice) && Number.isFinite(maxPrice)) {
       const chart = chartRef.current
       const minWidth = axisMinimumWidth(percentLabelCandidates({ minPrice, maxPrice, minClose, maxClose }))

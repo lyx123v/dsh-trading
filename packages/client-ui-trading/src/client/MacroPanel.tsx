@@ -25,7 +25,10 @@ const POLL_MS = 300_000
 const CALENDAR_LIMIT = 250
 
 /** 默认地区过滤（美/日/中；用户 2026-09-15 裁决）。 */
-const G3_REGIONS: readonly string[] = ['美国', '日本', '中国']
+const G3_REGIONS: readonly string[] = ['美国', '日本', '中国'] // i18n-allow: 地区名是上游数据词汇（与条目 region 比对），非 UI 文案
+
+/** 单个数据源的加载状态：两源各自记账，任一源失败不影响另一个页签的展示。 */
+type FeedState = 'loading' | 'ready' | 'error'
 
 export type MacroPanelTranslate = (key: MarketLocaleKey) => string
 
@@ -38,8 +41,8 @@ export interface MacroPanelProps {
 /** 上游影响词 → 色系（数据源词汇，非 UI 文案；原样透传展示）。 */
 function affectKind(affect: string | undefined): 'bull' | 'bear' | 'neutral' | undefined {
   if (affect === undefined) return undefined
-  if (affect.includes('利多')) return 'bull'
-  if (affect.includes('利空')) return 'bear'
+  if (affect.includes('利多')) return 'bull' // i18n-allow: 上游影响词原文匹配
+  if (affect.includes('利空')) return 'bear' // i18n-allow: 上游影响词原文匹配
   return 'neutral'
 }
 
@@ -56,7 +59,10 @@ export function MacroPanel({ t, onClose }: MacroPanelProps) {
   const [g3Only, setG3Only] = useState(true)
   const [calendar, setCalendar] = useState<readonly ClientMacroCalendarEntry[] | null>(null)
   const [rates, setRates] = useState<readonly ClientMacroRateEntry[] | null>(null)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  // 两个数据源（MCP 日历 / 网页版利率）独立记状态：任一源失败只在自己那个页签出
+  // 错误提示，绝不把「一个源挂了」画成「没有数据」（2026-09-15 评审 M3）。
+  const [calendarState, setCalendarState] = useState<FeedState>('loading')
+  const [ratesState, setRatesState] = useState<FeedState>('loading')
 
   useEffect(() => {
     let cancelled = false
@@ -65,9 +71,9 @@ export function MacroPanel({ t, onClose }: MacroPanelProps) {
       if (cancelled) return
       setCalendar(calendarPage)
       setRates(ratePage)
-      setStatus(calendarPage === null && ratePage === null ? 'error' : 'ready')
+      setCalendarState(calendarPage === null ? 'error' : 'ready')
+      setRatesState(ratePage === null ? 'error' : 'ready')
     }
-    setStatus('loading')
     void load()
     const timer = setInterval(() => { void load() }, POLL_MS)
     return () => { cancelled = true; clearInterval(timer) }
@@ -106,18 +112,20 @@ export function MacroPanel({ t, onClose }: MacroPanelProps) {
             </button>
           </div>
         </div>
-        {status === 'error' ? <p className={css.error}>{t('macro.error')}</p> : null}
         {tab === 'calendar' ? (
           <div className={css.list}>
             <p className={css.hint}>{t('macro.weekHint')}</p>
-            {status !== 'error' && calendarRows !== null && calendarRows.length === 0 ? (
-              <p className={css.empty}>{status === 'loading' ? t('macro.loading') : t('macro.empty')}</p>
+            {calendarState === 'error' ? <p className={css.error}>{t('macro.error')}</p> : null}
+            {calendarState === 'loading' ? <p className={css.empty}>{t('macro.loading')}</p> : null}
+            {calendarState === 'ready' && calendarRows !== null && calendarRows.length === 0 ? (
+              <p className={css.empty}>{t('macro.empty')}</p>
             ) : null}
             {(calendarRows ?? []).map((entry, index) => (
               <div key={`${entry.publishedAt}-${index}`} className={css.calItem}>
                 <div className={css.calTop}>
                   <span className={css.calTime}>{shortTime(entry.publishedAt)}</span>
-                  <span className={css.calStars} title={`${entry.star}`}>{'★'.repeat(Math.min(entry.star, 5)) || '·'}</span>
+                  {/* 星号先夹到 [0,5]：上游给负值/NaN 时 repeat 会抛 RangeError 炸掉整块面板。 */}
+                  <span className={css.calStars} title={`${entry.star}`}>{'★'.repeat(Math.max(0, Math.min(entry.star, 5))) || '·'}</span>
                   <span className={css.calTitle}>{entry.title}</span>
                   <span className={css.calRegion}>{entry.region}</span>
                 </div>
@@ -135,8 +143,10 @@ export function MacroPanel({ t, onClose }: MacroPanelProps) {
           </div>
         ) : (
           <div className={css.list}>
-            {status !== 'error' && rateRows !== null && rateRows.length === 0 ? (
-              <p className={css.empty}>{status === 'loading' ? t('macro.loading') : t('macro.empty')}</p>
+            {ratesState === 'error' ? <p className={css.error}>{t('macro.error')}</p> : null}
+            {ratesState === 'loading' ? <p className={css.empty}>{t('macro.loading')}</p> : null}
+            {ratesState === 'ready' && rateRows !== null && rateRows.length === 0 ? (
+              <p className={css.empty}>{t('macro.empty')}</p>
             ) : null}
             {(rateRows ?? []).map((rate) => (
               <div key={rate.bankName} className={css.rateItem}>

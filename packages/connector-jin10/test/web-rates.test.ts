@@ -44,11 +44,20 @@ describe('parseWebRates（央行利率解析）', () => {
     expect(() => parseWebRates({ status: 200, data: {} })).toThrow(/data\.list/)
   })
 
-  it('地区推断：flag 文件名去扩展名；标题前缀按长名优先', () => {
+  it('地区推断：flag 文件名去扩展名并归一别名；标题前缀按长度降序（长名不被短名截胡）', () => {
     expect(regionOfFlagUrl('//cdn.jin10.com/assets/img/commons/flag/欧元区.png')).toBe('欧元区')
+    // 上游 flag 用简称「印尼」，与字典 country 取值同名 —— 两条推断路径归一成同一标签
+    expect(regionOfFlagUrl('//cdn.jin10.com/assets/img/commons/flag/印尼.png')).toBe('印度尼西亚')
     expect(regionOfFlagUrl('')).toBe('')
     expect(regionOfTitle('日本8月外汇储备(亿美元)')).toBe('日本')
     expect(regionOfTitle('印度尼西亚Q2 GDP同比')).toBe('印度尼西亚')
+    expect(regionOfTitle('印尼7天逆回购利率')).toBe('印度尼西亚')
+    // 顺序回归（评审 M4）：手写顺序里「中国」在「中国香港/中国台湾」之前，会被截胡
+    expect(regionOfTitle('中国香港8月贸易帐')).toBe('中国香港')
+    expect(regionOfTitle('中国台湾8月外销订单年率')).toBe('中国台湾')
+    // 词表补齐（评审 L2）：字典 33 个 country 里的意大利/西班牙此前不在词表内
+    expect(regionOfTitle('意大利8月制造业PMI')).toBe('意大利')
+    expect(regionOfTitle('西班牙8月失业人数变化')).toBe('西班牙')
     expect(regionOfTitle('欧佩克+部长级会议')).toBe('')
   })
 })
