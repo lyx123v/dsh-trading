@@ -12,8 +12,8 @@ import type { Jin10Service } from './service.js'
 
 export const TRADING_MACRO_FEED_KEY = 'tradingMacroFeed'
 
-/** 日历全周截尾上限（上游一页即整周；桥侧同值校验，超出 400）。 */
-export const MACRO_CALENDAR_MAX = 250
+/** 日历全周截尾上限（上游一页即整周；桥侧同值校验。整周实测已到 254 条，250 会裁掉周尾）。 */
+export const MACRO_CALENDAR_MAX = 400
 
 /** 宏观/利率源实现（桥与工具面共用同一 Jin10Service）。 */
 export function createJin10MacroFeed(feed: Jin10Service): MacroFeedService {

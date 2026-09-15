@@ -24,7 +24,7 @@ vi.mock('../src/client/api.ts', async (importOriginal) => {
   }
 })
 
-import { MacroPanel } from '../src/client/MacroPanel.tsx'
+import { MacroPanel, calendarAnchorDate, localDateKeyOf } from '../src/client/MacroPanel.tsx'
 
 /** key 直出翻译（断言用 key 而非文案，与词典解耦）。 */
 const t = (key: MarketLocaleKey): string => key
@@ -101,5 +101,41 @@ describe('MacroPanel 双源状态与地区筛选', () => {
     render(<MacroPanel t={t} onClose={() => {}} />)
     await waitFor(() => { expect(screen.queryByText('美国9月核心CPI年率')).not.toBeNull() })
     expect(screen.queryByText('macro.error')).toBeNull()
+  })
+})
+
+/** 相对 now 的本地时间构造行（时区无关：全部用 setHours 本地钟面）。 */
+const relRow = (base: Date, days: number, hours: number): { publishedAt: string } => {
+  const d = new Date(base)
+  d.setDate(d.getDate() + days)
+  d.setHours(hours, 0, 0, 0)
+  return { publishedAt: d.toISOString() }
+}
+
+describe('calendarAnchorDate 首屏锚定（2026-09-15「只有 9.14 的数据」回归）', () => {
+  // t0 = 今天本地 10:00（避开午夜跨界歧义）。
+  const t0 = new Date()
+  t0.setHours(10, 0, 0, 0)
+
+  it('今天有条目 → 锚定今天（而不是升序列表开头的周一）', () => {
+    const rows = [relRow(t0, -1, 12), relRow(t0, 0, 8), relRow(t0, 0, 20), relRow(t0, 1, 9)]
+    expect(calendarAnchorDate(rows, t0)).toBe(localDateKeyOf(t0.toISOString()))
+  })
+
+  it('今天没有条目 → 锚定第一条尚未公布的条目', () => {
+    const rows = [relRow(t0, -2, 12), relRow(t0, 1, 9), relRow(t0, 2, 9)]
+    expect(calendarAnchorDate(rows, t0)).toBe(localDateKeyOf(rows[1]!.publishedAt))
+  })
+
+  it('全部已公布 → 锚定最后一条；空列表 → 空串（不滚）', () => {
+    const rows = [relRow(t0, -2, 12), relRow(t0, -1, 9)]
+    expect(calendarAnchorDate(rows, t0)).toBe(localDateKeyOf(rows[1]!.publishedAt))
+    expect(calendarAnchorDate([], t0)).toBe('')
+  })
+
+  it('localDateKeyOf 产出本地 YYYY-MM-DD（与面板行 data 属性一致）', () => {
+    const d = new Date(2026, 8, 15, 23, 59)
+    expect(localDateKeyOf(d.toISOString())).toBe('2026-09-15')
+    expect(localDateKeyOf('not-a-date')).toBe('')
   })
 })

@@ -573,8 +573,8 @@ export interface MacroRatesWire {
 /** 新闻端点条目上限（保护公共数据源；超出部分由 Kit 层截流）。 */
 export const MAX_NEWS_LIMIT = 50
 
-/** 宏观日历条目上限（上游一页即整周；与 connector MACRO_CALENDAR_MAX 对齐）。 */
-export const MAX_MACRO_CALENDAR_LIMIT = 250
+/** 宏观日历条目上限（上游一页即整周；与 connector MACRO_CALENDAR_MAX 对齐。整周实测已到 254 条，250 会裁掉周尾）。 */
+export const MAX_MACRO_CALENDAR_LIMIT = 400
 
 export class BridgeProtocolError extends Error {
   readonly status: number
