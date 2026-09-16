@@ -44,3 +44,8 @@
   1. **client 半加载 = Loader 条目，不是 node_modules 闭包**——传递依赖包必须由某个 bundle 的 cordis.patch.yml insert 行挂载（client-ui-indicators 曾因此「已安装未加载」，指标选择器空态）；dsh-client-modules 扫 Loader entries 组 `__DSH_BOOT__`。
   2. patch 行严格解析：行内包名不存在 → boot 崩溃（ERR_MODULE_NOT_FOUND），不是警告。
 - 采纳：spike 包保留为 `packages/indicator-supertrend`（社区指标接入示例）；接入套路沉淀在 Agent Note「指标系统插件化」。
+
+## 新浪财经 MCP（connector-sina 前置调研）— ⛔ DROPPED（2026-09-16 用户裁决）
+- 接入面实证可行：HTTPS `mcp.finance.sina.com.cn/mcp-http` 握手通过（下发 `mcp-session-id` 需回带）、`X-Auth-Token` 头与 `?token=` query 双鉴权实测通过、`tools/list` 实测 75 工具（README 仅列 47，多出 fund_* 家族 18 个、swSymbolList 申万分类、cnStockMinute 分时等）。schema 全量证据在 `impl-sina/`。
+- 阻塞与裁决：`tools/call` 全部被上游以「余额不足」（JSON-RPC -32603）拒绝，平台计费为充值按次扣费；用户裁决（2026-09-16）按次扣费成本模式不合意，**剔除出接入名单，不实现 connector-sina**。
+- 沉淀：cn 域 22 个工具的空白面（涨停池/连板/解禁/两融/沪深港通/分钟K/估值分位/财务指标/申万分类）仍是缺口；同为按次次卡制的今日投资后续采纳意愿存疑，候选向订阅/积分制（通联数据、Gangtise、Reportify）倾斜。新浪 75 工具清单与入参 schema 留档，若平台计费模式变化可零调研复用。

@@ -2,8 +2,9 @@
 
 - 日期：2026-09-16
 - 结论：**握手与工具面已实证可用；`tools/call` 全部被上游以「余额不足」（JSON-RPC
-  error -32603）拒绝，属账户余额问题而非接入问题——等待账户充值/领取额度后补齐
-  r2 调用证据，再进入 connector-sina 实现**。
+  error -32603）拒绝。平台计费为充值按次扣费，用户裁决（2026-09-16）成本模式不合意，
+  connector-sina 剔除出接入名单，本 spike 止步于工具面取证**（裁决入
+  `spikes/REVIEW-LOG.md`）。
 - 凭证纪律：token 只走 `SINA_MCP_TOKEN` 环境变量，全部证据文件经 redact 落盘
   （已 grep 核验无 token 字面量）。
 
