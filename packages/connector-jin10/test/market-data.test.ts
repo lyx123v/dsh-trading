@@ -149,21 +149,29 @@ describe('createJin10GlobalMarketDataService', () => {
   })
 
   it('subscribeTicker：首个 tick 即回调；dispose 后停止轮询', async () => {
-    const getQuote = vi.fn(async (code: string) => ({ code, close: 100, time: '2026-09-12T01:00:00.000Z' }))
-    const service = createJin10GlobalMarketDataService(fakeFeed({ getQuote }), { pollMs: 5 })
-    const seen: number[] = []
-    const disposed = await new Promise<boolean>((resolve) => {
-      const subscription = service.subscribeTicker('xauusd', (ticker) => {
-        seen.push(ticker.price)
-        subscription.dispose()
-        setTimeout(() => resolve(true), 20)
-      })
-    })
-    expect(disposed).toBe(true)
-    expect(seen[0]).toBe(100)
-    expect(getQuote).toHaveBeenCalledWith('XAUUSD')
-    const callsAfterDispose = getQuote.mock.calls.length
-    await new Promise(resolve => setTimeout(resolve, 25))
-    expect(getQuote.mock.calls.length).toBe(callsAfterDispose)
+    vi.useFakeTimers()
+    try {
+      const quotes: string[] = []
+      const service = createJin10GlobalMarketDataService(fakeFeed({
+        getQuote: async (code: string) => {
+          quotes.push(code)
+          return { code, close: 100, time: '2026-09-12T01:00:00.000Z' }
+        },
+      }), { pollMs: 5 })
+      const seen: number[] = []
+      const subscription = service.subscribeTicker('xauusd', (ticker) => { seen.push(ticker.price) })
+
+      // 首 tick 是订阅时立即发起的异步调用，推一拍微任务即可观察。
+      await vi.advanceTimersByTimeAsync(0)
+      expect(seen[0]).toBe(100)
+      expect(quotes).toEqual(['XAUUSD'])
+
+      // dispose 后即使跨过多个轮询周期也不再触网（假时钟确定性推进，不真等待）。
+      subscription.dispose()
+      await vi.advanceTimersByTimeAsync(50)
+      expect(quotes).toEqual(['XAUUSD'])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

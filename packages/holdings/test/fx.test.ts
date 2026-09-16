@@ -135,14 +135,14 @@ describe('FX Service', () => {
 
   it('在途去重：同 base 并发 miss 只打一轮上游；不同 base 各自一轮', async () => {
     const tracker = { count: 0, urls: [] as string[] }
-    // 挂起一拍的 fetch：让三个并发调用真实重叠在在途窗口内。
-    const slowFetch: FxFetchLike = async (url, init) => {
+    // 计数 fetch：三个并发调用在同一同步 tick 内进入 getRates，in-flight 注册
+    // 本身也是同步的，因此重叠是结构性事实，不需要人为挂起制造窗口。
+    const countingFetch: FxFetchLike = async (url, init) => {
       tracker.count += 1
       tracker.urls.push(url)
-      await new Promise(resolve => setTimeout(resolve, 20))
       return okFetch({ rates: { CNY: 7.1, HKD: 7.8 } })(url, init)
     }
-    const fx = createFxService({ fetchImpl: slowFetch, now: () => 5000 })
+    const fx = createFxService({ fetchImpl: countingFetch, now: () => 5000 })
     const [a, b, c, d] = await Promise.all([
       fx.getRates('USD'), fx.getRates('USD'), fx.getRates('USD'), fx.getRates('CNY'),
     ])

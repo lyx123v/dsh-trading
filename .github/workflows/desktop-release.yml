@@ -70,10 +70,18 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org/
 
-      # 与 build-desktop 同源的发布门禁：npm 产物同样必须全绿
+      # 与 build-desktop 同源的发布门禁：npm 产物同样必须全绿。
+      # 2026-09-15：发布闸门从「build+test」升级为与 ci.yml static-gates 同源的
+      # 全量静态门禁——类型棘轮、i18n、测试卫生、脚本站测试此前只在 PR CI 跑，
+      # 直接推 tag 可以绕过它们发版；发版必须比 PR 更严，不能更松。
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
+      - run: node scripts/typecheck-gate.mjs
+      - run: pnpm i18n:check
+      - run: pnpm test:audit
+      - run: pnpm test:scripts
       - run: pnpm -r test
+      - run: pnpm test:desktop
 
       # 幂等发布：registry 已存在的精确版本跳过（见脚本头注释）
       - name: Publish packages (skip versions already on the registry)
@@ -119,6 +127,10 @@ jobs:
         run: pnpm -r build
       - name: Test workspace
         run: pnpm -r test
+      # 桌面壳自身的 node:test 用例（runtime payload 解包 / host 符号规范化）
+      # 此前从未进入发版管线：打包的是它们所验证的产物，必须打包前跑绿。
+      - name: Test desktop payload
+        run: pnpm test:desktop
 
       - name: Cache Electron / electron-builder binaries
         uses: actions/cache@v4

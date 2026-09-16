@@ -1,0 +1,77 @@
+name: nightly
+
+# Tier 2 综合层（business-testing-ci §4）：PR 上的 Tier 1 只跑一轮全量测试来控时长，
+# 这里补三件在 PR 上跑不划算、但必须周期性做的事：
+#   1. 覆盖率棘轮——逐包 v8（all=true）聚合成仓库级四项指标，与
+#      scripts/coverage-baseline.json 比较，任何指标下降即红；
+#   2. 抖动探测——同一条全量测试串跑 3 遍。测试必须确定性，间歇失败是缺陷，
+#      不是重跑就能过的噪音；
+#   3. 全量 OS 矩阵周期性复核（PR 已在跑，这里防止缓存/环境漂移只在夜间显形）。
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 02:00 Asia/Shanghai (UTC+8)
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  coverage:
+    name: Coverage ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      # 覆盖率门禁：低于 scripts/coverage-baseline.json 即红；清债后本地
+      # `pnpm coverage:update` 只升不降地上调基线。
+      - run: pnpm coverage:check
+
+  flake:
+    name: Flake probe (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      # 串跑三遍：任一遍失败即红，定位到具体是第几遍（失败步骤名即证据）。
+      - name: pnpm -r test (pass 1/3)
+        run: pnpm -r test
+      - name: pnpm -r test (pass 2/3)
+        run: pnpm -r test
+      - name: pnpm -r test (pass 3/3)
+        run: pnpm -r test
+
+  desktop:
+    name: Desktop payload tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # desktop/tests 是纯 node:test，只用 node 内置模块 + desktop/src，无需 npm ci。
+      - run: pnpm test:desktop

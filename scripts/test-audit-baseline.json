@@ -1,0 +1,849 @@
+{
+  "rules": {
+    "mock": 217,
+    "sleep": 0,
+    "bdd-title": 1565,
+    "bdd-gwt": 1565,
+    "weak-assert": 0
+  },
+  "files": {
+    "packages/base/test/gate.test.ts": {
+      "mock": 2,
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/base/test/market-tools-wiring.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/base/test/market-tools.test.ts": {
+      "mock": 9,
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/base/test/presets.test.ts": {
+      "mock": 2,
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/base/test/research-tools.test.ts": {
+      "mock": 6,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/base/test/role-skills.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-indicators/test/smoke.test.ts": {
+      "bdd-title": 1,
+      "bdd-gwt": 1
+    },
+    "packages/client-ui-knowledge/test/smoke.test.ts": {
+      "bdd-title": 1,
+      "bdd-gwt": 1
+    },
+    "packages/client-ui-masters-quotes/test/apply.spec.ts": {
+      "mock": 3,
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/client-ui-settings/test/smoke.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-strategies/test/locale-contract.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-strategies/test/toolview-card.test.tsx": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-strategies/test/toolview-parse.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/src/sse.test.ts": {
+      "mock": 6,
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-trading/test/axis-width.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/client-ui-trading/test/bridge-flash.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/test/bridge-macro.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/bridge-screener-management.test.ts": {
+      "mock": 2,
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-trading/test/bridge-strategy-management.test.ts": {
+      "mock": 2,
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-trading/test/bridge-watchlist-groups.test.ts": {
+      "mock": 2,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/test/bridge.test.ts": {
+      "mock": 4,
+      "bdd-title": 51,
+      "bdd-gwt": 51
+    },
+    "packages/client-ui-trading/test/chart-activations.test.ts": {
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/client-ui-trading/test/chart-state.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/test/chat-width-store.test.ts": {
+      "mock": 1,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/color-mode.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/client-ui-trading/test/compose-quote-data.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-trading/test/compose-research.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/fill-composer.test.ts": {
+      "mock": 2,
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/client-ui-trading/test/flash-panel.smoke.test.tsx": {
+      "mock": 1,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/format.test.ts": {
+      "mock": 1,
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/client-ui-trading/test/holdings-aggregate.test.ts": {
+      "bdd-title": 25,
+      "bdd-gwt": 25
+    },
+    "packages/client-ui-trading/test/holdings-api.test.ts": {
+      "mock": 1,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/test/holdings-bridge.test.ts": {
+      "mock": 2,
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/client-ui-trading/test/home-history.test.tsx": {
+      "mock": 4,
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/host-watchlist-sync.test.ts": {
+      "mock": 14,
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/client-ui-trading/test/indicator-readout.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/client-ui-trading/test/intraday-series.test.ts": {
+      "bdd-title": 14,
+      "bdd-gwt": 14
+    },
+    "packages/client-ui-trading/test/macro-panel.smoke.test.tsx": {
+      "mock": 1,
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/client-ui-trading/test/market-sidebar-idle-quiescence.test.tsx": {
+      "mock": 4,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/client-ui-trading/test/market-sidebar-prune.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/market-sidebar.smoke.test.tsx": {
+      "mock": 1,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/market-status.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/market-vocab.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/order-ratio.test.ts": {
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/client-ui-trading/test/paper-trading-store.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/client-ui-trading/test/position-rounds.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/client-ui-trading/test/quote-stage-render-scope.test.tsx": {
+      "mock": 3,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/quote-stage.smoke.test.tsx": {
+      "mock": 17,
+      "bdd-title": 14,
+      "bdd-gwt": 14
+    },
+    "packages/client-ui-trading/test/range-stats.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-trading/test/rightbar-store.test.ts": {
+      "mock": 2,
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-trading/test/service-wiring.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/session-rail.smoke.test.tsx": {
+      "mock": 1,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/smoke.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-trading/test/sse-endpoint.test.ts": {
+      "mock": 6,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/store.test.ts": {
+      "mock": 2,
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/client-ui-trading/test/symbol-catalog.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-trading/test/tasks-bridge.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/tasks-ledger.test.ts": {
+      "bdd-title": 14,
+      "bdd-gwt": 14
+    },
+    "packages/client-ui-trading/test/tasks-runner.test.ts": {
+      "bdd-title": 1,
+      "bdd-gwt": 1
+    },
+    "packages/client-ui-trading/test/tasks-schedule.test.ts": {
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/client-ui-trading/test/tasks-service.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/client-ui-trading/test/tasks-tools.test.ts": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/client-ui-trading/test/toolview-parse.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/client-ui-trading/test/trade-ui.test.ts": {
+      "mock": 3,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-trading/test/ttl-cache.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/client-ui-trading/test/watchlist-groups-api.test.ts": {
+      "mock": 1,
+      "bdd-title": 17,
+      "bdd-gwt": 17
+    },
+    "packages/client-ui-trading/test/watchlist-manager.smoke.test.tsx": {
+      "mock": 4,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-updater/test/github.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/client-ui-updater/test/semver.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/client-ui-updater/test/updater-service.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-akshare/test/template.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/connector-alpaca/test/template.test.ts": {
+      "bdd-title": 16,
+      "bdd-gwt": 16
+    },
+    "packages/connector-binance/test/dataplane.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-binance/test/derivatives.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/connector-binance/test/market-data.test.ts": {
+      "bdd-title": 12,
+      "bdd-gwt": 12
+    },
+    "packages/connector-binance/test/orderbook-trades.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/connector-binance/test/place-order.test.ts": {
+      "mock": 2,
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/connector-binance/test/routing.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-bybit/test/derivatives.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/connector-bybit/test/orderbook-trades.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/connector-bybit/test/template.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/connector-bybit/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-ccxt/test/template.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/connector-ccxt/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-eastmoney/test/dataplane.test.ts": {
+      "mock": 1,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/connector-eastmoney/test/template.test.ts": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/connector-finnhub/test/template.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-finnhub/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-fmp/test/template.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-fmp/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-futu/test/dataplane.test.ts": {
+      "mock": 1,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/connector-futu/test/template.test.ts": {
+      "bdd-title": 18,
+      "bdd-gwt": 18
+    },
+    "packages/connector-hithink/test/hithink.test.ts": {
+      "mock": 6,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/connector-hithink/test/kline.test.ts": {
+      "bdd-title": 18,
+      "bdd-gwt": 18
+    },
+    "packages/connector-ibkr/test/template.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-ibkr/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-jin10/test/dataplane.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/connector-jin10/test/flash-service.test.ts": {
+      "mock": 2,
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-jin10/test/macro-service.test.ts": {
+      "mock": 1,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/connector-jin10/test/market-data.test.ts": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/connector-jin10/test/mcp.test.ts": {
+      "bdd-title": 19,
+      "bdd-gwt": 19
+    },
+    "packages/connector-jin10/test/parse.test.ts": {
+      "bdd-title": 17,
+      "bdd-gwt": 17
+    },
+    "packages/connector-jin10/test/plugin.test.ts": {
+      "mock": 2,
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-jin10/test/tools.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/connector-jin10/test/web-flash.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-jin10/test/web-rates.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-longbridge/test/template.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/connector-longbridge/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-okx/test/activation.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/connector-okx/test/dataplane.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-okx/test/demo-account.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/connector-okx/test/orderbook-trades.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/connector-okx/test/public-market-data.test.ts": {
+      "bdd-title": 26,
+      "bdd-gwt": 26
+    },
+    "packages/connector-okx/test/signature.test.ts": {
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/connector-okx/test/trade-desk.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-okx/test/trade.test.ts": {
+      "mock": 2,
+      "bdd-title": 34,
+      "bdd-gwt": 34
+    },
+    "packages/connector-polygon/test/template.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/connector-polygon/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-qmt/test/template.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-qmt/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-stooq/test/market-data.test.ts": {
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/connector-stooq/test/place-order.test.ts": {
+      "mock": 1,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/connector-template/test/template.test.ts": {
+      "mock": 1,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/connector-tencent/test/dataplane.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/connector-tencent/test/market-data.test.ts": {
+      "bdd-title": 23,
+      "bdd-gwt": 23
+    },
+    "packages/connector-tencent/test/place-order.test.ts": {
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/connector-tiger/test/template.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/connector-tiger/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-tushare/test/template.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/connector-tushare/test/trade-gate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/connector-yahoo/test/dataplane.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/connector-yahoo/test/market-data.test.ts": {
+      "bdd-title": 14,
+      "bdd-gwt": 14
+    },
+    "packages/connector-yahoo/test/place-order.test.ts": {
+      "mock": 1,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/crypto/test/installer.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/dsh-home/test/fs-atomic.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/dsh-home/test/home-consumers.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/dsh-home/test/home.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/dsh-i18n/test/apply.spec.ts": {
+      "mock": 4,
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/eventbus/test/eventbus.test.ts": {
+      "mock": 6,
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/holdings/test/fx.test.ts": {
+      "bdd-title": 15,
+      "bdd-gwt": 15
+    },
+    "packages/holdings/test/plugin.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/holdings/test/store.test.ts": {
+      "bdd-title": 17,
+      "bdd-gwt": 17
+    },
+    "packages/holdings/test/tool-fx.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/holdings/test/tool.test.ts": {
+      "bdd-title": 20,
+      "bdd-gwt": 20
+    },
+    "packages/indicator-supertrend/test/definition.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/indicators/test/chart-activations.test.ts": {
+      "mock": 5,
+      "bdd-title": 27,
+      "bdd-gwt": 27
+    },
+    "packages/indicators/test/get-indicators-custom.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/indicators/test/math.test.ts": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/indicators/test/registry.test.ts": {
+      "bdd-title": 10,
+      "bdd-gwt": 10
+    },
+    "packages/indicators/test/tool.test.ts": {
+      "mock": 2,
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/indicators/test/validate.test.ts": {
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "packages/kit-cn/test/fundamentals-package.test.ts": {
+      "mock": 5,
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/kit-cn/test/fundamentals.test.ts": {
+      "mock": 2,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/kit-cn/test/news.test.ts": {
+      "mock": 18,
+      "bdd-title": 36,
+      "bdd-gwt": 36
+    },
+    "packages/kit-cn/test/sentiment.test.ts": {
+      "mock": 5,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/kit-crypto/test/derivatives-history.test.ts": {
+      "mock": 7,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/kit-crypto/test/derivatives.test.ts": {
+      "mock": 2,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/kit-crypto/test/fundamentals.test.ts": {
+      "mock": 2,
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/kit-crypto/test/news.test.ts": {
+      "mock": 3,
+      "bdd-title": 15,
+      "bdd-gwt": 15
+    },
+    "packages/kit-crypto/test/skills.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/kit-futures/test/skills.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/kit-global/test/skills.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/kit-hk/test/fundamentals.test.ts": {
+      "mock": 2,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/kit-hk/test/news.test.ts": {
+      "mock": 9,
+      "bdd-title": 20,
+      "bdd-gwt": 20
+    },
+    "packages/kit-us/test/fundamentals-validate.test.ts": {
+      "mock": 2,
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/kit-us/test/fundamentals.test.ts": {
+      "mock": 2,
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/kit-us/test/news.test.ts": {
+      "mock": 2,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/knowledge/test/graph.test.ts": {
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/knowledge/test/store.test.ts": {
+      "bdd-title": 2,
+      "bdd-gwt": 2
+    },
+    "packages/knowledge/test/tool.test.ts": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    },
+    "packages/knowledge/test/validate.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/router/test/router.test.ts": {
+      "mock": 1,
+      "bdd-title": 21,
+      "bdd-gwt": 21
+    },
+    "packages/router/test/tools.test.ts": {
+      "bdd-title": 5,
+      "bdd-gwt": 5
+    },
+    "packages/strategies/test/backtest-params.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/strategies/test/custom-fs.test.ts": {
+      "bdd-title": 4,
+      "bdd-gwt": 4
+    },
+    "packages/strategies/test/engine.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/strategies/test/management.test.ts": {
+      "bdd-title": 15,
+      "bdd-gwt": 15
+    },
+    "packages/strategies/test/paradigms.test.ts": {
+      "bdd-title": 12,
+      "bdd-gwt": 12
+    },
+    "packages/strategies/test/plugin-list.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/strategies/test/plugin-management.test.ts": {
+      "mock": 2,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/strategies/test/plugin.test.ts": {
+      "mock": 2,
+      "bdd-title": 7,
+      "bdd-gwt": 7
+    },
+    "packages/strategies/test/price-format-parity.test.ts": {
+      "bdd-title": 1,
+      "bdd-gwt": 1
+    },
+    "packages/strategies/test/price-format.test.ts": {
+      "bdd-title": 3,
+      "bdd-gwt": 3
+    },
+    "packages/strategies/test/screener-management.test.ts": {
+      "mock": 1,
+      "bdd-title": 12,
+      "bdd-gwt": 12
+    },
+    "packages/strategies/test/screener-run.test.ts": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "packages/strategies/test/screeners.test.ts": {
+      "bdd-title": 17,
+      "bdd-gwt": 17
+    },
+    "packages/strategies/test/validate.test.ts": {
+      "bdd-title": 15,
+      "bdd-gwt": 15
+    },
+    "packages/watchlist/test/groups-tools.test.ts": {
+      "mock": 2,
+      "bdd-title": 9,
+      "bdd-gwt": 9
+    },
+    "packages/watchlist/test/groups.test.ts": {
+      "bdd-title": 6,
+      "bdd-gwt": 6
+    },
+    "packages/watchlist/test/watchlist.test.ts": {
+      "mock": 2,
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "desktop/tests/host-symbol-normalizer.test.mjs": {
+      "bdd-title": 8,
+      "bdd-gwt": 8
+    },
+    "desktop/tests/runtime.test.mjs": {
+      "bdd-title": 13,
+      "bdd-gwt": 13
+    },
+    "scripts/i18n-audit.test.mjs": {
+      "bdd-title": 11,
+      "bdd-gwt": 11
+    }
+  },
+  "tests": 1565,
+  "scanned": 3
+}

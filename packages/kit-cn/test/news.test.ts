@@ -503,8 +503,9 @@ describe('fetchCninfoAnnouncements（巨潮公告源，2026-09-03 多供应商�
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('topSearch')) {
+        // 不需要人为挂起：两路 aggregateNews 在同一同步 tick 内求值，第一路同步
+        // 注册 in-flight，第二路必命中注册表。挂起只会掩盖去重回归。
         topSearchCalls++
-        await new Promise((r) => setTimeout(r, 10))
         return jsonResp({ keyBoardList: [{ code: '600519', orgId: 'gssh0600519' }] })
       }
       return jsonResp({ announcements: [] })

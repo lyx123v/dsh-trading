@@ -19,6 +19,7 @@ DSH 交易插件 monorepo，按市场组织 bundle（crypto/us/cn/hk）。本文
 - 每个非平凡变更同一变更中记录 [Agent Note](.agents/notes/README.md)。Prompt 分层、模型能力选择、CI 归因与反震荡规则由该文档维护，不在入口复述。
 - main 是集成/默认分支，无 dev。较大功能（公共 API、交易安全语义、跨多包新功能/重构）从最新 main 开 `feat/<issue号>-<短名>`，PR 关联 Issue 并至少一个审查批准；docs/notes、CI/脚本微调和单点修复等小改可直接 main，不强制 PR。此契约不代替当前提交/推送授权。见 [交付流分级](.agents/notes/implemented/process/2026-09-02-pr-flow-scope-refined.md)。提交用 Conventional Commits，只暂存核对过的精确文件。
 - 构建/测试基线是 `pnpm build` 与 `pnpm test`；连接器另需真实网络原始响应证据（`spikes/impl-*/`）。按改动运行相关验证，完整门禁放在提交/推送及发布边界，不为纯指令编辑生成分发副本。
+- 测试与 CI 棘轮：`pnpm test:audit`（BDD 命名/结构、零 mock、零 sleep、断言完整性）、`pnpm coverage:check`（分支/行/函数/语句四项覆盖率）、`pnpm test:scripts`（scripts/ 门禁自测）、`pnpm test:desktop`（桌面壳用例）。**新写测试必须合规**——棘轮只收存量债，任何规则或单文件计数上升即红，清债后用对应 `--update` 只降/只升地刷新基线。CI 分层：`ci.yml` = 静态门禁 + 三 OS 测试矩阵，`nightly.yml` = 覆盖率棘轮 + 抖动三连跑；发版管线闸门与静态门禁同源。见 [测试与 CI 棘轮](.agents/notes/implemented/testing/2026-09-15-test-hygiene-ratchet-and-tiered-ci.md)。
 
 ## 按需阅读
 

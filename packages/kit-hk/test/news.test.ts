@@ -294,8 +294,8 @@ describe('fetchHkexAnnouncements（HKEX 披露易公告源，2026-09-03 多供�
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('prefix.do')) {
+        // 同 kit-cn：两路同步求值 → 第一路同步注册 in-flight，无需挂起制造窗口。
         prefixCalls++
-        await new Promise((r) => setTimeout(r, 10))
         return textResp('callback({"stockInfo":[{"stockId":7609,"code":"00700","name":"騰訊控股"}]});')
       }
       if (url.includes('titleSearchServlet')) return textResp('{"result":"[]"}')
