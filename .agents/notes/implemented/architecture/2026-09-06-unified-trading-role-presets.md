@@ -16,7 +16,7 @@ master persona 编排四步（2026-09-06 编排升级）：①资金持仓先行
 
 研究和风险角色只挂市场 kit、base 的只读行情工具与公司分析技能，不挂交易连接器。ticker/K线每次按 host 行情注册表当前路由读取，不提供下单/撤单。master 与 trader 挂连接器后不重复挂只读行情行，避免同名工具先到先得告警。公司分析技能连同 references、templates、scripts 随 base 完整分发。人设先查知识库，再主动获取新闻/公告与基本面，证据不足如实降级。风险审查输出审查意见、压力损失与否决条件，不代替用户交易审批。
 
-安装器校验管理戳与正文 hash；任一角色文件被接管或修改时保留整个角色。旧四市场目录仅在两份文件均未修改、没有额外文件且替代角色均成功提供时，移动到 roster root 外的同级 .legacy-backup；已有备份不覆盖，绝不删除自定义目录。
+安装器校验管理戳与正文 hash；任一角色文件被接管或修改时保留整个角色。旧四市场目录仅在两份文件均未修改、没有额外文件且替代角色均成功提供时，移动到 roster root 外的同级 .legacy-backup；备份名永不覆盖，自定义目录绝不删除。（2026-09-16 修订：备份已存在且名册副本与之逐字节相同时改为删除名册副本、内容不同则另名归档，不再跳过退役；见 [2026-09-16-legacy-preset-retirement-deadlock.md](../bug-fix/2026-09-16-legacy-preset-retirement-deadlock.md)。）
 
 ## Alternatives considered
 

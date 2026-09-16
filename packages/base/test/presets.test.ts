@@ -94,6 +94,11 @@ it('composes all 16 installed-market subsets deterministically, preserving conne
       expect(text).toContain('cn_get_news / hk_get_news include announcements')
       expect(text).toContain('Never predict')
       expect(text).toContain('Never cite sell-side ratings or target prices')
+      // 证据契约（2026-09-16）：全部角色与委派人设共享同一刻度——来源等级 + 四态判定 + 锚点。
+      expect(text).toContain('Evidence contract')
+      expect(text).toContain('source grade, verdict, anchor')
+      expect(text).toContain('supported | contradicted | mixed | insufficient')
+      expect(text).toContain('one C/D/E source may never alone support a conclusion')
       expect(text).toContain('scarcity')
       expect(text).toContain('Always reply in the language the user writes in')
       // Workspace instructions: the Web surface disables the host-plane row, so the
@@ -224,15 +229,55 @@ it('archives only intact managed legacy defaults outside roster; preserves edits
   expect(await readFile(join(`${path}.legacy-backup`, 'crypto-trader/agent.cordis.yml'), 'utf8')).toBe(stamp('[]\n'))
   expect(await readdir(path)).toEqual(expect.arrayContaining(['us-trader', 'cn-trader']))
 })
-it('does not overwrite an existing legacy backup or migrate when replacement is customized', async () => {
+it('operator retires a re-created legacy default whose identical copy is already archived', async () => {
+  // Given 名册根与归档根各有一份逐字节相同的受管旧默认
+  const path = await root()
+  await legacy(path, 'crypto-trader')
+  await legacy(`${path}.legacy-backup`, 'crypto-trader')
+  const archived = await readFile(join(`${path}.legacy-backup`, 'crypto-trader/agent.cordis.yml'), 'utf8')
+  // When 安装器再次执行
+  await installPresets([], path)
+  // Then 名册副本被清除，归档原样保留
+  expect(await readdir(path)).not.toContain('crypto-trader')
+  expect(await readFile(join(`${path}.legacy-backup`, 'crypto-trader/agent.cordis.yml'), 'utf8')).toBe(archived)
+})
+it('operator archives a differing legacy default under its own name instead of overwriting the backup or leaving it in the roster', async () => {
+  // Given 备份名下是用户改过的副本，名册根是另一份受管默认
+  const path = await root()
+  await legacy(path, 'crypto-trader')
+  await legacy(`${path}.legacy-backup`, 'crypto-trader', true)
+  const edited = await readFile(join(`${path}.legacy-backup`, 'crypto-trader/agent.cordis.yml'), 'utf8')
+  // When 安装器再次执行
+  await installPresets([], path)
+  // Then 名册副本被清除，改过的备份未被覆盖，差异版本另名归档
+  expect(await readdir(path)).not.toContain('crypto-trader')
+  expect(await readFile(join(`${path}.legacy-backup`, 'crypto-trader/agent.cordis.yml'), 'utf8')).toBe(edited)
+  const siblings = (await readdir(`${path}.legacy-backup`)).filter(name => name.startsWith('crypto-trader.'))
+  expect(siblings).toHaveLength(1)
+  expect(await readFile(join(`${path}.legacy-backup`, siblings[0], 'agent.cordis.yml'), 'utf8')).toBe(stamp('[]\n'))
+})
+it('operator re-checks a differing default that is already archived instead of leaving it in the roster', async () => {
+  // Given 差异版本已按内容哈希归档，名册根又出现同一份受管默认
   const path = await root()
   await legacy(path, 'crypto-trader')
   await legacy(`${path}.legacy-backup`, 'crypto-trader', true)
   await installPresets([], path)
-  expect(await readdir(path)).toContain('crypto-trader')
+  await legacy(path, 'crypto-trader')
+  // When 安装器再次执行
+  await installPresets([], path)
+  // Then 名册副本被清除，归档仍只有一份
+  expect(await readdir(path)).not.toContain('crypto-trader')
+  expect((await readdir(`${path}.legacy-backup`)).filter(name => name.startsWith('crypto-trader.'))).toHaveLength(1)
+})
+it('operator leaves a legacy default in place while a replacement role is customized', async () => {
+  // Given 替代角色被用户定制，名册根另有一个受管旧默认
+  const path = await root()
+  await installPresets([], path)
   await legacy(path, 'us-trader')
   await writeFile(join(path, 'trader/preset.yml'), 'name: custom\n')
+  // When 安装器再次执行
   await installPresets([], path)
+  // Then 旧默认不被迁移，保留在原处
   expect(await readdir(path)).toContain('us-trader')
 })
 it('refuses symlink targets without writing through them', async () => {
