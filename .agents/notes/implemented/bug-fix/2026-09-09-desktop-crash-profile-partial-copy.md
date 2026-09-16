@@ -24,6 +24,11 @@ Status: implemented
 1. **修复走标准通道**：重建两个过期包（strategies、client-ui-trading）后，显式 `DSH_HOME=$HOME/.dsh-trading bash scripts/refresh-trading-web-profile.sh`——预检通过（63 条 file:/link: 行）→ 删全部 `@dshtrading/*` 副本 → `dsh plugin --profile trading-web install` → 重挂宿主核心包 symlink。副本恢复单一世代：46 包全部 0.1.6，client-ui-trading lib 17/17 文件与仓库一致，`ttl-cache.js` 到位。
 2. **纪律固化：profile 副本刷新一律走 refresh 脚本（或删整包目录后 plugin install），禁止手工挑文件拷贝。** preflight 第 4 类（版本漂移）注释里已记了 trading-all 混世代启动崩（2026-09-09 上午），本次是同族失败模式在 trading-web 上的第二个实证——两次都是"局部刷新/手工拷贝"造成。
 3. **登记 follow-up（未实现）**：(a) 仓库脚本加守卫——`DSH_HOME` 解析到 dsh web 宿主 home（`~/.dsh`）时报警中止，或至少打印解析后的 home 根；(b) 清理或归档 `~/.dsh/profiles/trading-web` 残留（0.1.2 世代，含已不存在的 dsh-session-archive / dsh-im 插件行）。
+   - 2026-09-16：(b) 已执行。残留不是 CLI 装出来的：其 `package.json` / `pnpm-workspace.yaml` 与
+     `DSH Trading.app/Contents/Resources/runtime/profile-trading` 逐字节相同，且带 `.dsh-desktop-seed.json`
+     （appVersion 0.2.1）。无进程占用（`lsof` 空）、无 trading 数据，已可逆归档为
+     `~/.dsh/profiles/trading-web.bak-residual-20260916`；此后 `~/.dsh` 侧再跑 `--profile trading-web` 会
+     直接报 profile 缺失，而不是静默复用旧副本。(a) 守卫仍未实现。
 
 ## Verification
 
@@ -43,5 +48,11 @@ Status: implemented
 - trading-web profile 副本回到单一 0.1.6 世代；profile 内 `@deepseek-ai/*` 链接方向随最后启动者变化（本次末次启动者为桌面壳，符合 [cohort note](2026-09-08-desktop-preset-context-injection.md) 的既定行为）；CLI 验证前仍需跑 refresh 脚本。
 - **agent 会话内跑本仓脚本的人工纪律（守卫落地前）**：dsh 宿主会话环境带 `DSH_HOME=~/.dsh`，凡跑 refresh / preflight / plugin install 前必须显式 `DSH_HOME=$HOME/.dsh-trading`；wrapper「显式值优先」对 agent 会话不是保护而是陷阱。
 - **发版抽查的 `open` 启动同理（v0.2.0 实证，2026-09-09 晚）**：`open` 会把调用 shell 的环境（含 `DSH_HOME`）传给被启动应用，桌面壳按旧 home 解析即崩（同 Verification 第 2 条机制）；且 `open -a "DSH Trading"` 按 LaunchServices 名字解析，可能命中历史注册的开发副本（desktop/dist/mac-arm64）而非 /Applications 安装。抽查一律显式路径 + 显式 env：`open --env DSH_HOME=$HOME/.dsh-trading "/Applications/DSH Trading.app"`，启动后以 `dsh-host.log` delta 首行 `[desktop] dsh home:` 确认解析正确。已同步进 [dsh-trading-release skill](../../../../.agents/skills/dsh-trading-release/SKILL.md) 第 5 节。
-- 旧 home trading-web 残留的存在与否以本文为准（separate-dsh-home 的「不复存在」表述已被证伪），待用户决定清理方式。
+- 旧 home trading-web 残留的存在与否以本文为准（separate-dsh-home 的「不复存在」表述已被证伪）；
+  2026-09-16 已归档为 `~/.dsh/profiles/trading-web.bak-residual-20260916`。
+- 2026-09-16 事实修正：活动 profile `~/.dsh-trading/profiles/trading-web` 的
+  `@dshtrading/client-ui-trading/lib/*` 与仓库 `packages/client-ui-trading/lib/*` 是**同一 inode**
+  （pnpm `file:` 依赖的硬链接副本，本仓 tsdown/rolldown 原地重写不换 inode），profile 代码世代跟随最近一次
+  `pnpm build`——不能用 profile / package.json 的安装日期推断代码新旧。破坏该链的正是 09-09 那次手工部分拷贝
+  （新 inode 只覆盖部分文件）。
 - 本 note 为事件记录 + 流程纪律，无仓库代码变更。
