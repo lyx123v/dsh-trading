@@ -75,7 +75,14 @@ export interface SelectionState {
 }
 
 export type SelectionStore = WritableObservable<SelectionState> & {
+  /** GUI 点选落地（host-first 由 wireHostWatchlistSync 包装）。 */
   select(instrument: Instrument): void
+  /**
+   * host 权威选中值落地（启动同步 + SSE 'selection' 重拉）：更新 observable 的同时
+   * 写 localStorage 镜像，且不回写 host（避免信号回环）。镜像滞后在此暴露——桥降级
+   * 启动回落旧标的（2026-09-16）。
+   */
+  applyHost(instrument: Instrument): void
 }
 
 export function inferMarket(symbol?: string): MarketId {
@@ -88,29 +95,34 @@ export function inferMarket(symbol?: string): MarketId {
   return 'us'
 }
 
+/** 选中标的清洗：市场词汇校验（非法/缺失 → 按 symbol 回推），可选字段缺省不落键。 */
+function sanitizeInstrument(instrument: Instrument): Instrument {
+  return {
+    market: instrument.market && ['crypto', 'us', 'cn', 'hk', 'futures', 'global'].includes(instrument.market) ? instrument.market : inferMarket(instrument.symbol),
+    symbol: instrument.symbol,
+    ...(instrument.name ? { name: instrument.name } : {}),
+  }
+}
+
 export function createSelectionStore(): SelectionStore {
   const raw = readJson<Instrument | null>(SELECTION_KEY, null)
-  const initialInstrument: Instrument | null = raw && typeof raw.symbol === 'string' && raw.symbol
-    ? {
-        market: raw.market && ['crypto', 'us', 'cn', 'hk', 'futures', 'global'].includes(raw.market) ? (raw.market as MarketId) : inferMarket(raw.symbol),
-        symbol: raw.symbol,
-        ...(raw.name ? { name: raw.name } : {}),
-      }
+  const initialInstrument: Instrument | null = raw !== null && typeof raw.symbol === 'string' && raw.symbol
+    ? sanitizeInstrument(raw)
     : null
   const store = createObservable<SelectionState>({
     instrument: initialInstrument,
   })
+  // 本地落地 = observable + localStorage 镜像一次做完；select/applyHost 语义不同
+  // （前者会被 host-first 包装接管），写本地这步共用。
+  const applyLocal = (instrument: Instrument): void => {
+    const sanitized = sanitizeInstrument(instrument)
+    store.set({ instrument: sanitized })
+    writeJson(SELECTION_KEY, sanitized)
+  }
   return {
     ...store,
-    select(instrument) {
-      const sanitized: Instrument = {
-        market: instrument.market && ['crypto', 'us', 'cn', 'hk', 'futures', 'global'].includes(instrument.market) ? instrument.market : inferMarket(instrument.symbol),
-        symbol: instrument.symbol,
-        ...(instrument.name ? { name: instrument.name } : {}),
-      }
-      store.set({ instrument: sanitized })
-      writeJson(SELECTION_KEY, sanitized)
-    },
+    select(instrument) { applyLocal(instrument) },
+    applyHost(instrument) { applyLocal(instrument) },
   }
 }
 

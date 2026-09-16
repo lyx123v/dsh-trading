@@ -12,9 +12,11 @@ vi.stubGlobal('localStorage', {
   removeItem: (key: string) => { backing.delete(key) },
 })
 
+import type { Instrument } from '../src/client/types.ts'
 import {
   applyLocalMembership,
   createObservable,
+  createSelectionStore,
   createWatchlistGroupsStore,
   createWatchlistStore,
   rowsFor,
@@ -34,6 +36,38 @@ describe('createObservable', () => {
     store.set({ count: 99 })
     expect(seen).toEqual([1, 2])
     expect(store.getSnapshot().count).toBe(99)
+  })
+})
+
+describe('createSelectionStore（中栏切图选中标的）', () => {
+  it('用户点选标的后重载仍恢复同一标的（GUI 点选持久化契约）', () => {
+    // Given 全新客户端（localStorage 无选中值）
+    const store = createSelectionStore()
+    // When 用户在自选栏点选美股 AAPL
+    store.select({ market: 'us', symbol: 'AAPL', name: '苹果' })
+    // Then 快照与重载镜像都落在 AAPL
+    expect(store.getSnapshot().instrument).toEqual({ market: 'us', symbol: 'AAPL', name: '苹果' })
+    expect(createSelectionStore().getSnapshot().instrument).toEqual({ market: 'us', symbol: 'AAPL', name: '苹果' })
+  })
+
+  it('用户经 watchlist_select 工具换标的后，桥降级重载不回落旧标的（host 落地同步写镜像）', () => {
+    // Given 本地已由 GUI 点选 AAPL（镜像里是旧标的）
+    const store = createSelectionStore()
+    store.select({ market: 'us', symbol: 'AAPL' })
+    // When host 权威选中值（工具写入后的 SSE 重拉）经 applyHost 落地为港股腾讯
+    store.applyHost({ market: 'hk', symbol: '00700', name: '腾讯控股' })
+    // Then 桥不可用时重载读到腾讯，而不是旧 AAPL
+    expect(createSelectionStore().getSnapshot().instrument).toEqual({ market: 'hk', symbol: '00700', name: '腾讯控股' })
+  })
+
+  it('用户遇到 host 送达非法市场标记时按 symbol 回推，非法值不写进镜像', () => {
+    // Given 一个选中 store
+    const store = createSelectionStore()
+    // When applyHost 送来市场标记非法的 AAPL
+    store.applyHost({ market: 'nasdaq', symbol: 'AAPL' } as unknown as Instrument)
+    // Then 市场按 symbol 回推为美股，非法字段不落盘
+    expect(store.getSnapshot().instrument).toEqual({ market: 'us', symbol: 'AAPL' })
+    expect(createSelectionStore().getSnapshot().instrument).toEqual({ market: 'us', symbol: 'AAPL' })
   })
 })
 

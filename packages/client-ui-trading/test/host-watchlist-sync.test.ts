@@ -135,6 +135,26 @@ describe('wireHostWatchlistSync', () => {
     await vi.waitFor(() => { expect(selection.getSnapshot().instrument).toMatchObject({ symbol: '00700' }) })
   })
 
+  it('用户经 watchlist_select 工具换标的后（SSE selection 信号）选中态走 host 落地路径', async () => {
+    // Given 已接线且启动同步完成（当次 host 无选中值）的应用
+    const watchlists = createWatchlistStore()
+    const selection = createSelectionStore()
+    const groups = createWatchlistGroupsStore()
+    const applied: Instrument[] = []
+    const localApply = selection.applyHost.bind(selection)
+    selection.applyHost = (instrument: Instrument): void => { applied.push(instrument); localApply(instrument) }
+    wireHostWatchlistSync({ watchlists, selection, groups })
+    await vi.waitFor(() => { expect(apiMock.fetchHostSelection).toHaveBeenCalled() })
+
+    // When host 权威选中值变为港股腾讯并触发 SSE 'selection' 失效信号
+    apiMock.fetchHostSelection.mockResolvedValue({ market: 'hk', symbol: '00700', name: '腾讯控股' })
+    apiMock.handlers['selection']?.()
+
+    // Then 落地走 applyHost（自带 localStorage 镜像写），不是绕过镜像的裸 set
+    await vi.waitFor(() => { expect(selection.getSnapshot().instrument).toMatchObject({ symbol: '00700' }) })
+    expect(applied).toEqual([{ market: 'hk', symbol: '00700', name: '腾讯控股' }])
+  })
+
   it('启动同步与 SSE：host 包含清空列表（空数组）时正确同步并保持已定制状态', async () => {
     const watchlists = createWatchlistStore()
     const selection = createSelectionStore()

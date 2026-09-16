@@ -6,12 +6,14 @@
  *   host 非空时服务端拒绝，幂等）→ 重拉 host。
  * - 分组注册表（issue #82）：GET /watchlist-groups 启动拉取 + SSE 'watchlists'
  *   失效信号重拉（注册表与成员关系共用一个失效信号，客户端两表一起刷）。
- * - 选中标的：GET /selection → host 有值则覆盖本地（中栏切图 SSOT）。
+ * - 选中标的：GET /selection → host 有值则经 applyHost 覆盖本地（中栏切图 SSOT）。
  * - 变更 host-first：add/remove/select 与分组的 create/rename/delete/assignMember
  *   先写 host，成功后才更新本地 observable（localStorage 由原 store 持久化，
  *   降级为缓存镜像）。
  * - SSE：'watchlists' / 'selection' 失效信号 → 重拉 host 覆盖本地（左栏实时增删行、
- *   watchlist_select 工具驱动中栏切图）。
+ *   watchlist_select 工具驱动中栏切图）。host 驱动的选中落地一律走 applyHost：同步
+ *   刷新 localStorage 镜像，桥降级启动才不会回落旧标的（2026-09-16）；走 selection.select
+ *   会回写 host 造成信号回环，故不可用。
  *
  * 市场种子列表（DEFAULT_WATCHLISTS）不进 host：host 无行的 market 客户端照旧
  * 回落种子展示（rowsFor），迁移只搬用户定制行；种子行入组时 host 桥自动物化
@@ -116,10 +118,10 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
       // 分组注册表：host 拉取覆盖镜像（host 无文件 → 空表，本地降级镜像清空——
       // host SSOT 语义；UI 在空表时可继续创建）。
       await syncGroupsFromHost()
-      // 选中标的：host 有值则覆盖（SSOT）；host 空保持本地。
+      // 选中标的：host 有值则 applyHost 覆盖（SSOT + localStorage 镜像）；host 空保持本地。
       const hostSelection = await fetchHostSelection()
       if (hostSelection !== null) {
-        selection.set({ instrument: hostSelection as Instrument })
+        selection.applyHost(hostSelection as Instrument)
       }
     } catch {
       /* 迁移/同步失败不阻断启动 */
@@ -193,7 +195,7 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
     selection: () => {
       void (async () => {
         const instrument = await fetchHostSelection()
-        if (instrument !== null) selection.set({ instrument: instrument as Instrument })
+        if (instrument !== null) selection.applyHost(instrument as Instrument)
       })()
     },
   }))
