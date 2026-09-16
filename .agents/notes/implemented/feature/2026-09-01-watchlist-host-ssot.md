@@ -18,9 +18,9 @@ Status: implemented
    - 启动同步：GET /watchlists → host 有定制行则覆盖本地；host 为空且本地 localStorage 有定制行 → 迁移导入（服务端幂等拒绝则跳过）→ 重拉；GET /selection → host 有值覆盖本地；
    - 变更 host-first：add/remove/select 先写 host，成功后才更新本地 observable（失败 fail-closed 本地不变）；localStorage 由原 store 持久化，降级为缓存镜像；
    - SSE：'watchlists' / 'selection' 信号 → 重拉覆盖——工具写入与左栏点击同源互见，`watchlist_select` 驱动中栏切图。
-     （2026-09-16 修正：host 驱动的 selection 落地改走 `selection.applyHost()`，observable 与 localStorage 镜像
-     一次写完；原实现走通用 `set()` 不写镜像，桥降级启动会回落旧标的，见
-     [selection 镜像滞后](../bug-fix/2026-09-16-selection-mirror-stale-on-host-apply.md)。）
+     （2026-09-16 修正：host 驱动的落地——选中标的、自选行、分组注册表——一律改走各自 store 的
+     `applyHost()`，观察值与 localStorage 镜像一次写完；原实现走通用 `set()` 不写镜像，桥降级启动
+     会回落旧镜像，见 [host 落地镜像持久化](../bug-fix/2026-09-16-host-apply-mirror-persistence.md)。）
 5. **测试**：watchlist 包 8 例（store/原子写/工具链/事件接线）+ 桥 5 例（端点/幂等/形状校验/降级）+ 同步模块 6 例（vi.mock api：启动同步/迁移幂等/host-first 失败保持/SSE 刷新）；全量 608 通过、build 全绿。
 
 ## Alternatives considered
@@ -34,8 +34,8 @@ Status: implemented
 
 - 验收场景打通：「把 AAPL 加进自选，然后打开它的图」→ watchlist_add（或左栏点击）→ 左栏实时新增行；watchlist_select → 中栏切图（SSE 驱动）；standard 会话可调 4 工具（D4）。
 - 迁移无损：老用户 localStorage 定制行一次性导入；重复导入被 host 非空守卫拒绝；旧 localStorage 保留为镜像（不删除）。
-- 2026-09-16：selection 的降级镜像不再滞后——host 落地（启动同步与 SSE 重拉）与 observable 同写；
-  watchlist / chart / 分组注册表的同类落地仍走 `set()`（各自影响面见该修正记录）。
+- 2026-09-16：四个降级镜像（选中标的 / 自选行 / 指标名册 / 分组注册表）不再滞后——host 落地
+  （启动同步与 SSE 重拉）与观察值同写，派生本地写（分组成员、删组剥离）同路。
 - market 词汇开放字符串（新市场 = 新键，schema 零改）；symbol 不做归一化，写入方（模型/客户端）持规范形。
 - UI 实机验收与 P1/P2 同受宿主 checkout 迁移环境阻塞（见 2026-09-01-sse-invalidation-signal.md），链路已由离线测试全覆盖。
 - 验证：pnpm build 全绿；pnpm test 608 通过（新增 19）。

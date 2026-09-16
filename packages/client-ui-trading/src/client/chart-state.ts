@@ -36,6 +36,11 @@ export interface ChartStateStore extends WritableObservable<ChartState> {
   setSymbolVisibility(id: string, market: string, symbol: string, visible: boolean): void
   /** 移除某 preset 的激活实例（自定义指标删除用；无实例时静默）。 */
   removeInstance(id: string): void
+  /**
+   * host 权威激活名册落地（启动同步 / SSE 'chart' 重拉）：原样写入并持久化 localStorage
+   * ——host 行不过 sanitize（与创建同裁决），否则桥降级重载回落旧名册。
+   */
+  applyHost(instances: IndicatorInstance[]): void
   instanceFor(id: string): IndicatorInstance | undefined
   isActive(id: string): boolean
 }
@@ -55,6 +60,10 @@ export function createChartStateStore(registry: IndicatorRegistry): ChartStateSt
 
   return {
     ...store,
+    applyHost(instances) {
+      store.set({ instances })
+      persist()
+    },
     togglePreset(id) {
       const definition = registry.get(id)
       store.update((current) => {

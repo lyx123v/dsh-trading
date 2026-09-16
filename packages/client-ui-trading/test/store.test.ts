@@ -188,3 +188,42 @@ describe('watchlist groups（issue #82）', () => {
     expect(store.listFor('us').find(row => row.symbol === 'AAPL')?.groups).toBeUndefined()
   })
 })
+
+describe('镜像持久化（host 落地与派生本地写，2026-09-16）', () => {
+  it('用户遇到 host 换自选行后重载是 host 行（applyHost 持久化）', () => {
+    // Given 本地镜像已被 GUI 定制出 AAPL 行
+    const store = createWatchlistStore()
+    store.add('us', { market: 'us', symbol: 'AAPL', name: '苹果' })
+    // When host 权威全量落地只剩 MSFT
+    store.applyHost({ us: [{ market: 'us', symbol: 'MSFT', name: '微软' }] })
+    // Then 快照与重载镜像都收敛到 host 行
+    expect(store.listFor('us').map(row => row.symbol)).toEqual(['MSFT'])
+    expect(createWatchlistStore().listFor('us').map(row => row.symbol)).toEqual(['MSFT'])
+  })
+
+  it('用户遇到 host 换分组注册表后重载是 host 表，活动分组原位保留（applyHost 持久化）', () => {
+    // Given 本地注册表有旧组、活动分组指向它
+    const store = createWatchlistGroupsStore()
+    store.upsertGroup({ id: 'g_old', name: '旧组', createdAt: 1 })
+    store.setActiveGroup('g_old')
+    // When host 权威注册表落地为新组
+    store.applyHost([{ id: 'g_new', name: '核心仓', createdAt: 2 }])
+    // Then 注册表随 host、活动分组是本地 UI 态，且重载后两者一致
+    expect(store.getSnapshot().groups).toEqual([{ id: 'g_new', name: '核心仓', createdAt: 2 }])
+    expect(store.getSnapshot().activeGroupId).toBe('g_old')
+    const reloaded = createWatchlistGroupsStore()
+    expect(reloaded.getSnapshot().groups).toEqual([{ id: 'g_new', name: '核心仓', createdAt: 2 }])
+    expect(reloaded.getSnapshot().activeGroupId).toBe('g_old')
+  })
+
+  it('用户把标的加入分组后重载仍是入组态（派生 membership 写持久化）', () => {
+    // Given 一个全新自选 store
+    const store = createWatchlistStore()
+    // When host-first 入组成功后写本地镜像
+    applyLocalMembership(store, 'us', 'g_9', 'AAPL', true)
+    // Then 重载镜像保留 AAPL 的 g_9 归属（种子基线已物化，不复活兜底）
+    const reloaded = createWatchlistStore()
+    expect(reloaded.isCustomized('us')).toBe(true)
+    expect(reloaded.listFor('us').find(row => row.symbol === 'AAPL')?.groups).toEqual(['g_9'])
+  })
+})

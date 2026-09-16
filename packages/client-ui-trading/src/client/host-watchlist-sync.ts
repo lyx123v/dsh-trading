@@ -11,9 +11,11 @@
  *   先写 host，成功后才更新本地 observable（localStorage 由原 store 持久化，
  *   降级为缓存镜像）。
  * - SSE：'watchlists' / 'selection' 失效信号 → 重拉 host 覆盖本地（左栏实时增删行、
- *   watchlist_select 工具驱动中栏切图）。host 驱动的选中落地一律走 applyHost：同步
- *   刷新 localStorage 镜像，桥降级启动才不会回落旧标的（2026-09-16）；走 selection.select
- *   会回写 host 造成信号回环，故不可用。
+ *   watchlist_select 工具驱动中栏切图）。
+ * - host 驱动的落地（自选行 / 分组注册表 / 选中标的）一律走各自 store 的 applyHost：
+ *   观察值 + localStorage 镜像一次写完，桥降级启动才不会回落旧镜像（2026-09-16）。
+ *   派生本地写（分组成员、删组剥离）同走 applyHost。选中标的不能用 selection.select
+ *   ——它已被包装成 host-first，会回写 host 造成信号回环。
  *
  * 市场种子列表（DEFAULT_WATCHLISTS）不进 host：host 无行的 market 客户端照旧
  * 回落种子展示（rowsFor），迁移只搬用户定制行；种子行入组时 host 桥自动物化
@@ -73,7 +75,7 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
   const syncFromHost = async (): Promise<void> => {
     try {
       const host = await fetchHostWatchlists()
-      watchlists.set(toLocalWatchlists(host))
+      watchlists.applyHost(toLocalWatchlists(host))
     } catch {
       /* 桥不可用 → 本地镜像维持现状（不劣于升级前） */
     }
@@ -88,8 +90,8 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
       if (activeGroupId !== null && !next.some(group => group.id === activeGroupId)) {
         groups.setActiveGroup(null)
       }
-      // 全量覆盖注册表镜像；activeGroupId 是本地 UI 态，原位保留。
-      groups.set({ ...groups.getSnapshot(), groups: next })
+      // 全量覆盖注册表镜像（applyHost 持久化；activeGroupId 是本地 UI 态，store 内原位保留）。
+      groups.applyHost(next)
     }
   }
 
@@ -98,7 +100,7 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
       const host = await fetchHostWatchlists()
       if (isHostWatchlists(host)) {
         // host 已有定制行 → host 为准（可能来自工具写入或另一标签页）。
-        watchlists.set(toLocalWatchlists(host))
+        watchlists.applyHost(toLocalWatchlists(host))
       } else {
         // host 为空 → 尝试一次性迁移本地 localStorage 定制行（幂等）。
         const local = watchlists.getSnapshot()
@@ -110,7 +112,7 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
           const imported = await importHostWatchlists(customized)
           if (imported) {
             const after = await fetchHostWatchlists()
-            watchlists.set(toLocalWatchlists(after))
+            watchlists.applyHost(toLocalWatchlists(after))
           }
           // 导入被拒（host 非空竞态）→ 下面统一 host 拉取兜底。
         }
@@ -205,31 +207,31 @@ export function wireHostWatchlistSync(options: HostWatchlistSyncOptions): () => 
   }
 }
 
-/** 本地镜像全市场剥离某分组归属（删分组时保 UI 即时；SSE 重拉兜底）。 */
+/** 本地镜像全市场剥离某分组归属（删分组时保 UI 即时；SSE 重拉兜底）。
+ *  经 applyHost 落地 = 顺带刷新 localStorage 镜像（桥降级重载不回退已删归属）。 */
 function stripLocalGroup(watchlists: WatchlistStore, groupId: string): void {
-  watchlists.update((current) => {
-    const next: Partial<Record<MarketId, Instrument[]>> = {}
-    let changed = false
-    for (const [market, rows] of Object.entries(current)) {
-      if (!Array.isArray(rows)) continue
-      let marketChanged = false
-      const nextRows = rows.map((row) => {
-        if (!row.groups?.includes(groupId)) return row
-        marketChanged = true
-        const rest = row.groups.filter(entry => entry !== groupId)
-        // 显式重建行（不能 { ...row } 展开——groups 键会被原行带回）。
-        return {
-          market: row.market,
-          symbol: row.symbol,
-          ...(row.name !== undefined ? { name: row.name } : {}),
-          ...(rest.length > 0 ? { groups: rest } : {}),
-        }
-      })
-      next[market as MarketId] = nextRows
-      changed = changed || marketChanged
-    }
-    if (!changed) return current
-    // 未定制市场的种子基线不被镜像化（strip 只会命中已有定制行的市场）。
-    return next
-  })
+  const current = watchlists.getSnapshot()
+  const next: Partial<Record<MarketId, Instrument[]>> = {}
+  let changed = false
+  for (const [market, rows] of Object.entries(current)) {
+    if (!Array.isArray(rows)) continue
+    let marketChanged = false
+    const nextRows = rows.map((row) => {
+      if (!row.groups?.includes(groupId)) return row
+      marketChanged = true
+      const rest = row.groups.filter(entry => entry !== groupId)
+      // 显式重建行（不能 { ...row } 展开——groups 键会被原行带回）。
+      return {
+        market: row.market,
+        symbol: row.symbol,
+        ...(row.name !== undefined ? { name: row.name } : {}),
+        ...(rest.length > 0 ? { groups: rest } : {}),
+      }
+    })
+    next[market as MarketId] = nextRows
+    changed = changed || marketChanged
+  }
+  if (!changed) return
+  // 未定制市场的种子基线不被镜像化（strip 只会命中已有定制行的市场）。
+  watchlists.applyHost(next)
 }

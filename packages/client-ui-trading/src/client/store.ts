@@ -141,6 +141,12 @@ export interface WatchlistStore extends WritableObservable<Watchlists> {
   isCustomized(market: MarketId): boolean
   add(market: MarketId, instrument: Instrument): void
   remove(market: MarketId, symbol: string): void
+  /**
+   * host 权威全量落地（启动同步 / SSE 'watchlists' 重拉）与派生本地镜像写
+   * （分组成员/删组剥离）：host 行原样写入——开放市场词汇不做 sanitize，与既有裁决一致
+   * ——并持久化 localStorage（否则桥降级重载回落旧镜像）。
+   */
+  applyHost(rows: Watchlists): void
 }
 
 export function sameInstrument(a: Instrument, b: Instrument): boolean {
@@ -180,6 +186,10 @@ export function createWatchlistStore(): WatchlistStore {
   const persist = (): void => { writeJson(WATCHLIST_KEY, store.getSnapshot()) }
   return {
     ...store,
+    applyHost(rows) {
+      store.set(rows)
+      persist()
+    },
     listFor(market) {
       const rows = store.getSnapshot()[market]
       if (Array.isArray(rows)) return rows
@@ -251,6 +261,8 @@ export type WatchlistGroupOpResult =
 export interface WatchlistGroupsStoreApi extends WritableObservable<WatchlistGroupsState> {
   /** 注册表镜像直写（rename 原位替换，不挪顺序；create 追加尾部）。 */
   upsertGroup(group: WatchlistGroupMeta): void
+  /** host 权威注册表落地（启动拉取 / SSE 'watchlists' 重拉）：保留本地活动分组 UI 态并持久化镜像。 */
+  applyHost(groups: WatchlistGroupMeta[]): void
   /** 注册表镜像摘除（活动分组指向被删组时归位 null）。 */
   removeGroupLocal(id: string): void
   /** 切活动分组（本地持久化，不进 host）。 */
@@ -299,6 +311,11 @@ export function createWatchlistGroupsStore(): WatchlistGroupsStoreApi {
   return {
     ...store,
     upsertGroup: upsert,
+    applyHost(next) {
+      // activeGroupId 是纯本地 UI 态，host 注册表全量覆盖时原位保留。
+      store.set({ ...store.getSnapshot(), groups: next })
+      persist()
+    },
     removeGroupLocal(id) {
       store.update((current) => ({
         ...current,
@@ -340,35 +357,35 @@ export function createWatchlistGroupsStore(): WatchlistGroupsStoreApi {
   }
 }
 
-/** 本地镜像的行级 membership 写（host-first 包装成功后调用；未定制市场按种子物化，与 host 行为同构）。 */
+/** 本地镜像的行级 membership 写（host-first 包装成功后调用；未定制市场按种子物化，与 host 行为同构）。
+ *  经 applyHost 落地——顺带刷新 localStorage 镜像，桥降级重载不回退旧归属。 */
 export function applyLocalMembership(
-  watchlists: WritableObservable<Watchlists>,
+  watchlists: WatchlistStore,
   market: MarketId,
   groupId: string,
   symbol: string,
   member: boolean,
 ): void {
-  watchlists.update((current) => {
-    const base = Array.isArray(current[market]) ? current[market] ?? [] : DEFAULT_WATCHLISTS[market] ?? []
-    let changed = false
-    const nextRows = base.map((row) => {
-      if (row.symbol !== symbol) return row
-      const groups = row.groups ?? []
-      const has = groups.includes(groupId)
-      if (member === has) return row
-      changed = true
-      const next = member ? [...groups, groupId] : groups.filter(entry => entry !== groupId)
-      // 显式重建行（不能 { ...row } 展开——移出后 groups 键会被原行带回）。
-      return {
-        market: row.market,
-        symbol: row.symbol,
-        ...(row.name !== undefined ? { name: row.name } : {}),
-        ...(next.length > 0 ? { groups: next } : {}),
-      }
-    })
-    if (!changed) return current
-    return { ...current, [market]: nextRows }
+  const current = watchlists.getSnapshot()
+  const base = Array.isArray(current[market]) ? current[market] ?? [] : DEFAULT_WATCHLISTS[market] ?? []
+  let changed = false
+  const nextRows = base.map((row) => {
+    if (row.symbol !== symbol) return row
+    const groups = row.groups ?? []
+    const has = groups.includes(groupId)
+    if (member === has) return row
+    changed = true
+    const next = member ? [...groups, groupId] : groups.filter(entry => entry !== groupId)
+    // 显式重建行（不能 { ...row } 展开——移出后 groups 键会被原行带回）。
+    return {
+      market: row.market,
+      symbol: row.symbol,
+      ...(row.name !== undefined ? { name: row.name } : {}),
+      ...(next.length > 0 ? { groups: next } : {}),
+    }
   })
+  if (!changed) return
+  watchlists.applyHost({ ...current, [market]: nextRows })
 }
 
 /** Chart intervals offered per market (connector-supported subsets only). */

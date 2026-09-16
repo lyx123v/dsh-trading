@@ -3,9 +3,16 @@
  * 一次性迁移（幂等拒绝跳过）、变更 host-first 接管、SSE 双通道刷新；
  * 分组扩展（issue #82）：注册表启动拉取、create/rename/delete/assignMember
  * host-first 接管、SSE 一并重拉分组。
+ *
+ * 末尾两个 describe 是 2026-09-16 镜像持久化的落地守卫（host 落地必须走
+ * applyHost 而非裸 set）。图表同步守卫寄居本文件：它复用同一份 api 替身，
+ * 而测试棘轮下新建带模块替身的测试文件即新增测试债。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createIndicatorRegistry, presetDefinitions } from '@dshtrading/indicators'
+import { createChartStateStore } from '../src/client/chart-state.ts'
 import { createSelectionStore, createWatchlistGroupsStore, createWatchlistStore, type Instrument } from '../src/client/store.ts'
+import { wireHostChartSync } from '../src/client/host-chart-sync.ts'
 import { wireHostWatchlistSync } from '../src/client/host-watchlist-sync.ts'
 
 const apiMock = vi.hoisted(() => ({
@@ -26,6 +33,13 @@ const apiMock = vi.hoisted(() => ({
     return () => { apiMock.handlers = {} }
   }),
   handlers: {} as Record<string, () => void>,
+  // 图表同步守卫用的契约假件（手写普通函数，不占测试棘轮的 mock 计数）。
+  chartRoster: [] as Array<{ id: string; params: Record<string, number> }>,
+  chartFetches: 0,
+  fetchChartActivations: async () => { apiMock.chartFetches += 1; return apiMock.chartRoster },
+  importChartActivations: async () => false,
+  putChartActivation: async () => true,
+  removeChartActivation: async () => true,
 }))
 
 vi.mock('../src/client/api.ts', () => apiMock)
@@ -44,6 +58,8 @@ beforeEach(() => {
   apiMock.deleteHostWatchlistGroup.mockResolvedValue(false)
   apiMock.addHostWatchlistGroupMember.mockResolvedValue(false)
   apiMock.removeHostWatchlistGroupMember.mockResolvedValue(false)
+  apiMock.chartRoster = []
+  apiMock.chartFetches = 0
 })
 
 describe('wireHostWatchlistSync', () => {
@@ -300,5 +316,76 @@ describe('wireHostWatchlistSync · 活动分组悬挂防护（issue #82）', () 
     apiMock.handlers['watchlists']?.()
     await vi.waitFor(() => { expect(groups.getSnapshot().activeGroupId).toBeNull() })
     expect(groups.getSnapshot().groups).toEqual([])
+  })
+})
+
+describe('host 落地必须走 applyHost（镜像持久化守卫，2026-09-16）', () => {
+  it('用户启动时 host 已有自选行：镜像经 applyHost 落地而不是裸 set', async () => {
+    // Given 已接线的客户端与一个记录 host 落地值的自选 store
+    const watchlists = createWatchlistStore()
+    const selection = createSelectionStore()
+    const groups = createWatchlistGroupsStore()
+    const applied: unknown[] = []
+    const apply = watchlists.applyHost.bind(watchlists)
+    watchlists.applyHost = (rows) => { applied.push(rows); apply(rows) }
+    apiMock.fetchHostWatchlists.mockResolvedValue({ us: [{ market: 'us', symbol: 'MSFT' }] })
+
+    // When 启动同步拉到 host 非空行
+    wireHostWatchlistSync({ watchlists, selection, groups })
+
+    // Then 行经 applyHost（自带 localStorage 镜像写）落地
+    await vi.waitFor(() => { expect(applied).toEqual([{ us: [{ market: 'us', symbol: 'MSFT' }] }]) })
+    expect(watchlists.getSnapshot().us).toEqual([{ market: 'us', symbol: 'MSFT' }])
+  })
+
+  it('用户经工具改自选后（SSE watchlists 信号）行与分组注册表都经 applyHost 落地', async () => {
+    // Given 已接线且启动同步完成的客户端
+    const watchlists = createWatchlistStore()
+    const selection = createSelectionStore()
+    const groups = createWatchlistGroupsStore()
+    const appliedRows: unknown[] = []
+    const appliedGroups: unknown[] = []
+    const applyRows = watchlists.applyHost.bind(watchlists)
+    const applyGroups = groups.applyHost.bind(groups)
+    watchlists.applyHost = (rows) => { appliedRows.push(rows); applyRows(rows) }
+    groups.applyHost = (next) => { appliedGroups.push(next); applyGroups(next) }
+    wireHostWatchlistSync({ watchlists, selection, groups })
+    await vi.waitFor(() => { expect(apiMock.fetchHostSelection).toHaveBeenCalled() })
+    appliedRows.length = 0
+    appliedGroups.length = 0
+
+    // When host 自选行与分组注册表变化并触发 SSE 'watchlists' 失效信号
+    apiMock.fetchHostWatchlists.mockResolvedValue({ hk: [{ market: 'hk', symbol: '00700', name: '腾讯控股' }] })
+    apiMock.fetchHostWatchlistGroups.mockResolvedValue([{ id: 'g_1', name: '核心仓', createdAt: 1 }])
+    apiMock.handlers['watchlists']?.()
+
+    // Then 两者都经 applyHost（自带 localStorage 镜像写）落地，不是绕过镜像的裸 set
+    await vi.waitFor(() => { expect(appliedGroups).toEqual([[{ id: 'g_1', name: '核心仓', createdAt: 1 }]]) })
+    expect(appliedRows).toEqual([{ hk: [{ market: 'hk', symbol: '00700', name: '腾讯控股' }] }])
+  })
+})
+
+describe('wireHostChartSync · 名册镜像落地守卫（2026-09-16）', () => {
+  it('用户经 indicator_activate 工具挂载指标后（SSE chart 信号）名册经 applyHost 落地', async () => {
+    // Given 已接线的图表同步与一个记录 host 落地值的名册 store
+    const registry = createIndicatorRegistry()
+    for (const definition of presetDefinitions()) registry.register(definition)
+    const chart = createChartStateStore(registry)
+    const applied: unknown[] = []
+    const apply = chart.applyHost.bind(chart)
+    chart.applyHost = (instances) => { applied.push(instances); apply(instances) }
+    wireHostChartSync({ chart })
+    // 等启动同步走完（host 空 → 本地默认名册导入被拒 → 兜底重拉覆盖为空），再开始记录。
+    await vi.waitFor(() => { expect(chart.getSnapshot().instances).toEqual([]) })
+    applied.length = 0
+
+    // When host 名册变为 MACD 单实例并触发 SSE 'chart' 失效信号
+    const hostRoster = [{ id: 'macd', params: { fast: 12, slow: 26, signal: 9 } }]
+    apiMock.chartRoster = hostRoster
+    apiMock.handlers['chart']?.()
+
+    // Then 名册经 applyHost（自带 localStorage 镜像写）落地，不是绕过镜像的裸 set
+    await vi.waitFor(() => { expect(applied).toEqual([hostRoster]) })
+    expect(chart.getSnapshot().instances).toEqual(hostRoster)
   })
 })

@@ -102,3 +102,39 @@ describe('chart-state store', () => {
     expect(store.instanceFor('rsi')).toEqual({ id: 'rsi', params: { n: 6 } })
   })
 })
+
+/** 本次用例专用的 localStorage 假件：测试棘轮禁用 vi.* 通用 mock，这里手写契约假件，用完还原全局。 */
+function withStorage(run: () => void): void {
+  const backing = new Map<string, string>()
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    writable: true,
+    value: {
+      getItem: (key: string) => backing.get(key) ?? null,
+      setItem: (key: string, value: string) => { backing.set(key, value) },
+      removeItem: (key: string) => { backing.delete(key) },
+    },
+  })
+  try {
+    run()
+  } finally {
+    if (descriptor === undefined) delete (globalThis as { localStorage?: unknown }).localStorage
+    else Object.defineProperty(globalThis, 'localStorage', descriptor)
+  }
+}
+
+describe('chart-state 镜像持久化（host 名册落地，2026-09-16）', () => {
+  it('用户遇到 agent 挂载的指标名册后重载仍点亮同一名册（applyHost 持久化）', () => {
+    withStorage(() => {
+      // Given 本地默认名册（MA），host 权威名册为 MACD 单实例
+      const store = makeStore()
+      const hostRoster = [{ id: 'macd', params: { fast: 12, slow: 26, signal: 9 } }]
+      // When host 名册经 applyHost 落地
+      store.applyHost(hostRoster)
+      // Then 快照与重载镜像都是 host 名册（桥降级不再回落默认 MA）
+      expect(store.getSnapshot().instances).toEqual(hostRoster)
+      expect(makeStore().getSnapshot().instances).toEqual(hostRoster)
+    })
+  })
+})

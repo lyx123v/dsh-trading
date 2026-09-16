@@ -34,7 +34,7 @@ export function wireHostChartSync(options: HostChartSyncOptions): () => void {
   const syncFromHost = async (): Promise<void> => {
     try {
       const instances = await fetchChartActivations()
-      chart.set({ instances })
+      chart.applyHost(instances)
     } catch {
       /* 桥不可用 → 本地镜像维持现状（不劣于升级前） */
     }
@@ -45,7 +45,7 @@ export function wireHostChartSync(options: HostChartSyncOptions): () => void {
       const host = await fetchChartActivations()
       if (host.length > 0) {
         // host 已有激活行 → host 为准（可能来自工具写入或另一标签页）。
-        chart.set({ instances: host })
+        chart.applyHost(host)
         return
       }
       // host 为空 → 一次性迁移本地 localStorage 存量激活名册（幂等，服务端拒绝即跳过）。
@@ -53,7 +53,7 @@ export function wireHostChartSync(options: HostChartSyncOptions): () => void {
       if (local.length > 0) {
         const imported = await importChartActivations(local)
         if (imported) {
-          chart.set({ instances: await fetchChartActivations() })
+          chart.applyHost(await fetchChartActivations())
         }
         // 导入被拒（host 非空竞态）→ 拉一次 host 兜底对齐。
         else {
