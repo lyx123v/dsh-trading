@@ -45,6 +45,12 @@ Status: implemented
 - 回归：`macro-panel.smoke.test.tsx` 新增 `calendarAnchorDate`/`localDateKeyOf`
   时区无关用例（今天命中/未公布回退/全部已公布回退/空列表/日期键格式）。
 - 桌面壳仍需按 profile 刷新契约重挂副本才能吃到本修复（本轮只刷新验证 trading-web）。
+- 2026-09-16 桌面壳核验：桌面宿主与 CLI 共用 `~/.dsh-trading/profiles/trading-web` 的
+  @dshtrading 副本，刷新后随桌面壳重启即生效（CDP 实证宏观面板 + 锚定滚动均正常）；
+  桌面加载的 dsh-web-frontend 壳 bundle 不含交易 UI 属正常形态，勿以壳 bundle 判功能有无
+  （插件客户端模块 /plugins/??…@dshtrading/client-ui-trading/client.js 才是交易 UI 载体）。
+  另：单 profile 双活会争任务台账锁——CLI 验证实例存续期间桌面会话 task ledger 降级
+  （LedgerLockedError），收口为单实例后随下次桌面壳重启恢复。
 
 ## Verification
 
