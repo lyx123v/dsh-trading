@@ -42,6 +42,21 @@ const MARKET_PACKAGES = {
 // 仅供维护者会话使用的技能，不随 npm 包分发
 const DISTRIBUTION_EXCLUDED = new Set(['dsh-trading-release'])
 
+/** 单条技能内容的可分发判定。
+ *
+ * 两类内容绝不允许写进包资产：Windows 侧无 symlink 时 git 把符号链接落成的纯路径
+ * 指针文本，以及体量明显不足的损坏残片。2026-09-16 实证：这两类内容随一次冲突合并
+ * 被写进 kit 资产，把 cn/us/hk 三份风控清单正文（22-23 行）覆盖成 0 行且长期无人
+ * 察觉。损坏内容宁可让构建失败，也不静默分发。 */
+export const MIN_SKILL_BYTES = 512
+const PATH_POINTER = /^\s*\.{1,2}\/[^\n]*$/
+export function distributableContentError(content) {
+  if (PATH_POINTER.test(content.trim())) return '源文件是未解析的路径指针'
+  const bytes = Buffer.byteLength(content, 'utf8')
+  if (bytes < MIN_SKILL_BYTES) return `源文件仅 ${bytes} 字节（低于 ${MIN_SKILL_BYTES}），疑似损坏`
+  return null
+}
+
 function resolveTargetDirs(skillName) {
   if (
     skillName.startsWith('trading-') ||
@@ -69,6 +84,7 @@ async function main() {
   const skillDirs = entries.filter((e) => e.isDirectory())
 
   let syncedCount = 0
+  const refused = []
 
   for (const dir of skillDirs) {
     const skillName = dir.name
@@ -84,6 +100,14 @@ async function main() {
       if (existsSync(realPath)) {
         content = await readFile(realPath, 'utf8')
       }
+    }
+
+    // 指针/残片一律拒绝分发：解析失败时 content 仍是指针文本，绝不能落进包资产。
+    const blocked = distributableContentError(content)
+    if (blocked) {
+      console.error(`[sync-skills] Refused ${skillName}: ${blocked}；请先修 .agents/skills/${skillName}/SKILL.md，不覆盖包资产`)
+      refused.push(skillName)
+      continue
     }
 
     // Skills that carry extra resources (references/templates/scripts) keep the flattened
@@ -108,10 +132,15 @@ async function main() {
     }
   }
 
+  if (refused.length) throw new Error(`refused ${refused.length} skill(s): ${refused.join(', ')}`)
   console.log(`[sync-skills] Successfully synced ${syncedCount} skill asset(s).`)
 }
 
-main().catch((err) => {
-  console.error('[sync-skills] Error:', err)
-  process.exit(1)
-})
+// 仅在被当作入口直接执行时跑 CLI；import 时导入纯函数供测试使用（同 i18n-audit）。
+const invokedDirectly = process.argv[1] ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error('[sync-skills] Error:', err)
+    process.exit(1)
+  })
+}

@@ -35,4 +35,5 @@ Status: implemented
 
 - 产出权威文档：[docs/skills-guide.md](../../../../docs/skills-guide.md) 与索引；
 - 提供同步工具：`scripts/sync-skills.mjs` 并集成入 root `package.json` 的 `pnpm sync:skills` 和 `pnpm build`；
+- 同步工具自 2026-09-16 起带可分发门禁：源内容是路径指针或低于 512 字节时拒绝写入包资产并使构建失败（[2026-09-16-risk-checklist-pointer-clobber.md](../bug-fix/2026-09-16-risk-checklist-pointer-clobber.md)）；
 - 后续接入 OKX Tradekit 或社区策略时均有据可依，直接在 `.agents/skills/` 下快速扩展。
