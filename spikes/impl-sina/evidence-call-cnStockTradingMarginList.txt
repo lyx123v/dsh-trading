@@ -1,0 +1,18 @@
+{
+  "request": {
+    "name": "cnStockTradingMarginList",
+    "arguments": {
+      "symbol": "sz000002",
+      "page": "1",
+      "num": "3"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 15,
+    "error": {
+      "code": -32603,
+      "message": "tool调用失败，原因：余额不足"
+    }
+  }
+}

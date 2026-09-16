@@ -1,0 +1,16 @@
+{
+  "request": {
+    "name": "cnFinanceReportDateList",
+    "arguments": {
+      "paperCode": "sh600519"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 17,
+    "error": {
+      "code": -32603,
+      "message": "tool调用失败，原因：余额不足"
+    }
+  }
+}

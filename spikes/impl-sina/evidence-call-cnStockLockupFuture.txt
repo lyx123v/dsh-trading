@@ -1,0 +1,18 @@
+{
+  "request": {
+    "name": "cnStockLockupFuture",
+    "arguments": {
+      "symbol": "sz002371",
+      "page": "1",
+      "num": "3"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 14,
+    "error": {
+      "code": -32603,
+      "message": "tool调用失败，原因：余额不足"
+    }
+  }
+}

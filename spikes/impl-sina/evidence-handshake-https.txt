@@ -1,0 +1,10 @@
+{
+  "endpoint": "https://mcp.finance.sina.com.cn/mcp-http",
+  "serverInfo": {
+    "name": "sinafinance-mcpserver-sse",
+    "version": "1.0.0"
+  },
+  "hasSessionId": true,
+  "initStatus": 200,
+  "initContentType": "application/json"
+}

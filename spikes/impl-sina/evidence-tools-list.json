@@ -1,0 +1,1568 @@
+[
+  {
+    "name": "__sysinfo__",
+    "description": "\n【系统级强制指令 — LLM 请务必严格遵循】\n\n此工具仅用于向模型提供系统级规范，不代表可执行的业务工具。\n**禁止调用本工具。禁止生成本工具的参数。禁止将其当作功能性工具使用。**\n\n# 1. 工具调用总则\n- 仅在任务确需工具执行时才调用工具。\n- 工具名称必须与列表中完全一致（区分大小写）。\n- 必须根据任务内容选择最合适的工具，禁止随意调用与任务无关的工具。\n- 工具参数必须为严格的 **JSON 对象**（不能是字符串、数组、上下文文本）。\n- 在长时间运行出现invalid session id 或者网络连接断开时候，需要重新建立会话\n\n# 2. 参数格式要求（必须遵守）\n- 参数必须是一个 JSON Object，例如：\n  {\"uid\":123, \"query\":\"hello\"}\n- 所有值必须符合工具 schema 的类型要求（string/int/float/object/array）。\n- 不允许：\n  - 注释、换行符解释、解释性文本；\n  - 使用非 JSON 格式，如：{uid:123}、\"uid:123\"、[123]；\n  - 生成额外说明文字，如：\"下面是你的 JSON 参数：\"。\n\n# 3. 工具调用流程（严格）\n当你需要调用某工具时：\n1. 首先确认该工具是唯一正确的选择。\n2. 严格构造 JSON 参数对象。\n3. 直接输出 MCP 工具调用格式（无任何额外自然语言）。\n\t",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "cnCompanyBasicInfo",
+    "description": "A股公司基础信息 通过股票代码查询股票所属公司的基本信息，包括公司代码、股票代码、股票名称、公司全称、简称、中英文名称、注册信息、注册资本、主营业务、联系方式、办公及注册地址、公司网址等详细信息，适用于获取上市公司基础信息进行投资分析或公司研究。\n\n",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnCompanyCapitalHistory",
+    "description": "A股公司股本变动 财经股票历史股本变动查询工具：支持输入不带前缀的 A 股股票代码（如 601127），查询京沪深市场指定公司的历史股本变动数据。返回信息涵盖总股本、流通股本（A/B/H 股等）、各类股东持股结构、变动日期、变动原因说明等详细维度，适用于股票资本结构分析、历史变动追踪等财经场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "PaperCode": {
+          "description": "股票code，不带前缀",
+          "type": "string"
+        }
+      },
+      "required": [
+        "PaperCode"
+      ]
+    }
+  },
+  {
+    "name": "cnCompanyManagerInfo",
+    "description": "A股公司高管详情 财经高管信息查询工具：支持输入带市场前缀的合法股票代码（如 sz000001），查询京沪深市场指定公司的高管详情。返回数据涵盖在职高管（职务、持股数/变动、薪酬、履历等）、近期离职高管、高管变动统计及持股变动（变动原因、持股数量等），助力投资者通过高管资金行为分析公司基本面趋势、验证高管对公司未来的信心。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnCompanyShareholderHistory",
+    "description": "A股公司股东人数 财经历次股东数据查询工具：支持输入不带前缀的合法 A 股代码（如 601127）及数据类型（Type），获取指定股票的历次股东相关数据。Type 可选 `amount`（股东总数）或 `average`（平均持股数），返回信息涵盖变动截止日期、对应数据指标、A股股东户数、股价及股票基础信息，助力投资者分析股权集中度、筹码结构变化。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "Code": {
+          "description": "股票code，不带前缀",
+          "type": "string"
+        },
+        "Type": {
+          "description": "amount 获取股东总数  average 获得平均持股数",
+          "type": "string"
+        }
+      },
+      "required": [
+        "Code",
+        "Type"
+      ]
+    }
+  },
+  {
+    "name": "cnFinanceGrReportDateList",
+    "description": "A股公司主营构成报告日期列表 财经主营构成报告日期查询工具：支持输入带市场前缀的合法 A 股代码（如 sh688387），获取指定股票的主营构成报告日期列表。返回数据包含报告日期值、日期描述（如2025三季报）、报告期类型（一季报/半年报等），助力投资者查询目标股票主营构成报告的发布时间维度。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "paperCode": {
+          "description": "A股股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paperCode"
+      ]
+    }
+  },
+  {
+    "name": "cnFinanceReportDateList",
+    "description": "A股公司财报日期列表 财经公司财报日期查询工具：支持输入带市场前缀的合法 A 股代码（如 sh600519），获取指定上市公司的财报日期列表。返回数据涵盖财报类型、货币代码（CNY/USD/HKD等）及日期明细（报告日期、日期描述、季报/年报类型），适用于A股财报时间维度查询、金融数据分析等场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "paperCode": {
+          "description": "A股股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paperCode"
+      ]
+    }
+  },
+  {
+    "name": "cnFinanceReportsFull",
+    "description": "A股公司财务指标 财经公司财务报表查询工具：支持输入带市场前缀的A股代码（如sz000002）、指定数据来源（当前只支持关键指标）及财报日期，获取上市公司对应财报期的全量财务指标数据。涵盖利润表、负债表、流量表、关键指标、专项指标等维度，为投资分析、财务研究、业绩评估提供权威精准的财务数据支撑。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "paperCode": {
+          "description": "股票代码",
+          "type": "string"
+        },
+        "rDate": {
+          "description": "财报日期",
+          "type": "string"
+        },
+        "source": {
+          "description": "lrb-利润表；fzb-负债表；llb-流量表；gjzb-关键指标；zxzb-专项指标",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rDate",
+        "source",
+        "paperCode"
+      ]
+    }
+  },
+  {
+    "name": "cnFinanceRevenueComposition",
+    "description": "A股公司主营构成 财经公司业务结构查询工具：支持输入京沪深市场合规股票代码（格式为sz/sh+6位数字，如sz000002），可选指定财报日期（YYYYMMDD格式），查询目标公司按业务、行业、地域维度的主营构成信息。返回数据涵盖收入、成本、占比、毛利率等核心指标，助力投资者拆解收入来源、评估业务健康度与长期价值，适用于沪深两市上市公司业务结构分析场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "frDate": {
+          "description": "报告期；格式：YYYYMMDD；不填返回最新一期的主营构成",
+          "type": "string"
+        },
+        "paperCode": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "paperCode"
+      ]
+    }
+  },
+  {
+    "name": "cnMarketLimitUpPool",
+    "description": "A股市场涨停池 财经涨停池信息查询工具：汇聚A股全市场涨停个股数据，无需传入参数即可获取。返回信息包含涨停个股最新价、涨幅、所属行业/概念、首次涨停时间、封单量、封单金额等关键指标，助力投资者快速捕捉市场主线、判断市场情绪强弱，适用于短线交易参考与市场热点追踪场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "cnMarketStrongSectors",
+    "description": "A股强势板块列表 A股市场强势板块查询工具：支持筛选中国市场强势板块，可通过板块类型（概念/行业/地域）、市场类型（全市场/科创板+创业板/其他）、是否包含ST股票等条件精准查询。返回数据涵盖板块涨跌幅、涨停个股数、连板个股数、即将涨停个股、首板个股及相关股票详情，助力投资者快速捕捉板块热点、判断市场主线强度。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "bk": {
+          "description": "板块类型，默认为gn代表概念板块，支持hy行业、dy地域板块",
+          "type": "string"
+        },
+        "isNotSt": {
+          "description": "是否包含ST股票，默认1不包含，0包含",
+          "type": "string"
+        },
+        "type": {
+          "description": "默认为all代表所有，ck为科创板和创业板，other为其他",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "cnMarketUpdownDistribution",
+    "description": "A股全市场涨跌分布统计 A股市场涨跌分布查询工具：聚合京沪深市场整体实时涨跌分布数据，无需传入参数即可获取。返回各涨跌幅区间（涨停/7%-10%/5%-7%等）股票数量统计及交易时间，帮助金融智能体即时洞察市场热度与情绪变化，适用于盘中监控、市场趋势分析等智能投研场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "cnSectorComponentsRanking",
+    "description": "A股指数和行业板块成分股 A股虚拟板块或者指数成分股排行查询工具：核心用于根据指数 或虚拟板块，获取对应成分股的排行数据。必填参数为「node」（字符串格式，示例：sh000001=上证指数、diyu_150000=内蒙古自治区虚拟板块），合法 symbol 可以通过 globalStockSearchSymbols 接口查询。返回数据涵盖基础行情（价格、涨跌幅、成交量等）和投资估值指标（市盈率TTM、市净率等），支持多维度参数定制：自定义返回字段（ret，多字段用英文逗号分隔）、排序字段（sort，默认 percent）、排序方向（asc，0=倒序/1=正序）、分页（page/num）、新股/次新筛选（hnew/hcnew，1=含/0=不含）。适用于多轮对话中成分股分析、跨板块排行对比、估值指标筛选等财经场景，当用户询问「某指数/板块成分股排行」「成分股估值数据」「按总市值排序的成分股」等需求时触发调用。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "排序方向，0 - 倒叙（默认）； 1 - 正序",
+          "type": "string"
+        },
+        "hcnew": {
+          "description": "含次新，默认：1- 含； 0 - 不含",
+          "type": "string"
+        },
+        "hnew": {
+          "description": "含新股，默认：1- 含； 0 - 不含",
+          "type": "string"
+        },
+        "node": {
+          "description": "指数symbol或行业的symbol",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页记录数",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，默认：1",
+          "type": "string"
+        },
+        "ret": {
+          "description": "支持自定义返回字段，多个字段之间英文逗号隔开，不指定时全部返回。amplitude : 振幅,changes_20d : 20日涨跌幅,changes_5d : 5日涨跌幅,changes_5m : 5分钟涨跌幅,cirValue : 流通市值,ddjl : 大单净量,mgsy : 每股收益,mgwfplr : 每股未分配利润,mll : 毛利率,pb : 市净率,pe : 市盈率TTM,perAssets : 每股净资产NASPS,percent : 涨跌幅,price : 价格,rp_net : 主力净流入,totalAmount : 成交金额,totalShare : 总市值,totalVolume : 成交量,turnOver : 换手率,turnover_20d : 20日换手率,turnover_5d : 5日换手率,upDays : 连涨天数,volumeRatio : 量比,yearPercent : 今年以来涨幅,sw2hy : 所属行业,weight：权重。name : 股票名称, ------ 不用指定，必返字段；longtou: 龙头标识, ------ 不用指定，必返字段；market: 市场 ------ 不用指定，必返字段；percent: 涨跌幅 ------ 不用指定，必返字段；sw2hy: 行业 ------ 不用指定，必返字段；nameSuffix：股票名称后缀, ------ 不用指定，必返字段；symbol : 股票代码, ------ 不用指定，必返字段；category : 股票tag, ------ 不用指定，必返字段",
+          "type": "string"
+        },
+        "sort": {
+          "description": "排序字段，以上所有可排序字段，默认：percent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node"
+      ]
+    }
+  },
+  {
+    "name": "cnStockConnectHoldings",
+    "description": "A股沪深港通 沪深港通持股量查询工具：专注获取港股通（hk）、深股通（sz）、沪股通（sh）的股票持股数据，需传入三大必填参数——「type」（通类型，取值hk/sz/sh）、「sort」（排序字段，如hold_ratio持股比例/percent涨跌幅等）、「asc」（排序方向，0=从大到小/1=从小到大），支持分页（page/num）。返回含持股数量、持仓比例、持股市值、当日及近期涨跌幅等核心指标，为投资者提供资金流向监控、市场分析及投资决策支持，适用于沪深港通动态追踪场景",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "0-从大到小，1-从小到大",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页内容",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "sort": {
+          "description": "排序字段: hold_date持股日期 hold_num持股数量 hold_ratio持股比例 close当日收盘价 percent当日涨跌幅 cur_capital持股市值 day1_capital_chg持股市值变化1日 day5_capital_chg持股市值变化5日 day10_capital_chg持股市值变化10日 zf_60近60日涨幅",
+          "type": "string"
+        },
+        "type": {
+          "description": "沪深港通类型（hk 港股通、sz 深股通、sh 沪股通）",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sort",
+        "type",
+        "asc"
+      ]
+    }
+  },
+  {
+    "name": "cnStockKLine",
+    "description": "A股股票分钟K线 通过股票代码获取指定股票的分钟K线数据，包含1分钟、3分钟、5分钟、10分钟等不同维度下的开盘价、最高价、最低价、收盘价、成交量、成交额等核心指标。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "datalen": {
+          "description": "返回数量；最大2000",
+          "type": "string"
+        },
+        "scale": {
+          "description": "跨度范围；1（1分钟）、3（3分钟）、5（5分钟）、10（10分钟）、15（15分钟）、30（30分钟）、60（60分钟）、90（90分钟）、120（120分钟）、180（180分钟）、240（240分钟）",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码；如 锦波生物 bj920982， 上证指数sh000001",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scale",
+        "symbol",
+        "datalen"
+      ]
+    }
+  },
+  {
+    "name": "cnStockLianBC",
+    "description": "A股聚焦连板个股 A股连板池动态查询工具：无需传入参数，直接获取连续涨停个股的动态列表数据。核心用于捕捉市场情绪、定位短线交易主线，帮助投资者快速识别强势标的、规避高风险个股，同时支持验证投资逻辑与制定灵活交易策略，适用于短线交易监控、市场情绪分析等财经场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "cnStockLockupFuture",
+    "description": "A股股票未来解禁 A股公司未来解禁查询工具：支持输入带市场前缀的合法股票代码（如 sz002371），获取指定公司的未来解禁核心数据，可选分页（page/num）参数。返回指标涵盖解禁日期、解禁市值、实际成本、限售股类型、解禁数量/占比等，可拆解解禁细节评估供给冲击力度与股价承压概率，辅助短期交易决策、持仓判断，适用于京沪深个股解禁风险分析场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnStockLockupHistory",
+    "description": "A股股票历史解禁 A股公司历史解禁查询工具：支持输入带市场前缀的合法股票代码（如 sz002371），获取指定公司的历史解禁核心数据，可选分页（page/num，正整数）参数。返回指标涵盖解禁日期、解禁数量/市值/占总股本比例、实际成本、限售股类型，及解禁前后20日股价表现、每日收盘价等，可分析资金对解禁事件的反应规律，为判断未来解禁压力、制定持仓/交易决策提供参考，适用于京沪深个股解禁历史复盘场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnStockMinute",
+    "description": "A股股票分时 A股分时数据查询工具：支持输入合法代码（示例：sh000001），获取京沪深A股个股、板块、中证指数的分时数据，必填参数为「symbol」（字符串格式）。返回核心指标包含分时均价（avg_p）、分时点（m）、价格（p）、成交量（v），适用于盘中实时行情分析、量价关系研究等财经场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码，支持A股个股、板块、中证指数",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnStockRatingHistory",
+    "description": "A股上市公司信披考评 A股个股历年考评查询工具：支持输入带市场前缀的合法股票代码（如 sz000002），获取指定公司历年官方考评信息，可选参数包括是否返回图形数据（is_graph=0/1）、分页（page/num，num最大30）、年份排序（asc=0倒叙/1正序）。返回考评结果涵盖优秀、良好、合格、不合格等维度，含年份、考评等级及描述，图形数据还包含同等级公司数量，可帮助投资者筛选高可信度企业、降低信息不对称风险，为理性投资提供参考，适用于京沪深个股信用资质评估场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "按年份排序方式：默认0-倒叙；1-正序",
+          "type": "string"
+        },
+        "is_graph": {
+          "description": "是否带图形数据：默认0-不返回；1-返回",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页记录数，最大30每页",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnStockTradingMarginList",
+    "description": "A股股票融资融券 A股个股融资融券查询工具：必填参数「symbol」（沪深股票代码，格式 sh/sz+6位数字，示例 sz000002），支持分页参数「page/num」（正整数）。返回历史两融核心数据：两融余额及增幅、融资净买入额、融资余额、融券余额、两融交易额及占比等，助力投资者杠杆交易配置、多空双向操作、风险对冲与收益增强，适用于股票市场策略优化场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnStockValuationDetail",
+    "description": "A股公司估值数据 通过股票代码查询京沪深指定公司的估值数据，包含市盈率、市净率、市现率、股息率、总市值等多个维度的数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "rank": {
+          "description": "时间跨度：y1—1年；y3—3年；y5—5年；y10—10年；all—所有",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        },
+        "type": {
+          "description": "估值指标：syl --- 市盈率TTM；sjl --- 市净率；sxl --- 市现率；gxl --- 股息率；zsz --- 总市值",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rank",
+        "type",
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnTradingBlockList",
+    "description": "A股大宗交易 A股个股大宗交易查询工具：需输入股票代码（如 sh601127），可选分页参数（页码p/数量num，正整数），返回交易时间、成交价、成交额、折溢率、买卖方营业部等大宗交易关键信息。可反映机构/大股东交易行为，辅助判断专业资金对个股的真实态度，适用于大宗交易分析场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "数量",
+          "type": "string"
+        },
+        "p": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "cnVirtualSectorRanking",
+    "description": "A股虚拟板块列表 A股虚拟板块排行查询工具：支持行业（申万1/2/3级）、概念、地域三大维度排行，可按涨跌幅、成交量、换手率等多指标排序（0=倒序/1=正序），返回板块核心数据+领涨股信息，用于跟踪板块整体表现、挖掘市场热点，适配行情监控与板块配置决策。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "默认：0 - 倒序； 1-正序",
+          "type": "string"
+        },
+        "index_type": {
+          "description": "默认：空 （全部板块）\n\"hy1\" : \"申万1级行业分类\",\n\"hy\" : \"申万2级行业分类\",\n\"hy3\" : \"申万3级行业分类\",\n\"gn\" : \"概念分类\",\n\"dy\" : \"地域分类\"",
+          "type": "string"
+        },
+        "num": {
+          "description": "最大：30",
+          "type": "string"
+        },
+        "page": {
+          "description": "默认：1",
+          "type": "string"
+        },
+        "sort": {
+          "description": "默认：percent\n\"price\" : \"价格\",\n\"change\" : \"涨跌额\",\n\"percent\" : \"涨跌幅%\",\n\"totalVolume\" : \"成交量\",\n\"totalAmount\" : \"成交额\",\n\"amplitude\" : \"振幅%\",\n\"totalShare\" : \"总市值\",\n\"cirValue\" : \"流通市值\",\n\"turnOver\" : \"换手率\",\n\"upDays\" : \"连涨天数\",\n\"tqYearPercent\" : \"近1年涨幅%\",\n\"monthPercent\" : \"本月涨幅%\",\n\"yearPercent\" : \"今年以来%\",\n\"up_num\" : \"上涨家数\",\n\"down_num\" : \"下跌家数\",\n\"eq_num\" : \"持平家数\",\n\"changes_5m\" : \"涨速%\",\n\"changes_5d\" : \"5日涨幅%\",\n\"turnover_5d\" : \"5日换手%\",\n\"changes_20d\" : \"20日涨幅%\",\n\"turnover_20d\" : \"20日换手%\",\n\"rp_net\" : \"主力净流入\",\n\"rp_net_5min\" : \"主力净流速\",\n\"bszj1\" : \"1日北向净买入\",\n\"bszj5\" : \"5日北向净买入\",\n\"bszj20\" : \"20日北向净买入\"",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "forexQuoteLatest",
+    "description": "获取最新汇率行情 最新汇率行情查询工具：需输入全大写货币对代码（如 USDCNY），获取对应货币对最新汇率行情，含买入价、卖出价、涨跌幅、52周高低价等核心数据，适配汇率行情查询场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "货币对代码 全大写",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "forexQuotesBatch",
+    "description": "批量外汇行情 多货币对批量汇率查询工具：需输入ISO 4217标准三字母基础货币代码（如USD）和多个目标货币代码（逗号分隔，如CNY",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "To": {
+          "description": "",
+          "type": "string"
+        },
+        "from": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "To",
+        "from"
+      ]
+    }
+  },
+  {
+    "name": "fund_asset_alloc",
+    "description": "基金资产配置 获取基金资产配置信息，涉及基金市场，返回基金资产配置的相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "005957",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_company_funds",
+    "description": "基金公司旗下基金列表 获取指定基金公司旗下基金列表信息，包含基金的简称、全称、symbol、ID等数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "compcode": {
+          "description": "基金公司代码",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页内容数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "compcode"
+      ]
+    }
+  },
+  {
+    "name": "fund_company_info",
+    "description": "基金公司简介 获取基金公司的简介信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "compcode": {
+          "description": "基金公司代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "compcode"
+      ]
+    }
+  },
+  {
+    "name": "fund_company_managers",
+    "description": "基金公司旗下基金经理 获取指定基金公司旗下基金经理的相关信息，包含基金经理代码、名称、公司信息等",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "compcode": {
+          "description": "公司代码",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页内容",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "compcode",
+        "num",
+        "page"
+      ]
+    }
+  },
+  {
+    "name": "fund_core_metrics",
+    "description": "基金核心指标 获取核心指标相关数据，涉及特定标的的市场数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_cum_return",
+    "description": "基金-累计回报 该接口用于获取基金的累计回报信息，涉及基金市场，返回基金不同时间段的回报率及同类排名数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_deal_rule",
+    "description": "基金规则-申购、赎回 该接口用于获取指定基金代码的基金申购、赎回等交易规则相关信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_dividend",
+    "description": "基金分红信息 获取指定基金代码的基金分红信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_heavy_bond",
+    "description": "基金重仓债券 该接口用于获取基金的重仓债券信息，涉及基金市场相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "每页内容，示例：10",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，示例：1",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "基金代码，示例：002207",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_heavy_fund",
+    "description": "基金重仓基金 获取指定基金代码的重仓基金信息，可分页查询",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "每页内容",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_heavy_stock",
+    "description": "基金重仓股 获取基金重仓股信息，涉及基金市场，返回基金重仓股的相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "每页内容数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_industry_alloc",
+    "description": "基金行业配置 获取基金行业配置相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_info",
+    "description": "基金档案 获取基金的相关档案信息，包括基金全称、简称、代码、成立日期等",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_manager_detail",
+    "description": "基金经理个人详情 获取基金经理个人详情信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pscode": {
+          "description": "基金经理代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pscode"
+      ]
+    }
+  },
+  {
+    "name": "fund_networth",
+    "description": "基金-历史净值 获取基金的历史净值数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "fund_notice_detail",
+    "description": "基金-公告详情 获取基金公告详情，涉及基金市场，返回公告的相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  },
+  {
+    "name": "fund_notice_list",
+    "description": "基金公告列表 获取基金公告列表，涉及国内基金市场，返回基金公告相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "",
+          "type": "string"
+        },
+        "page": {
+          "description": "",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "基金代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "futureCommodityList",
+    "description": "国内商品期货 国内商品期货列表查询工具：需输入交易所代码（type参数，取值dce=大商所/shfe=上期所/czce=郑商所/gfex=广期所），获取对应交易所下农产品、工业品、能源类商品期货的合约名称、品种代码、行情串前缀等信息，适配本土投资者商品期货查询需求。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "交易所 dce:大商所  shfe:上期所 czce:郑商所 gfex:广期所",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  },
+  {
+    "name": "futureFinancialList",
+    "description": "金融期货 金融期货列表查询工具：无需参数，获取内盘（含沪深300股指期货IF、10年期国债期货T等）及全球金融期货的代码与行情串前缀，适配风险管理与宏观经济波动投资场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "futureGoldList",
+    "description": "黄金综合期货 黄金期货列表查询工具：无需参数，获取黄金期货的品种代码、行情串前缀及所属市场信息，为后续查询涨跌幅、开盘价等关键指标提供基础，适配宏观波动下的黄金投资机会与风险预判场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "future_quotes",
+    "description": "期货行情查询 该接口用于查询期货市场的行情信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "description": "市场代码：内盘期货gn 外盘期货global 股指期货cff   市场代码关联的搜索ID为：gn-85   global-86 cff-87,88",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "期货代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "market",
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "globalStockHotBoard",
+    "description": "股票热搜榜 股票热搜榜查询工具：需指定类型参数（type，必填），可选设置市场类型、显示数量、页码/每页数量（正整数），获取不同市场的股票热搜数据（含代码、名称、热度值等），适配股票热搜榜单查询与市场热度分析场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "description": "市场类型",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页内容数量 默认3",
+          "type": "string"
+        },
+        "page": {
+          "description": "页号",
+          "type": "string"
+        },
+        "type": {
+          "description": "d天级热榜 h小时级热榜",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  },
+  {
+    "name": "globalStockKlineDaily",
+    "description": "全市场股票日K 股票日K线数据查询工具：需输入市场代码（cn=沪深/hk=港股/us=美股/gi=全球指数）和股票代码（必填），可选设置复权类型（qfq前复权/hfq后复权）、日期范围、查询数量（正整数），获取指定股票的开盘价、最高价、最低价、收盘价、成交量、成交额等日K线核心指标，适配多市场个股K线数据分析场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "compare": {
+          "description": "对比目标日期，默认：le - 小于等于；ge - 大于等于 ",
+          "type": "string"
+        },
+        "fq_type": {
+          "description": "默认空-不复权；qfq-前复权；hfq-后复权",
+          "type": "string"
+        },
+        "in_date": {
+          "description": "目标日期，默认：当天；格式：YYYY - MM - DD",
+          "type": "string"
+        },
+        "market": {
+          "description": "市场代码，支持：cn-沪深、hk-港股、us-美股、gi-全球指数",
+          "type": "string"
+        },
+        "num": {
+          "description": "数量，默认：1",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "market"
+      ]
+    }
+  },
+  {
+    "name": "globalStockMajorEvents",
+    "description": "全市场公司重大事项 上市公司重大事项查询工具：需输入市场代码（0=沪深/1=港股/2=美股）、股票代码、返回数量（正整数，必填），获取诉讼仲裁、资产重组等重大事件列表（含事件类型、日期、核心内容），适配投资决策、风险预警、企业尽调场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "description": "市场：0-沪深；1-港股；2-美股",
+          "type": "string"
+        },
+        "pageSize": {
+          "description": "返回数量",
+          "type": "string"
+        },
+        "symbols": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "market",
+        "symbols",
+        "pageSize"
+      ]
+    }
+  },
+  {
+    "name": "globalStockQuoteRealtime",
+    "description": "股票行情 汇聚沪深京、港股、美股的实时行情数据，包含股票当前价格、涨跌幅、涨跌额、成交量、开盘价、收盘价、最高价、最低价等多维度数据，覆盖核心市场指标，助力大模型构建实时、全面的市场洞察与智能分析能力。\n",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "description": "市场代码：cn-沪深；hk-港股；us-美股；gi-全球指数",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "market"
+      ]
+    }
+  },
+  {
+    "name": "globalStockSearchSymbols",
+    "description": "全市场股票代码搜索接口 多市场股票搜索工具：需输入市场类型（11=A股/12=B股/31=港股股票等，多市场用逗号分隔）、搜索关键词（key），且format固定为text、num固定为4（必填），返回股票代码、名称、状态等相关信息，适配A股/B股/港股等多市场股票搜索场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "description": "固定为text",
+          "type": "string"
+        },
+        "key": {
+          "description": "用户搜索内容",
+          "type": "string"
+        },
+        "num": {
+          "description": "返回数量：固定位4",
+          "type": "string"
+        },
+        "type": {
+          "description": "搜索的市场，多个市场用英文逗号分割，支持的市场有：11 A股，包括沪深指数；12 B股，股票；31 港股，仅股票；32 港股窝轮；33 港股指数；34 港股衍生品 - 期货；41 美股；71 外汇；73 新三板；85 内盘期货；86 外盘期货；88 内盘股指期货；102 全部板块指数(概念gn、地域dy、行业hy)；103 英股；107 msci；108 期权 - 股票期权；109 期权 - 商品期权；113 期货 - 现货；118 中证指数；120 仅包含逆回购债券；203 场内非货基金(ETF、LOF等)；204 场内货币基金；211 美债；212 环球指数；214 环球国债利率",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "num",
+        "type",
+        "format"
+      ]
+    }
+  },
+  {
+    "name": "hkFinanceReportsByIndex",
+    "description": "港股财务指标 公司财务报表工具整合了上市公司财务数据的全面查询能力，包括财务数据、业绩预告、业绩快报、现金流量、资产负债、利润表及会计科目等核心财务指标。适用于投资分析、财务研究、业绩评估等场景，为投资者和分析师提供权威、准确的财务数据支持，助力投资决策和公司研究。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "currencyType": {
+          "description": "默认为2。1-原始货币；2-港币；3-人民币；4-美元",
+          "type": "string"
+        },
+        "field": {
+          "description": "lrb-利润表；fzb-负债表；llb-流量表；gjzb-关键指标表；；yh-专项指标。该字段需要参考港股最新一季财报的重要指标中的关联item_field",
+          "type": "string"
+        },
+        "num": {
+          "description": "",
+          "type": "string"
+        },
+        "source": {
+          "description": "lrb-利润表；fzb-负债表；llb-流量表；gjzb-关键指标表；；yh-专项指标。该字段需要参考港股财报指标中的关联item_source ",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "港股股票代码",
+          "type": "string"
+        },
+        "type": {
+          "description": "默认0-全部；1-一季报；2-半年报；3-三季报；4-年报",
+          "type": "string"
+        }
+      },
+      "required": [
+        "num",
+        "type",
+        "field",
+        "source",
+        "symbol",
+        "currencyType"
+      ]
+    }
+  },
+  {
+    "name": "hkSectorLeadingStocks",
+    "description": "领涨板块的个股列表 可获取某以个港股领涨板块的成分股信息，板块涨跌幅、板块涨跌平分布、包含的成分股列表。助力投资者结合港股与 A 股、美股的联动性及自身 “低估值、高股息” 特性，把握板块轮动机会、规避非主线标的风险，尤其适合关注中资概念股、高股息蓝筹的投资者。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "0递增 1递减",
+          "type": "string"
+        },
+        "node": {
+          "description": "板块代码",
+          "type": "string"
+        },
+        "pageIndex": {
+          "description": "页码",
+          "type": "string"
+        },
+        "pageSize": {
+          "description": "每页内容数量",
+          "type": "string"
+        },
+        "show": {
+          "description": "<=0 不展示个股列表 >0 展示个股列表",
+          "type": "string"
+        },
+        "sort": {
+          "description": "排序字段",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "show",
+        "sort"
+      ]
+    }
+  },
+  {
+    "name": "hkSectorQuotesList",
+    "description": "港股板块行情列表 可获取港股板块的列表的行情信息，包含板块的涨跌幅、领涨股、等关键指标信息。以及不同类型板块的最具代表性个股数据。\n如领跌板块的跌幅最大的股票信息，领涨板块的涨幅最大的股票数据，AHG参数会返回按照AH溢价率排序的ah股列表，\nggt参数会返回港股通涉及港股涨幅倒序行情列表，ggt_sz会返回深股通涉及港股涨幅倒序行情列表，\nrmbk参数会返回热门板块行情列表，按照涨幅倒序排列，同时会包含该板块下涨幅最高股票数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "每页内容数",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "type": {
+          "description": "hk_plate_drop:领跌板块  hk_plate_rise:领涨板块 ahg:ah股 ggt:港股通 ggt_sz:深股通 rmbk:热门板块",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  },
+  {
+    "name": "hkStockHotBoard",
+    "description": "港股热度榜 香港市场股票热度榜查询工具：获取香港市场股票热度榜数据，含股票代码、名称、价格、涨跌幅、成交量、热度值等信息，适配港股市场热度跟踪场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pageIndex": {
+          "description": "页码",
+          "type": "string"
+        },
+        "pageSize": {
+          "description": "每页数量",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "hkStockSpecialRanking",
+    "description": "港股特色榜单 汇聚港股蓝筹股、红筹股、国企股列表，包含涨跌幅、涨跌额、振幅、交易量、交易额、市盈率、换手率等关键指标。助于投资者快速把握市场热点和资金流向，识别具有高关注度和交易活跃度的股票，为投资决策提供参考。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "1增序 0减序",
+          "type": "string"
+        },
+        "node": {
+          "description": "gqg_hk国企股 lcg_hk蓝筹股 hcg_hk红筹股",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页内容数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码",
+          "type": "string"
+        },
+        "sort": {
+          "description": "排序字段：price现价 changepercent涨跌幅 pricechange涨跌额 volume成交量 currentvolume成交额 hsl换手率 sz市值 pettm市盈率 lb量比 ",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sort",
+        "asc",
+        "num",
+        "node",
+        "page"
+      ]
+    }
+  },
+  {
+    "name": "hkTradingMainFundsHistory",
+    "description": "港股主力资金历史 通过股票代码查询指定股票的主力资金流向数据，包括每日资金净流入指标，支持查看近3日、近5日、近10日、近20日的累计净流入数据，便于分析资金动向和市场情绪。\n\n",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "description": "近多少天，默认60",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "港股股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "days",
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "hk_finance_all",
+    "description": "港股某一指标全部财报 获取港股某一指标的全部财报数据，涉及港股市场，数据类型为财报相关信息",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "currencyType": {
+          "description": "3人民币  2港币  1美元",
+          "type": "string"
+        },
+        "frType": {
+          "description": "指标类型： lrb-利润表；fzb-负债表；llb-流量表；gjzb-关键指标表；；yh-专项指标",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "港股代码",
+          "type": "string"
+        },
+        "yearNum": {
+          "description": "多少年",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frType",
+        "symbol",
+        "yearNum",
+        "currencyType"
+      ]
+    }
+  },
+  {
+    "name": "newsArticleDetail",
+    "description": "单篇资讯详情 资讯单篇详情查询工具：需输入文档ID（docid），获取对应资讯的标题、创建时间、正文内容等详细信息，适配单篇资讯深度查阅场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "docid": {
+          "description": "文档ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "docid"
+      ]
+    }
+  },
+  {
+    "name": "newsArticleList",
+    "description": "栏目资讯列表 资讯栏目列表查询工具：获取指定栏目下的资讯列表，含资讯标题、文档ID、创建时间等信息，适配栏目资讯批量查阅场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "description": "每页条数，缺省为10",
+          "type": "string"
+        },
+        "page": {
+          "description": "分页页码，缺省为1",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "newsFlashDetail",
+    "description": "快讯详情 获取快讯详情，涉及快讯市场，返回快讯的相关数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "docid": {
+          "description": "文档ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "docid"
+      ]
+    }
+  },
+  {
+    "name": "newsFlashList",
+    "description": "快讯列表 财经资讯快讯列表查询工具：获取财经类快讯列表，含快讯文档ID、内容、创建时间等信息，支持按直播内容ID筛选（大于/小于指定ID），适配财经快讯批量查阅场景。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "直播内容id，对应接口返回的docid",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页条数，缺省为10",
+          "type": "string"
+        },
+        "page": {
+          "description": "分页页码，缺省为1",
+          "type": "string"
+        },
+        "type": {
+          "description": "当id字段存在时，type=0取大于id的直播流，type=1取小于id的直播流，默认为0",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "newsSearch",
+    "description": "新闻搜索 该接口用于搜索新闻，可根据关键字进行搜索，并支持分页展示新闻列表。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "keyword": {
+          "description": "搜索关键字，多个用英文逗号分隔，最多10个，每个最长15字符",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页数量，默认10，最大20",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，默认1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  {
+    "name": "qNewsSearch",
+    "description": "快讯搜索 该接口用于搜索快讯信息，支持输入关键字进行搜索，可指定页码和每页数量。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "keyword": {
+          "description": "搜索关键字，多个用英文逗号分隔，最多10个，每个最长15字符",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页数量，默认10，最大20",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，默认1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  {
+    "name": "stockNewsSearch",
+    "description": "个股新闻搜索 该接口用于搜索个股新闻，支持沪深、港股、美股等市场",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "market": {
+          "description": "市场代码：cn-沪深，hk-港股，us-美股等",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页数量，默认10，最大20",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，默认1，最大100",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票代码，沪深需带前缀(sh/sz)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "market"
+      ]
+    }
+  },
+  {
+    "name": "swSymbolList",
+    "description": "所属申万行业分类 该接口用于获取股票的申万行业分类信息，适用于中国市场的股票数据。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "usCompanyManagerInfo",
+    "description": "美国市场公司高管 通过股票代码查询指定公司的高管信息，包含在职高管的名称、职位和介绍。助力投资者通过公司高管的资金行为，验证对公司未来的信心、预判基本面趋势。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "usMarketStatisticsUpdown",
+    "description": "美股市场涨跌分布 聚合了美股市场整体实时涨跌分布情况，涵盖各涨跌幅区间的股票数量，帮助金融智能体即时洞察市场热度与情绪变化，适用于盘中监控与市场趋势分析等智能投研场景。",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "usSectorRanking",
+    "description": "美股板块列表 可获取美股板块的列表信息，包含板块的涨跌幅、领涨股、涨跌家数、成交量、成交额、总市值等关键指标信息。助力投资者为境内投资提供 “前瞻信号”。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asc": {
+          "description": "正序倒序    0倒序 1正序",
+          "type": "string"
+        },
+        "num": {
+          "description": "每页数量",
+          "type": "string"
+        },
+        "page": {
+          "description": "第几页",
+          "type": "string"
+        },
+        "sort": {
+          "description": "根据那个字段排序",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sort",
+        "asc",
+        "num",
+        "page"
+      ]
+    }
+  },
+  {
+    "name": "usStockIntraday",
+    "description": "美股分时 通过股票代码获取指定股票的分时数据，支持查看美股的分时数据，包括分时均价、分时点。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "usTradingFundFlow1Day",
+    "description": "美股股今日资金趋势 通过股票代码查询指定股票的今日不同类型资金（小单、中单、大单、特大单）的净流入、流入、流出情况以及对应的时间等关键指标。便于分析资金动向和市场情绪。\n",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "usTradingFundFlow5Days",
+    "description": "美股5日累计净流入 通过股票代码查询指定股票的5日累计净流入数据，包含特大单、大单、中单、小单的资金净流入数据，5日累计净流入能覆盖多个交易日的资金行为，更接近真实的资金流向趋势。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  },
+  {
+    "name": "usTradingFundFlow60Days",
+    "description": "美股股主力资金历史 通过股票代码查询指定股票的主力资金流向数据，包括每日资金净流入指标，支持查看近3日、近5日、近10日、近20日的累计净流入数据，便于分析资金动向和市场情绪。\n\n",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        " symbol": {
+          "description": "股票代码",
+          "type": "string"
+        },
+        "days": {
+          "description": "日期",
+          "type": "string"
+        }
+      },
+      "required": [
+        "days",
+        " symbol"
+      ]
+    }
+  },
+  {
+    "name": "us_min_all",
+    "description": " 美股所有分时 获取美股交易市场所有分时数据，涉及股票市场，数据类型为分时交易数据",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "description": "股票代码",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ]
+    }
+  }
+]

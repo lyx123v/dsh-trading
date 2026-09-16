@@ -1,0 +1,14 @@
+{
+  "request": {
+    "name": "cnMarketUpdownDistribution",
+    "arguments": {}
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 11,
+    "error": {
+      "code": -32603,
+      "message": "tool调用失败，原因：余额不足"
+    }
+  }
+}

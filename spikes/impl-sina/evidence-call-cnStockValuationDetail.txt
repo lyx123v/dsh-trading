@@ -1,0 +1,18 @@
+{
+  "request": {
+    "name": "cnStockValuationDetail",
+    "arguments": {
+      "symbol": "sh600519",
+      "type": "syl",
+      "rank": "y1"
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 13,
+    "error": {
+      "code": -32603,
+      "message": "tool调用失败，原因：余额不足"
+    }
+  }
+}
