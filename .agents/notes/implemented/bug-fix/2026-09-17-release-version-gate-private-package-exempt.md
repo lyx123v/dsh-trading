@@ -22,4 +22,9 @@ Status: implemented
 - 后续新增 private 包自动获得同等待遇，发布门禁不再被未发布包卡死。
 - 门禁输出继续列出被豁免的私有包及其当前版本，审计可见。
 - 三个版本口径（changesets ignore、preflight DRIFT_EXEMPT、release gate private-exempt）现在语义一致：private = 不参与发布版本一致性。
+- **同日晚更新**：私有插件接入桌面 vendor 闭包后并入 fixed 组版本流
+  （changesets ignore 移除，见
+  [desktop-update-payload-family-version-parity](2026-09-17-desktop-update-payload-family-version-parity.md)），
+  其版本恢复家族等值；本门禁的 private 豁免保留为「新 private 包尚未入族」
+  场景的通用兜底，pack-update-payload 对打包包保持零豁免硬校验。
 - npm 家族等值契约本身未放松：54 个可发布包仍必须与 tag 完全一致。

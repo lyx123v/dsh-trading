@@ -111,9 +111,9 @@ for (const profile of profiles) {
 
   // 检查 4：已安装 @dshtrading/* 拷贝版本必须全体一致（同族 fixed 版本）。
   // 递归但不下钻软链目录（指向宿主核心包的 symlink 会带出无关树）。
-  // 豁免：本地私有插件（private: true，永不发布、不进 fixed 族）版本独立演进，
-  // 不参与世代一致性判定——把它们算进来会让每次版本联动后本地刷新假阳性 FAIL。
-  const DRIFT_EXEMPT = new Set(["client-ui-special-indicators"]);
+  // 豁免：private 包不参与世代一致性判定——其版本自 2026-09-17 起由 changesets
+  // fixed 族统一维护（桌面 vendor 闭包/更新载荷要求家族等值），世代检查按
+  // manifest private 字段泛化跳过，不维护具名清单。
   const installed = new Map();
   const collectCopies = (dir, rel) => {
     let entries;
@@ -127,9 +127,10 @@ for (const profile of profiles) {
         try { pkgs = fs.readdirSync(abs, { withFileTypes: true }); } catch { continue; }
         for (const p of pkgs) {
           if (!p.isDirectory()) continue;
-          if (DRIFT_EXEMPT.has(p.name)) continue;
           try {
-            const version = JSON.parse(fs.readFileSync(path.join(abs, p.name, "package.json"), "utf8")).version;
+            const manifest = JSON.parse(fs.readFileSync(path.join(abs, p.name, "package.json"), "utf8"));
+            if (manifest.private === true) continue;
+            const version = manifest.version;
             if (!installed.has(version)) installed.set(version, []);
             installed.get(version).push(relPath + "/" + p.name);
           } catch {}

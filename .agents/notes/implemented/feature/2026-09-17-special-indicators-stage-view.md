@@ -91,7 +91,10 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
 - **preflight 世代检查豁免**：`profile-config-preflight.sh` 检查 4 要求
   node_modules/@dshtrading/* 全体同版本（fixed 族防局部刷新残留）；本包
   private 且版本独立演进，已加入具名豁免（DRIFT_EXEMPT）——否则每次
-  版本联动后本地刷新都会假阳性 FAIL。发布版本门禁（verify-release-version）
+  版本联动后本地刷新都会假阳性 FAIL。（**2026-09-17 晚取代**：插件接入桌面
+  vendor 闭包后并入 fixed 组版本流，ignore 移除、世代检查改按 private 字段
+  泛化跳过，见
+  [desktop-update-payload-family-version-parity](../bug-fix/2026-09-17-desktop-update-payload-family-version-parity.md)。）发布版本门禁（verify-release-version）
   对 private 包的同口径豁免见
   [release-version-gate-private-package-exempt](../bug-fix/2026-09-17-release-version-gate-private-package-exempt.md)。
 - 测试 34 例（jsdom 冒烟 10 例：二级页签切换/持久化/按需加载请求面/
