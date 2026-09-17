@@ -15,6 +15,7 @@ import {
   fetchBasisSnapshot,
   fetchHkShortChart,
   fetchHkShortSnapshot,
+  fetchSectorDetail,
   fetchSectorsRanking,
   fetchSectorsSnapshot,
   fetchSentimentHistory,
@@ -33,6 +34,7 @@ import {
   toChartSeries,
   type BasisHistory,
   type BasisSnapshot,
+  type SectorDetail,
   type HkShortChart,
   type HkShortSnapshot,
   type SectorRankingRow,
@@ -73,6 +75,8 @@ interface Dashboard {
 const SENTIMENT_DAYS = 250
 const BASIS_DAYS = 250
 const SECTOR_WINDOW = 20
+/** 单板块明细历史跨度（约 14 个月日频，对齐 finance 页面区间观感）。 */
+const SECTOR_DETAIL_DAYS = 300
 
 /** 二级页签（每个页签一组指标）；持久化与 MiddleStage 同款 localStorage 契约。 */
 const SUBTAB_IDS = ['sentiment', 'basis', 'hkshort', 'sectors'] as const
@@ -243,7 +247,7 @@ export function SpecialIndicatorsView({ t }: SpecialIndicatorsViewProps) {
 
 /* --------------------------------- 卡片骨架 --------------------------------- */
 
-function CardShell({ title, subtitle, date, stale, error, loading, children, t }: {
+function CardShell({ title, subtitle, date, stale, error, loading, children, t, wide }: {
   t: TFunc
   title: string
   subtitle: string
@@ -252,9 +256,11 @@ function CardShell({ title, subtitle, date, stale, error, loading, children, t }
   error?: string | undefined
   loading: boolean
   children?: React.ReactNode
+  /** 表格+图表双栏卡片（板块融资）占满面板宽度。 */
+  wide?: boolean | undefined
 }) {
   return (
-    <section className={cx('card')}>
+    <section className={wide === true ? cx('card') + ' ' + cx('cardWide') : cx('card')}>
       <header className={cx('cardHeader')}>
         <div>
           <div className={cx('cardTitle')}>{title}</div>
@@ -470,6 +476,33 @@ function SectorsCard({ t, snap, ranking, loading }: {
 }) {
   const s = snap?.data
   const rows = ranking?.data
+  // 选中板块：缺省第一名（与 finance 页面同口径），点击行切换；
+  // 明细请求带序号闸，快速连点时丢弃过期响应（不睡不轮询）。
+  const [selected, setSelected] = useState<string | null>(null)
+  const [detail, setDetail] = useState<Panel<SectorDetail>>({})
+  const [detailLoading, setDetailLoading] = useState(false)
+  const requestRef = useRef(0)
+  const activeCode = selected ?? rows?.[0]?.code ?? null
+
+  useEffect(() => {
+    if (activeCode === null) return
+    const seq = ++requestRef.current
+    setDetailLoading(true)
+    fetchSectorDetail(activeCode, SECTOR_DETAIL_DAYS)
+      .then((data) => { if (requestRef.current === seq) setDetail({ data }) })
+      .catch((error: unknown) => { if (requestRef.current === seq) setDetail({ error: errMessage(error) }) })
+      .finally(() => { if (requestRef.current === seq) setDetailLoading(false) })
+  }, [activeCode])
+
+  const d = detail.data
+  const marginSeries = toChartSeries(d?.margin ?? [], (r) => (r.rzye === null ? null : r.rzye / 1e8))
+  const indexSeries = toChartSeries(d?.index ?? [], (r) => r.close)
+  const series: LineChartSeries[] = [
+    { id: 'margin', points: marginSeries, color: '#5b8def', area: true, title: t('si.sectors.marginLine') },
+    { id: 'index', points: indexSeries, color: '#d4a017', scale: 'left', title: t('si.sectors.indexLine') },
+  ]
+  const lastDate = d?.margin[d.margin.length - 1]?.date
+
   return (
     <CardShell
       t={t}
@@ -478,6 +511,7 @@ function SectorsCard({ t, snap, ranking, loading }: {
       date={s?.data_date}
       error={snap?.error ?? ranking?.error}
       loading={loading}
+      wide
     >
       {s === undefined || rows === undefined
         ? <div className={cx('loadingLine')}>{t('si.loading')}</div>
@@ -491,31 +525,54 @@ function SectorsCard({ t, snap, ranking, loading }: {
                 </span>
               )}
             </div>
-            <div className={cx('tableScroll')}>
-              <table className={cx('table')}>
-                <thead>
-                  <tr>
-                    <th>{t('si.sectors.col.name')}</th>
-                    <th className={cx('numCell')}>{t('si.sectors.col.chgPct')}</th>
-                    <th className={cx('numCell')}>{t('si.sectors.col.margin')}</th>
-                    <th className={cx('numCell')}>{t('si.sectors.col.daily')}</th>
-                    <th className={cx('numCell')}>{t('si.sectors.col.flow5d')}</th>
-                    <th className={cx('numCell')}>{t('si.sectors.col.index5d')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.code}>
-                      <td>{row.name}</td>
-                      <td className={cx('numCell') + ' ' + trendClass(row.chg_pct)}>{formatSigned(row.chg_pct, 2, '%')}</td>
-                      <td className={cx('numCell')}>{formatNum(row.latest_margin, 1)}</td>
-                      <td className={cx('numCell') + ' ' + trendClass(row.daily_change)}>{formatSigned(row.daily_change, 2)}</td>
-                      <td className={cx('numCell') + ' ' + trendClass(row.total_5d_flow)}>{formatSigned(row.total_5d_flow, 2)}</td>
-                      <td className={cx('numCell') + ' ' + trendClass(row.index_5d_pct)}>{formatSigned(row.index_5d_pct, 2, '%')}</td>
+            <div className={cx('sectorLayout')}>
+              <div className={cx('sectorTable') + ' ' + cx('tableScroll')}>
+                <table className={cx('table')}>
+                  <thead>
+                    <tr>
+                      <th>{t('si.sectors.col.name')}</th>
+                      <th className={cx('numCell')}>{t('si.sectors.col.chgPct')}</th>
+                      <th className={cx('numCell')}>{t('si.sectors.col.margin')}</th>
+                      <th className={cx('numCell')}>{t('si.sectors.col.daily')}</th>
+                      <th className={cx('numCell')}>{t('si.sectors.col.flow5d')}</th>
+                      <th className={cx('numCell')}>{t('si.sectors.col.index5d')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={row.code}
+                        className={row.code === activeCode ? cx('rowClickable') + ' ' + cx('rowSelected') : cx('rowClickable')}
+                        aria-selected={row.code === activeCode}
+                        onClick={() => setSelected(row.code)}
+                      >
+                        <td>{row.name}</td>
+                        <td className={cx('numCell') + ' ' + trendClass(row.chg_pct)}>{formatSigned(row.chg_pct, 2, '%')}</td>
+                        <td className={cx('numCell')}>{formatNum(row.latest_margin, 1)}</td>
+                        <td className={cx('numCell') + ' ' + trendClass(row.daily_change)}>{formatSigned(row.daily_change, 2)}</td>
+                        <td className={cx('numCell') + ' ' + trendClass(row.total_5d_flow)}>{formatSigned(row.total_5d_flow, 2)}</td>
+                        <td className={cx('numCell') + ' ' + trendClass(row.index_5d_pct)}>{formatSigned(row.index_5d_pct, 2, '%')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className={cx('sectorChart')}>
+                {detail.error !== undefined && <div className={cx('errorLine')}>{detail.error}</div>}
+                {detail.error === undefined && (
+                  <>
+                    <div className={cx('sectorChartHead')}>
+                      <span className={cx('sectorChartName')}>{d?.name ?? rows.find((r) => r.code === activeCode)?.name ?? ''}</span>
+                      <span className={cx('cardDate')}>
+                        {d?.stale === true && <span className={cx('badgeStale')}>{t('si.stale')}</span>}
+                        {' ' + t('si.sectors.asOf', { date: lastDate ?? '—' })}
+                      </span>
+                    </div>
+                    {detailLoading && d === undefined && <div className={cx('loadingLine')}>{t('si.loading')}</div>}
+                    {series.some((x) => x.points.length > 0) && <LineChart series={series} height={280} />}
+                  </>
+                )}
+              </div>
             </div>
           </>
         )}

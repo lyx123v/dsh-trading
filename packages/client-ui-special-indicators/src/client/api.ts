@@ -9,6 +9,7 @@ import type {
   BasisSnapshot,
   HkShortChart,
   HkShortSnapshot,
+  SectorDetail,
   SectorRankingRow,
   SectorsSnapshot,
   SentimentHistory,
@@ -78,4 +79,8 @@ export function fetchSectorsSnapshot(): Promise<SectorsSnapshot> {
 
 export function fetchSectorsRanking(window = 20): Promise<SectorRankingRow[]> {
   return bridgeJson<SectorRankingRow[]>('/sectors/ranking?window=' + window)
+}
+
+export function fetchSectorDetail(code: string, days = 300): Promise<SectorDetail> {
+  return bridgeJson<SectorDetail>('/sectors/detail?code=' + encodeURIComponent(code) + '&days=' + days)
 }

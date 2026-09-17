@@ -153,6 +153,16 @@ export interface SectorRankingRow {
   index_5d_pct?: number | null
 }
 
+/** 单板块明细（/sectors/detail → /api/v2/sectors/{code}）：指数收盘 + 融资余额（元）日频序列。 */
+export interface SectorDetail {
+  code: string
+  name: string
+  type: string
+  index: Array<{ date: string; close: number | null }>
+  margin: Array<{ date: string; rzye: number | null }>
+  stale: boolean
+}
+
 /* -------------------------------- 派生纯函数 -------------------------------- */
 
 /** lightweight-charts 业务日期点。 */

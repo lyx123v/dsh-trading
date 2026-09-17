@@ -70,7 +70,18 @@ function fixtureFor(url: string): { status?: number; body: unknown } {
     }
   }
   if (url.includes('/sectors/ranking')) {
-    return { body: [{ code: '801951', name: '煤炭', type: 'sw', chg_pct: 5.48, latest_margin: 103.16, daily_change: -0.23, avg_5d_change: -0.09, total_5d_flow: -0.43, index_5d_pct: -3.87 }] }
+    return {
+      body: [
+        { code: '801951', name: '煤炭', type: 'sw', chg_pct: 5.48, latest_margin: 103.16, daily_change: -0.23, avg_5d_change: -0.09, total_5d_flow: -0.43, index_5d_pct: -3.87 },
+        { code: '801955', name: '电池', type: 'sw', chg_pct: 1.14, latest_margin: 844.0, daily_change: 9.6, avg_5d_change: -0.04, total_5d_flow: -0.21, index_5d_pct: -4.59 },
+      ],
+    }
+  }
+  if (url.includes('/sectors/detail')) {
+    // 序列留空 → LineChart 不实例化（jsdom 无 canvas）；图例/表头照常渲染
+    const code = new URL(url, 'http://test.local').searchParams.get('code') ?? '801951'
+    const name = code === '801955' ? '电池' : '煤炭'
+    return { body: { code, name, type: 'sw', index: [], margin: [], stale: false } }
   }
   return { status: 404, body: { error: 'unknown' } }
 }
@@ -202,6 +213,27 @@ describe('特殊指标视图故障面', () => {
     expect(await screen.findByText(/加载失败/)).toBeTruthy()
   })
 
+  it('用户点击板块行时加载该板块明细并默认选中排行第一', async () => {
+    // Given: 桥全量可用，渲染后切到板块融资页签
+    const fake = installFakeFetch()
+    restoreFetch = fake.restore
+    const { container } = render(<SpecialIndicatorsView t={t} view="special-indicators" />)
+    fireEvent.click(await screen.findByRole('tab', { name: '板块融资余额' }))
+    // When: 表格落地后未点击（缺省第一名煤炭），随后用户点击「电池」行
+    // （明细图例与表格单元格同名，class 子串谓词锁定图例节点——vitest 下
+    // CSS Modules 类名为哈希串，不能按原始类名匹配）
+    await screen.findAllByText('煤炭')
+    const legendOf = (name: string) => (_: string, el: Element | null) =>
+      el !== null && typeof el.className === 'string' && el.className.includes('sectorChartName') && el.textContent === name
+    await screen.findByText(legendOf('煤炭'))
+    // Then: 缺省明细请求落在第一名；点击后发起该行板块的明细请求且图例换名
+    expect(fake.calls.some((u) => u.includes('/sectors/detail?code=801951'))).toBe(true)
+    fireEvent.click(screen.getByText('电池'))
+    await screen.findByText(legendOf('电池'))
+    expect(fake.calls.some((u) => u.includes('/sectors/detail?code=801955'))).toBe(true)
+    expect(container.querySelectorAll('[aria-selected="true"]').length).toBeGreaterThan(0)
+  })
+
   it('用户单面板数据失败时其余面板照常渲染（allSettled 面板隔离）', async () => {
     // Given: 仅恐慌指数快照失败，其余正常
     const fake = installFakeFetch({ '/sentiment/snapshot': 'reject' })
@@ -210,7 +242,7 @@ describe('特殊指标视图故障面', () => {
     // When: 用户切到板块融资页签
     fireEvent.click(await screen.findByRole('tab', { name: '板块融资余额' }))
     // Then: 板块表格照常渲染；恐慌页签内容区显示该面板自身错误
-    expect(await screen.findByText('煤炭')).toBeTruthy()
+    expect((await screen.findAllByText('煤炭')).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('tab', { name: 'A 股恐慌指数' }))
     expect(await screen.findAllByText(/bridge down/)).not.toHaveLength(0)
   })

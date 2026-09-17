@@ -54,6 +54,9 @@ export const zh = {
   'si.sectors.col.daily': '日变化(亿)',
   'si.sectors.col.flow5d': '5 日流(亿)',
   'si.sectors.col.index5d': '指数 5 日',
+  'si.sectors.asOf': '截至 {date}',
+  'si.sectors.marginLine': '融资余额(亿元)',
+  'si.sectors.indexLine': '板块指数',
 } as const
 
 export const en = {
@@ -106,4 +109,7 @@ export const en = {
   'si.sectors.col.daily': 'Daily (100M)',
   'si.sectors.col.flow5d': '5d flow (100M)',
   'si.sectors.col.index5d': 'Index 5d',
+  'si.sectors.asOf': 'As of {date}',
+  'si.sectors.marginLine': 'Margin balance (100M CNY)',
+  'si.sectors.indexLine': 'Sector index',
 } as const

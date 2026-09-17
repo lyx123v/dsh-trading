@@ -37,11 +37,15 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
   一组指标**（用户 2026-09-17 评审意见：一屏通览改逐组展示）——恐慌指数
   （大分数 + 五档色签 + 7 分项条形 + 与中证全指双轴叠加的 250 日面积图）、
   基差（IF/IM 双统计块 + 基差率双线图）、恒科卖空（聚合占比 + 双轴历史 +
-  成分股表）、板块融资（20 日变化率排行表 + 全板块 5 日净变化）。页签选择
-  持久化 localStorage（`dshtrading.special-indicators.tab.v1`，与
+  成分股表）、板块融资（20 日变化率排行表 + **选中板块双轴历史图**）。
+  页签选择持久化 localStorage（`dshtrading.special-indicators.tab.v1`，与
   MiddleStage 同款契约；jsdom 无 Storage 面时 try/catch 静默降级）。
   数据一次全量加载（allSettled 面板隔离），页签切换零网络。上游
   null/滞后如实呈现不补零（docs/api.md「错误处理」纪律）。
+  - **板块明细图**（2026-09-17 追加，对齐 finance 页面布局）：左排行表、
+    右侧选中板块的融资余额面积（亿元，rzye/1e8）+ 板块指数双轴折线
+    （/sectors/detail → /api/v2/sectors/{code}，days=300）；缺省选中排行
+    第一名，点击行切换；明细请求带序号闸丢弃过期响应，快速连点不串图。
 - **shell 改动面 insert-only**：client-ui-trading 词典加 `stage.special`
   （zh 特殊指标 / en Special）一键——中栏 tab 条文案由 shell 的 t 渲染，
   第三方视图包的 titleKey 必须落在 shell 词典（tradingStageViews 契约）。
