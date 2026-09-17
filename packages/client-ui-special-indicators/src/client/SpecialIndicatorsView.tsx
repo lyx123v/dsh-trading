@@ -1,0 +1,524 @@
+/**
+ * 特殊指标主视图：自有 finance 服务（docs/api.md）四组指标，二级页签各展一组——
+ *   1. A 股恐慌指数（score + 7 分项 + 与中证全指叠加的 250 日历史）
+ *   2. IF / IM 期现基差（日内统计 + 250 日基差率历史）
+ *   3. 恒科权重股卖空（聚合占比 + 指数叠加历史 + 成分股表）
+ *   4. 板块融资余额（20 日变化率排行表 + 全板块 5 日净变化）
+ *
+ * 数据面：node 半 /dshtrading/api/special-indicators 桥（同源 fetch）；
+ * 每张卡片独立 Promise.allSettled 落地——单面板失败不拖垮整屏；
+ * 手动刷新 + 更新时钟。滞后/未就绪按上游字段如实标记，不补零不修饰。
+ */
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  fetchBasisHistory,
+  fetchBasisSnapshot,
+  fetchHkShortChart,
+  fetchHkShortSnapshot,
+  fetchSectorsRanking,
+  fetchSectorsSnapshot,
+  fetchSentimentHistory,
+  fetchSentimentSnapshot,
+  fetchStatus,
+  type BridgeStatus,
+} from './api.ts'
+import { LineChart, type LineChartSeries } from './LineChart.tsx'
+import type { SpecialIndicatorsLocaleKey } from './contract.ts'
+import {
+  formatClock,
+  formatNum,
+  formatPct,
+  formatSigned,
+  sentimentZone,
+  toChartSeries,
+  type BasisHistory,
+  type BasisSnapshot,
+  type HkShortChart,
+  type HkShortSnapshot,
+  type SectorRankingRow,
+  type SectorsSnapshot,
+  type SentimentHistory,
+  type SentimentSnapshot,
+} from './wire.ts'
+import css from './SpecialIndicatorsView.module.css'
+
+/** CSS Modules 类表在 noUncheckedIndexedAccess 下索引为 string|undefined；
+ *  运行期类名恒存在（构建期类表契约），此处把类型面收敛为 string。 */
+const cx = (name: string): string => css[name] ?? name
+
+type TFunc = (key: SpecialIndicatorsLocaleKey, params?: Record<string, unknown>) => string
+
+export interface SpecialIndicatorsViewProps {
+  t: TFunc
+  /** 中栏当前视图 id（本视图无跨视图状态，仅保持签名一致）。 */
+  view: string
+}
+
+interface Panel<T> {
+  data?: T
+  error?: string
+}
+
+interface Dashboard {
+  basisSnap?: Panel<BasisSnapshot>
+  basisHist?: Panel<BasisHistory>
+  sentimentSnap?: Panel<SentimentSnapshot>
+  sentimentHist?: Panel<SentimentHistory>
+  hkSnap?: Panel<HkShortSnapshot>
+  hkChart?: Panel<HkShortChart>
+  sectorsSnap?: Panel<SectorsSnapshot>
+  sectorsRanking?: Panel<SectorRankingRow[]>
+}
+
+const SENTIMENT_DAYS = 250
+const BASIS_DAYS = 250
+const SECTOR_WINDOW = 20
+
+/** 二级页签（每个页签一组指标）；持久化与 MiddleStage 同款 localStorage 契约。 */
+const SUBTAB_IDS = ['sentiment', 'basis', 'hkshort', 'sectors'] as const
+type SubTabId = (typeof SUBTAB_IDS)[number]
+const SUBTAB_KEY = 'dshtrading.special-indicators.tab.v1'
+
+function readSubTab(): SubTabId {
+  try {
+    const raw = window.localStorage.getItem(SUBTAB_KEY)
+    const value = raw === null ? null : (JSON.parse(raw) as unknown)
+    return (SUBTAB_IDS as readonly string[]).includes(value as string) ? (value as SubTabId) : 'sentiment'
+  } catch {
+    return 'sentiment'
+  }
+}
+
+function writeSubTab(id: SubTabId): void {
+  try {
+    window.localStorage.setItem(SUBTAB_KEY, JSON.stringify(id))
+  } catch {
+    // 隐私模式等写失败：页签仍可用，仅不持久化。
+  }
+}
+
+const ZONE_BADGE: Record<string, string> = {
+  extreme_fear: cx('badgeFear'),
+  fear: cx('badgeFear'),
+  neutral: cx('badgeNeutral'),
+  greed: cx('badgeGreed'),
+  extreme_greed: cx('badgeGreed'),
+}
+
+/** 涨跌着色（本仓 CN 口径：红涨绿跌，与 StrategyView 一致）。 */
+function trendClass(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value) || value === 0) return cx('numFlat')
+  return value > 0 ? cx('numUp') : cx('numDown')
+}
+
+function errMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export function SpecialIndicatorsView({ t }: SpecialIndicatorsViewProps) {
+  const [tab, setTab] = useState<SubTabId>(readSubTab)
+  const [status, setStatus] = useState<Panel<BridgeStatus>>({})
+  const [dash, setDash] = useState<Dashboard>({})
+  const [loading, setLoading] = useState(true)
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  // 刷新并发闸：重复点击复用同一次落地（注入式状态机，不睡不轮询）。
+  const inflightRef = useRef<Promise<void> | null>(null)
+
+  const load = useCallback(async (): Promise<void> => {
+    if (inflightRef.current !== null) return inflightRef.current
+    const run = (async () => {
+      setLoading(true)
+      try {
+        const st = await fetchStatus()
+        setStatus({ data: st })
+        if (!st.configured) return
+        const settled = await Promise.allSettled([
+          fetchBasisSnapshot(),
+          fetchBasisHistory(BASIS_DAYS),
+          fetchSentimentSnapshot(),
+          fetchSentimentHistory(SENTIMENT_DAYS),
+          fetchHkShortSnapshot(),
+          fetchHkShortChart(),
+          fetchSectorsSnapshot(),
+          fetchSectorsRanking(SECTOR_WINDOW),
+        ])
+        const panel = <T,>(r: PromiseSettledResult<T>): Panel<T> =>
+          r.status === 'fulfilled' ? { data: r.value } : { error: errMessage(r.reason) }
+        setDash({
+          basisSnap: panel(settled[0]),
+          basisHist: panel(settled[1]),
+          sentimentSnap: panel(settled[2]),
+          sentimentHist: panel(settled[3]),
+          hkSnap: panel(settled[4]),
+          hkChart: panel(settled[5]),
+          sectorsSnap: panel(settled[6]),
+          sectorsRanking: panel(settled[7]),
+        })
+        setUpdatedAt(new Date())
+      } catch (error) {
+        setStatus({ error: errMessage(error) })
+      } finally {
+        setLoading(false)
+        inflightRef.current = null
+      }
+    })()
+    inflightRef.current = run
+    return run
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  /* --------------------------------- 工具栏 --------------------------------- */
+
+  const toolbar = (
+    <div className={cx('toolbar')}>
+      <span className={cx('toolbarSpacer')} />
+      {updatedAt !== null && <span className={cx('clock')}>{t('si.updatedAt', { time: formatClock(updatedAt) })}</span>}
+      <button type="button" className={cx('refreshBtn')} onClick={() => void load()} disabled={loading}>
+        {loading ? t('si.refreshing') : t('si.refresh')}
+      </button>
+    </div>
+  )
+
+  if (status.data !== undefined && !status.data.configured) {
+    return (
+      <div className={cx('root')}>
+        {toolbar}
+        <div className={cx('placeholder')}>
+          <div className={cx('placeholderTitle')}>{t('si.unconfigured.title')}</div>
+          <div className={cx('placeholderHint')}>{t('si.unconfigured.hint')}</div>
+        </div>
+      </div>
+    )
+  }
+  if (status.error !== undefined) {
+    return (
+      <div className={cx('root')}>
+        {toolbar}
+        <div className={cx('placeholder')}>
+          <div className={cx('placeholderTitle')}>{t('si.error.load', { message: status.error })}</div>
+        </div>
+      </div>
+    )
+  }
+
+  const SUBTAB_LABELS: Record<SubTabId, SpecialIndicatorsLocaleKey> = {
+    sentiment: 'si.sentiment.title',
+    basis: 'si.basis.title',
+    hkshort: 'si.hkshort.title',
+    sectors: 'si.sectors.title',
+  }
+  const switchTab = (id: SubTabId): void => {
+    setTab(id)
+    writeSubTab(id)
+  }
+  return (
+    <div className={cx('root')}>
+      {toolbar}
+      <div className={cx('subtabs')} role="tablist" aria-label="special-indicators">
+        {SUBTAB_IDS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={id === tab}
+            className={id === tab ? cx('subtabActive') : cx('subtab')}
+            onClick={() => switchTab(id)}
+          >
+            {t(SUBTAB_LABELS[id])}
+          </button>
+        ))}
+      </div>
+      <div className={cx('panel')}>
+        {tab === 'sentiment' && <SentimentCard t={t} snap={dash.sentimentSnap} hist={dash.sentimentHist} loading={loading} />}
+        {tab === 'basis' && <BasisCard t={t} snap={dash.basisSnap} hist={dash.basisHist} loading={loading} />}
+        {tab === 'hkshort' && <HkShortCard t={t} snap={dash.hkSnap} chart={dash.hkChart} loading={loading} />}
+        {tab === 'sectors' && <SectorsCard t={t} snap={dash.sectorsSnap} ranking={dash.sectorsRanking} loading={loading} />}
+      </div>
+    </div>
+  )
+}
+
+/* --------------------------------- 卡片骨架 --------------------------------- */
+
+function CardShell({ title, subtitle, date, stale, error, loading, children, t }: {
+  t: TFunc
+  title: string
+  subtitle: string
+  date?: string | undefined
+  stale?: boolean | undefined
+  error?: string | undefined
+  loading: boolean
+  children?: React.ReactNode
+}) {
+  return (
+    <section className={cx('card')}>
+      <header className={cx('cardHeader')}>
+        <div>
+          <div className={cx('cardTitle')}>{title}</div>
+          <div className={cx('cardSubtitle')}>{subtitle}</div>
+        </div>
+        <div className={cx('cardHeaderRight')}>
+          {stale === true && <span className={cx('badgeStale')}>{t('si.stale')}</span>}
+          {date !== undefined && date !== '' && <span className={cx('cardDate')}>{date}</span>}
+        </div>
+      </header>
+      {error !== undefined
+        ? <div className={cx('errorLine')}>{t('si.error.load', { message: error })}</div>
+        : children ?? (loading ? <div className={cx('loadingLine')}>{t('si.loading')}</div> : null)}
+    </section>
+  )
+}
+
+/* --------------------------------- 恐慌指数 --------------------------------- */
+
+function SentimentCard({ t, snap, hist, loading }: {
+  t: TFunc
+  snap?: Panel<SentimentSnapshot> | undefined
+  hist?: Panel<SentimentHistory> | undefined
+  loading: boolean
+}) {
+  const s = snap?.data
+  const zone = s !== undefined ? sentimentZone(s.score) : undefined
+  const zoneKey = ('si.sentiment.label.' + (s?.label ?? '')) as SpecialIndicatorsLocaleKey
+  const knownLabel = s !== undefined && ['extreme_fear', 'fear', 'neutral', 'greed', 'extreme_greed'].includes(s.label)
+  const series: LineChartSeries[] = []
+  if (hist?.data !== undefined) {
+    series.push({ id: 'score', points: toChartSeries(hist.data.series, (r) => r.score), color: '#5b8def', area: true })
+    series.push({ id: 'overlay', points: toChartSeries(hist.data.overlay, (r) => r.close), color: '#8e95a3', scale: 'left', title: t('si.sentiment.indexOverlay') })
+  }
+  return (
+    <CardShell
+      t={t}
+      title={t('si.sentiment.title')}
+      subtitle={t('si.sentiment.subtitle')}
+      date={s?.date}
+      stale={s?.stale}
+      error={snap?.error ?? hist?.error}
+      loading={loading}
+    >
+      {s === undefined
+        ? <div className={cx('loadingLine')}>{t('si.loading')}</div>
+        : (
+          <>
+            <div className={cx('statRow')}>
+              <span className={cx('bigNumber')}>{formatNum(s.score, 1)}</span>
+              <span className={(zone !== undefined ? ZONE_BADGE[zone] : undefined) ?? cx('badgeNeutral')}>{knownLabel ? t(zoneKey) : s.label_text}</span>
+              <span className={cx('statItem')}>{t('si.sentiment.avg5d')} {formatNum(s.average_5d, 1)}</span>
+              <span className={cx('statItem') + ' ' + trendClass(s.vs_5d)}>{t('si.sentiment.vs5d')} {formatSigned(s.vs_5d, 1)}</span>
+            </div>
+            <div className={cx('components')}>
+              <div className={cx('componentsTitle')}>
+                {t('si.sentiment.components', { valid: s.coverage.valid, total: s.coverage.total })}
+              </div>
+              {s.components.map((c) => (
+                <div key={c.key} className={cx('componentRow')}>
+                  <span className={cx('componentName')}>{c.name}</span>
+                  <span className={cx('componentBarTrack')}>
+                    <span
+                      className={cx('componentBarFill')}
+                      style={{ width: Math.max(0, Math.min(100, c.score ?? 0)) + '%' }}
+                    />
+                  </span>
+                  <span className={cx('componentScore')}>{formatNum(c.score, 0)}</span>
+                </div>
+              ))}
+            </div>
+            {series.some((x) => x.points.length > 0) && <LineChart series={series} height={240} />}
+          </>
+        )}
+    </CardShell>
+  )
+}
+
+/* ---------------------------------- 基差 ---------------------------------- */
+
+function BasisCard({ t, snap, hist, loading }: {
+  t: TFunc
+  snap?: Panel<BasisSnapshot> | undefined
+  hist?: Panel<BasisHistory> | undefined
+  loading: boolean
+}) {
+  const s = snap?.data
+  const series: LineChartSeries[] = []
+  if (hist?.data !== undefined) {
+    const ifPts = toChartSeries(hist.data.basis.IF ?? [], (r) => r.pct)
+    const imPts = toChartSeries(hist.data.basis.IM ?? [], (r) => r.pct)
+    series.push({ id: 'IF', points: ifPts, color: '#5b8def', title: 'IF' })
+    series.push({ id: 'IM', points: imPts, color: '#d4a017', title: 'IM' })
+  }
+  return (
+    <CardShell
+      t={t}
+      title={t('si.basis.title')}
+      subtitle={t('si.basis.subtitle')}
+      date={hist?.data?.data_date}
+      error={snap?.error ?? hist?.error}
+      loading={loading}
+    >
+      {s === undefined
+        ? <div className={cx('loadingLine')}>{t('si.loading')}</div>
+        : (
+          <>
+            <div className={cx('basisGrid')}>
+              {s.products.map((p) => {
+                const stat = s.stats[p.key]
+                return (
+                  <div key={p.key} className={cx('basisProduct')}>
+                    <div className={cx('basisProductName')}>{p.key} {p.name}</div>
+                    <div className={cx('statRow')}>
+                      <span className={cx('statItem')}>{t('si.basis.last')} <b>{formatNum(stat?.last, 1)}</b></span>
+                      <span className={cx('statItem')}>{t('si.basis.pct')} <b>{formatPct(stat?.pct)}</b></span>
+                    </div>
+                    <div className={cx('statRow')}>
+                      <span className={cx('statItem')}>{t('si.basis.mean')} {formatNum(stat?.mean, 1)}</span>
+                      <span className={cx('statItem')}>{t('si.basis.range')} {formatNum(stat?.min, 1)} ~ {formatNum(stat?.max, 1)}</span>
+                    </div>
+                    <div className={cx('statRow')}>
+                      <span className={cx('statItem')}>{t('si.basis.spot')} {formatNum(p.last_spot, 1)}</span>
+                      <span className={cx('statItem')}>{t('si.basis.fut')} {formatNum(p.last_fut, 1)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className={cx('chartCaption')}>{t('si.basis.historyPct', { days: BASIS_DAYS })}</div>
+            {series.some((x) => x.points.length > 0) && <LineChart series={series} height={240} />}
+          </>
+        )}
+    </CardShell>
+  )
+}
+
+/* --------------------------------- 恒科卖空 --------------------------------- */
+
+function HkShortCard({ t, snap, chart, loading }: {
+  t: TFunc
+  snap?: Panel<HkShortSnapshot> | undefined
+  chart?: Panel<HkShortChart> | undefined
+  loading: boolean
+}) {
+  const s = snap?.data
+  const c = chart?.data
+  const series: LineChartSeries[] = []
+  if (c !== undefined) {
+    series.push({ id: 'ratio', points: toChartSeries(c.short_ratio, (r) => r.pct_turnover), color: '#5b8def', area: true })
+    series.push({ id: 'index', points: toChartSeries(c.index, (r) => r.close), color: '#8e95a3', scale: 'left' })
+  }
+  return (
+    <CardShell
+      t={t}
+      title={t('si.hkshort.title')}
+      subtitle={t('si.hkshort.subtitle')}
+      date={s?.data_date}
+      stale={c?.stale}
+      error={snap?.error ?? chart?.error}
+      loading={loading}
+    >
+      {s === undefined
+        ? <div className={cx('loadingLine')}>{t('si.loading')}</div>
+        : (
+          <>
+            <div className={cx('statRow')}>
+              <span className={cx('bigNumber')}>{formatPct(s.five_day.current_pct)}</span>
+              <span className={cx('statItem')}>{t('si.hkshort.avg5d')} {formatPct(s.five_day.average_pct)}</span>
+              <span className={cx('statItem') + ' ' + trendClass(s.five_day.pct_difference)}>{t('si.hkshort.diff')} {formatSigned(s.five_day.pct_difference, 2)}</span>
+            </div>
+            <div className={cx('statRow')}>
+              <span className={cx('statItem') + ' ' + trendClass(s.five_day.value_difference)}>{t('si.hkshort.value5d')} {formatSigned(s.five_day.value_difference, 1)}</span>
+              <span className={cx('statItem') + ' ' + trendClass(s.five_day.index_5d_pct)}>{t('si.hkshort.index5d')} {formatSigned(s.five_day.index_5d_pct, 2, '%')}</span>
+            </div>
+            {series.some((x) => x.points.length > 0) && <LineChart series={series} height={240} />}
+            {c !== undefined && c.top10.length > 0 && (
+              <table className={cx('table')}>
+                <caption className={cx('tableCaption')}>{t('si.hkshort.top10', { count: c.top10.length })}</caption>
+                <thead>
+                  <tr>
+                    <th>{t('si.hkshort.col.name')}</th>
+                    <th className={cx('numCell')}>{t('si.hkshort.col.weight')}</th>
+                    <th className={cx('numCell')}>{t('si.hkshort.col.latestPct')}</th>
+                    <th className={cx('numCell')}>{t('si.hkshort.col.vs5d')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {c.top10.map((row) => (
+                    <tr key={row.code}>
+                      <td>{row.name}</td>
+                      <td className={cx('numCell')}>{formatNum(row.weight, 1)}</td>
+                      <td className={cx('numCell')}>{formatPct(row.latest_pct)}</td>
+                      <td className={cx('numCell') + ' ' + trendClass(row.vs_5d_pct)}>{formatSigned(row.vs_5d_pct, 2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        )}
+    </CardShell>
+  )
+}
+
+/* --------------------------------- 板块融资 --------------------------------- */
+
+function SectorsCard({ t, snap, ranking, loading }: {
+  t: TFunc
+  snap?: Panel<SectorsSnapshot> | undefined
+  ranking?: Panel<SectorRankingRow[]> | undefined
+  loading: boolean
+}) {
+  const s = snap?.data
+  const rows = ranking?.data
+  return (
+    <CardShell
+      t={t}
+      title={t('si.sectors.title')}
+      subtitle={t('si.sectors.subtitle', { window: SECTOR_WINDOW })}
+      date={s?.data_date}
+      error={snap?.error ?? ranking?.error}
+      loading={loading}
+    >
+      {s === undefined || rows === undefined
+        ? <div className={cx('loadingLine')}>{t('si.loading')}</div>
+        : (
+          <>
+            <div className={cx('statRow')}>
+              <span className={cx('statItem')}>{t('si.sectors.coverage', { ready: s.n_ready, total: s.n_total })}</span>
+              {s.five_day !== undefined && (
+                <span className={cx('statItem') + ' ' + trendClass(s.five_day.total_flow)}>
+                  {t('si.sectors.flow5d', { value: formatSigned(s.five_day.total_flow, 1) })}
+                </span>
+              )}
+            </div>
+            <div className={cx('tableScroll')}>
+              <table className={cx('table')}>
+                <thead>
+                  <tr>
+                    <th>{t('si.sectors.col.name')}</th>
+                    <th className={cx('numCell')}>{t('si.sectors.col.chgPct')}</th>
+                    <th className={cx('numCell')}>{t('si.sectors.col.margin')}</th>
+                    <th className={cx('numCell')}>{t('si.sectors.col.daily')}</th>
+                    <th className={cx('numCell')}>{t('si.sectors.col.flow5d')}</th>
+                    <th className={cx('numCell')}>{t('si.sectors.col.index5d')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.code}>
+                      <td>{row.name}</td>
+                      <td className={cx('numCell') + ' ' + trendClass(row.chg_pct)}>{formatSigned(row.chg_pct, 2, '%')}</td>
+                      <td className={cx('numCell')}>{formatNum(row.latest_margin, 1)}</td>
+                      <td className={cx('numCell') + ' ' + trendClass(row.daily_change)}>{formatSigned(row.daily_change, 2)}</td>
+                      <td className={cx('numCell') + ' ' + trendClass(row.total_5d_flow)}>{formatSigned(row.total_5d_flow, 2)}</td>
+                      <td className={cx('numCell') + ' ' + trendClass(row.index_5d_pct)}>{formatSigned(row.index_5d_pct, 2, '%')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+    </CardShell>
+  )
+}

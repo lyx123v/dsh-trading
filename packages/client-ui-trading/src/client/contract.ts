@@ -539,6 +539,7 @@ export type MarketLocaleKey =
   | 'stage.quote'
   | 'stage.strategy'
   | 'stage.knowledge'
+  | 'stage.special'
   | 'stage.flash'
   | 'stage.macro'
   | 'files.open'
