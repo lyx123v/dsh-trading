@@ -1,5 +1,11 @@
 # @dshtrading/client-ui-updater
 
+## 0.4.1
+
+### Patch Changes
+
+- @dshtrading/dsh-home@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

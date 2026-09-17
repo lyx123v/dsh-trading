@@ -1,5 +1,16 @@
 # @dshtrading/hk
 
+## 0.4.1
+
+### Patch Changes
+
+- @dshtrading/connector-eastmoney@0.4.1
+- @dshtrading/connector-futu@0.4.1
+- @dshtrading/connector-longbridge@0.4.1
+- @dshtrading/connector-tencent@0.4.1
+- @dshtrading/connector-tiger@0.4.1
+- @dshtrading/kit-hk@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

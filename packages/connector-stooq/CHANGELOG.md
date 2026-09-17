@@ -1,5 +1,11 @@
 # @dshtrading/connector-stooq
 
+## 0.4.1
+
+### Patch Changes
+
+- @dshtrading/api@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes
