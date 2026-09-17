@@ -1,3 +1,11 @@
 # User patch layer for the trading-web profile seeded by the desktop app.
 # Applied after every bundle layer; the app preserves this file on reseed.
-[]
+#
+# 特殊指标中栏视图（2026-09-17，本地私有插件 @dshtrading/client-ui-special-indicators，
+# 经 vendor tgz 随桌面载荷分发，不经 npm）：client 半注册中栏「特殊指标」tab；
+# node 半挂 /dshtrading/api/special-indicators 白名单代理桥。凭据走凭据链
+# （设置中心 credentials.finance → 环境变量 FINANCE_API_PASSWORD），本文件不落密码；
+# 未配置时 tab 显示设置引导占位。卸载 = 删本行。
+- insert:
+    - id: dsh-trading-client-ui-special-indicators
+      name: '@dshtrading/client-ui-special-indicators'

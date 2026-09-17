@@ -51,7 +51,17 @@ const DIRECT_TRADING_PACKAGES = [
   '@dshtrading/indicator-supertrend',
   '@dshtrading/dsh-i18n',
   '@dshtrading/client-ui-updater',
+  '@dshtrading/client-ui-special-indicators',
 ];
+/**
+ * Local-only private packages still carried in the desktop vendor closure:
+ * private: true guards npm publication, not installer distribution (2026-09-17
+ * special-indicators desktop wiring — the package ships as a packed tarball
+ * like every other workspace plugin, credentials stay out of the repo).
+ */
+const PRIVATE_VENDOR_PACKAGES = new Set([
+  '@dshtrading/client-ui-special-indicators',
+]);
 /** Registry package carried alongside the trading bundles. */
 const REGISTRY_DEPENDENCIES = {
   '@deepseek-ai/dsh-web-search-exa': '0.1.5-rc.1',
@@ -103,7 +113,8 @@ function packWorkspacePackages(vendorDir) {
     if (!entry.isDirectory()) continue;
     const dir = path.join(packagesDir, entry.name);
     const manifest = readPackageManifest(dir);
-    if (manifest.private === true || manifest.name === undefined) continue;
+    if (manifest.name === undefined) continue;
+    if (manifest.private === true && !PRIVATE_VENDOR_PACKAGES.has(manifest.name)) continue;
     console.log('[build-runtime] pnpm pack ' + manifest.name);
     const output = execFileSync('pnpm', ['pack', '--pack-destination', vendorDir], {
       cwd: dir,

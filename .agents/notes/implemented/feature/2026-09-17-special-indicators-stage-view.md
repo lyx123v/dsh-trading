@@ -103,5 +103,13 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
   settings 均带同款），包自身类型面零债。
 - 单测构成：finance-client 8 / route-handler 9 / wire 5 / locale-contract 2 /
   view.smoke 9 / lazy-entry.smoke 1，BDD 合规零新债。
-- 桌面壳（desktop profile-trading 的 vendor tgz 闭包）本次不接线——私有插件
-  若未来要进桌面版，须走 vendor tgz 而非 npm 发布，另案处理。
+- **桌面壳接线**（2026-09-17 同日补齐）：desktop/scripts/build-runtime.mjs
+  新增 PRIVATE_VENDOR_PACKAGES 白名单——private: true 挡的是 npm 发布，
+  不挡安装器分发，本包与其他工作区包同款 pnpm pack 进
+  runtime/profile-trading/vendor/ 并列入 DIRECT_TRADING_PACKAGES；
+  桌面种子 cordis.patch.yml 加 insert 行（**不落密码**，凭据走凭据链，
+  未配置显示引导占位）。已验证 desktop/tests 21 例与完整
+  build-runtime.mjs（pack → manifest → install → 暂存断言）。
+  本机桌面端与 CLI 共用 ~/.dsh-trading/profiles/trading-web（无
+  .dsh-desktop-seed.json 标记 = 用户管理，桌面永不 reseed 覆盖），
+  refresh 脚本刷新的包副本对桌面端即时生效，宿主重启即加载。
