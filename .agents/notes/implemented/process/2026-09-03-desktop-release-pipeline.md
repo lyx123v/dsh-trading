@@ -13,7 +13,9 @@ Status: implemented
 
 - 新增 `.github/workflows/desktop-release.yml`：推送 `v*` tag 触发，三 job——
   ① `check-version` 硬校验 @dsh-trading/* 全家族版本 = tag 版本（新增
-  `scripts/verify-release-version.mjs`）；② `build-desktop` 在 macos/windows
+  `scripts/verify-release-version.mjs`；private 包按 manifest `private: true`
+  豁免，2026-09-17 起，见
+  [release-version-gate-private-package-exempt](../bug-fix/2026-09-17-release-version-gate-private-package-exempt.md)）；② `build-desktop` 在 macos/windows
   runner 上执行与 ci.yml 同源的 build+test 门禁，随后 npm ci + prepare-runtime
   打 runtime payload，按 tag 重写 desktop 版本（新增
   `scripts/set-desktop-version.mjs`）后 electron-builder 打包（mac dmg+zip

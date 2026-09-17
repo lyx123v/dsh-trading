@@ -28,12 +28,20 @@ if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(expected)) {
 
 const mismatches = [];
 const checked = [];
+const skippedPrivate = [];
 for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
   if (!entry.isDirectory()) continue;
   const manifestPath = path.join(packagesDir, entry.name, 'package.json');
   if (!fs.existsSync(manifestPath)) continue;
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   if (typeof manifest.name !== 'string' || !manifest.name.startsWith('@dshtrading/')) continue;
+  if (manifest.private === true) {
+    // Private packages (e.g. local-only UI plugins) are changesets-ignored,
+    // never npm-published, and packed into the desktop vendor closure by name
+    // only — their version may drift from the release tag on purpose.
+    skippedPrivate.push(manifest.name + '@' + manifest.version);
+    continue;
+  }
   checked.push(manifest.name + '@' + manifest.version);
   if (manifest.version !== expected) mismatches.push(manifest.name + ' = ' + manifest.version);
 }
@@ -50,4 +58,5 @@ if (mismatches.length > 0) {
   process.exit(1);
 }
 
-console.log('verify-release-version: ' + checked.length + ' @dshtrading/* packages all at ' + expected);
+console.log('verify-release-version: ' + checked.length + ' @dshtrading/* packages all at ' + expected +
+  (skippedPrivate.length > 0 ? ' (private, tag-exempt: ' + skippedPrivate.join(', ') + ')' : ''));

@@ -91,7 +91,9 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
 - **preflight 世代检查豁免**：`profile-config-preflight.sh` 检查 4 要求
   node_modules/@dshtrading/* 全体同版本（fixed 族防局部刷新残留）；本包
   private 且版本独立演进，已加入具名豁免（DRIFT_EXEMPT）——否则每次
-  版本联动后本地刷新都会假阳性 FAIL。
+  版本联动后本地刷新都会假阳性 FAIL。发布版本门禁（verify-release-version）
+  对 private 包的同口径豁免见
+  [release-version-gate-private-package-exempt](../bug-fix/2026-09-17-release-version-gate-private-package-exempt.md)。
 - 测试 34 例（jsdom 冒烟 10 例：二级页签切换/持久化/按需加载请求面/
   回访零网络+刷新只重拉已加载页签/未配置引导/状态桥故障/面板隔离/
   懒加载入口接管），覆盖率棘轮因视图冒烟回到基线之上（纯 host 测试
