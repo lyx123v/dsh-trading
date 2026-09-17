@@ -8,8 +8,8 @@
  * （可选依赖语义）。
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ComponentType } from 'react'
-import { SpecialIndicatorsView } from './SpecialIndicatorsView.tsx'
+import { createElement, type ComponentType } from 'react'
+import { LazySpecialIndicatorsView } from './LazySpecialIndicatorsView.tsx'
 import './contract.ts'
 
 import { en, zh } from './locales.ts'
@@ -42,7 +42,10 @@ export function apply(ctx: ClientContext): void {
       id: 'special-indicators',
       titleKey: 'stage.special',
       order: 30,
-      render: (props) => SpecialIndicatorsView({
+      // 视图经 LazySpecialIndicatorsView 动态 import：tab 首访才执行视图 +
+      // lightweight-charts 模块体（激活期零图表成本）；createElement 让视图
+      // 挂在独立 fiber 上，不经 render 闭包直调。
+      render: (props) => createElement(LazySpecialIndicatorsView, {
         t: t as unknown as (key: string) => string,
         view: props.view,
       }),

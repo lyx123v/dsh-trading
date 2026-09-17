@@ -125,6 +125,10 @@ export default {
     banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(ID)}, factory: (require) => {`,
     footer: 'return module.exports; } });',
     intro: 'var module = { exports: {} }; var exports = module.exports;',
+    // 动态 import（LazySpecialIndicatorsView）折叠为 init_* 惰性函数留在单文件内：
+    // ModuleLoader 只认识单文件 client.js，分 chunk 的相对 require 在浏览器
+    // 装载器无法解析；inline 后 chunk 体推迟到首个 import() 调用才执行（懒执行）。
+    inlineDynamicImports: true,
   },
   plugins: [purityGate(), cssModulesInline(), cssGlobalInline()],
 }

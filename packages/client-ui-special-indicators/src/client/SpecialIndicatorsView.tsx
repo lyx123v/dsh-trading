@@ -6,10 +6,13 @@
  *   4. 板块融资余额（20 日变化率排行表 + 全板块 5 日净变化）
  *
  * 数据面：node 半 /dshtrading/api/special-indicators 桥（同源 fetch）；
+ * 页签按需加载——status 握手后只拉当前页签的两个端点（首屏 8→2 个数据
+ * 请求，冷缓存上游重算可达十几秒，finance-client 契约），页签首访拉取、
+ * 回访命中已加载集零网络；手动刷新重拉全部已加载页签。
  * 每张卡片独立 Promise.allSettled 落地——单面板失败不拖垮整屏；
- * 手动刷新 + 更新时钟。滞后/未就绪按上游字段如实标记，不补零不修饰。
+ * 更新时钟随每次落地走动。滞后/未就绪按上游字段如实标记，不补零不修饰。
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchBasisHistory,
   fetchBasisSnapshot,
@@ -119,60 +122,106 @@ function errMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+const panelOf = <T,>(r: PromiseSettledResult<T>): Panel<T> =>
+  r.status === 'fulfilled' ? { data: r.value } : { error: errMessage(r.reason) }
+
+/** 每页签两个端点，allSettled 面板隔离（单面板失败不拖垮同页签另一张卡）。 */
+const TAB_FETCHERS: Record<SubTabId, () => Promise<Partial<Dashboard>>> = {
+  sentiment: async () => {
+    const [snap, hist] = await Promise.allSettled([fetchSentimentSnapshot(), fetchSentimentHistory(SENTIMENT_DAYS)])
+    return { sentimentSnap: panelOf(snap), sentimentHist: panelOf(hist) }
+  },
+  basis: async () => {
+    const [snap, hist] = await Promise.allSettled([fetchBasisSnapshot(), fetchBasisHistory(BASIS_DAYS)])
+    return { basisSnap: panelOf(snap), basisHist: panelOf(hist) }
+  },
+  hkshort: async () => {
+    const [snap, chart] = await Promise.allSettled([fetchHkShortSnapshot(), fetchHkShortChart()])
+    return { hkSnap: panelOf(snap), hkChart: panelOf(chart) }
+  },
+  sectors: async () => {
+    const [snap, ranking] = await Promise.allSettled([fetchSectorsSnapshot(), fetchSectorsRanking(SECTOR_WINDOW)])
+    return { sectorsSnap: panelOf(snap), sectorsRanking: panelOf(ranking) }
+  },
+}
+
 export function SpecialIndicatorsView({ t }: SpecialIndicatorsViewProps) {
   const [tab, setTab] = useState<SubTabId>(readSubTab)
   const [status, setStatus] = useState<Panel<BridgeStatus>>({})
   const [dash, setDash] = useState<Dashboard>({})
-  const [loading, setLoading] = useState(true)
+  // 加载指示 = 在途页签请求计数（并发 ensureTab 下不错位）。
+  const [pending, setPending] = useState(0)
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
-  // 刷新并发闸：重复点击复用同一次落地（注入式状态机，不睡不轮询）。
-  const inflightRef = useRef<Promise<void> | null>(null)
+  // 已加载页签集（回访零网络）+ 每页签 in-flight 去重（快速切换/重复刷新
+  // 复用同一次落地；注入式状态机，不睡不轮询）。
+  const loadedRef = useRef<Set<SubTabId>>(new Set())
+  const inflightRef = useRef<Map<SubTabId, Promise<void>>>(new Map())
+  const statusInflightRef = useRef<Promise<Panel<BridgeStatus>> | null>(null)
 
-  const load = useCallback(async (): Promise<void> => {
-    if (inflightRef.current !== null) return inflightRef.current
-    const run = (async () => {
-      setLoading(true)
-      try {
-        const st = await fetchStatus()
-        setStatus({ data: st })
-        if (!st.configured) return
-        const settled = await Promise.allSettled([
-          fetchBasisSnapshot(),
-          fetchBasisHistory(BASIS_DAYS),
-          fetchSentimentSnapshot(),
-          fetchSentimentHistory(SENTIMENT_DAYS),
-          fetchHkShortSnapshot(),
-          fetchHkShortChart(),
-          fetchSectorsSnapshot(),
-          fetchSectorsRanking(SECTOR_WINDOW),
-        ])
-        const panel = <T,>(r: PromiseSettledResult<T>): Panel<T> =>
-          r.status === 'fulfilled' ? { data: r.value } : { error: errMessage(r.reason) }
-        setDash({
-          basisSnap: panel(settled[0]),
-          basisHist: panel(settled[1]),
-          sentimentSnap: panel(settled[2]),
-          sentimentHist: panel(settled[3]),
-          hkSnap: panel(settled[4]),
-          hkChart: panel(settled[5]),
-          sectorsSnap: panel(settled[6]),
-          sectorsRanking: panel(settled[7]),
-        })
-        setUpdatedAt(new Date())
-      } catch (error) {
-        setStatus({ error: errMessage(error) })
-      } finally {
-        setLoading(false)
-        inflightRef.current = null
-      }
-    })()
-    inflightRef.current = run
+  // status 握手：在途复用（刷新连点不翻倍），落定即放行下一次——
+  // 不缓存失败面板，刷新总能重新握手。
+  const loadStatus = useCallback((): Promise<Panel<BridgeStatus>> => {
+    const existing = statusInflightRef.current
+    if (existing !== null) return existing
+    const run = fetchStatus()
+      .then((st): Panel<BridgeStatus> => {
+        const p: Panel<BridgeStatus> = { data: st }
+        setStatus(p)
+        return p
+      })
+      .catch((error: unknown): Panel<BridgeStatus> => {
+        const p: Panel<BridgeStatus> = { error: errMessage(error) }
+        setStatus(p)
+        return p
+      })
+      .finally(() => {
+        statusInflightRef.current = null
+      })
+    statusInflightRef.current = run
     return run
   }, [])
 
+  const ensureTab = useCallback((id: SubTabId, force = false): Promise<void> => {
+    const existing = inflightRef.current.get(id)
+    if (existing !== undefined) return existing
+    if (!force && loadedRef.current.has(id)) return Promise.resolve()
+    loadedRef.current.add(id)
+    setPending((n) => n + 1)
+    const run = TAB_FETCHERS[id]()
+      .then((slice) => {
+        setDash((prev) => ({ ...prev, ...slice }))
+        setUpdatedAt(new Date())
+      })
+      .finally(() => {
+        inflightRef.current.delete(id)
+        setPending((n) => n - 1)
+      })
+    inflightRef.current.set(id, run)
+    return run
+  }, [])
+
+  // 首屏：status 桥握手——未配置/故障分支不发起任何数据子路由请求。
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadStatus()
+  }, [loadStatus])
+
+  // 页签按需加载：configured 后激活页签首访拉取自身端点；回访命中
+  // loadedRef 零网络（页签状态在视图存活期内保留，整视图卸载后重来，
+  // host 半 TTL 缓存兜住重挂载成本）。
+  const configured = status.data?.configured === true
+  useEffect(() => {
+    if (configured) void ensureTab(tab)
+  }, [configured, tab, ensureTab])
+
+  // 手动刷新：重握手 status + 重拉全部已加载页签（未访问页签不预拉）。
+  const refresh = useCallback((): void => {
+    void loadStatus().then((p) => {
+      if (p.data?.configured !== true) return
+      for (const id of loadedRef.current) void ensureTab(id, true)
+    })
+  }, [loadStatus, ensureTab])
+
+  const loading = pending > 0
 
   /* --------------------------------- 工具栏 --------------------------------- */
 
@@ -180,7 +229,7 @@ export function SpecialIndicatorsView({ t }: SpecialIndicatorsViewProps) {
     <div className={cx('toolbar')}>
       <span className={cx('toolbarSpacer')} />
       {updatedAt !== null && <span className={cx('clock')}>{t('si.updatedAt', { time: formatClock(updatedAt) })}</span>}
-      <button type="button" className={cx('refreshBtn')} onClick={() => void load()} disabled={loading}>
+      <button type="button" className={cx('refreshBtn')} onClick={refresh} disabled={loading}>
         {loading ? t('si.refreshing') : t('si.refresh')}
       </button>
     </div>
@@ -290,11 +339,15 @@ function SentimentCard({ t, snap, hist, loading }: {
   const zone = s !== undefined ? sentimentZone(s.score) : undefined
   const zoneKey = ('si.sentiment.label.' + (s?.label ?? '')) as SpecialIndicatorsLocaleKey
   const knownLabel = s !== undefined && ['extreme_fear', 'fear', 'neutral', 'greed', 'extreme_greed'].includes(s.label)
-  const series: LineChartSeries[] = []
-  if (hist?.data !== undefined) {
-    series.push({ id: 'score', points: toChartSeries(hist.data.series, (r) => r.score), color: '#5b8def', area: true })
-    series.push({ id: 'overlay', points: toChartSeries(hist.data.overlay, (r) => r.close), color: '#8e95a3', scale: 'left', title: t('si.sentiment.indexOverlay') })
-  }
+  // series 引用稳定化：LineChart 以引用变化为重建信号，useMemo 把重建收敛
+  // 到数据真正更新时（其余重渲染不再整图销毁重建，SectorsCard 行点击同款）。
+  const series = useMemo<LineChartSeries[]>(() => {
+    if (hist?.data === undefined) return []
+    return [
+      { id: 'score', points: toChartSeries(hist.data.series, (r) => r.score), color: '#5b8def', area: true },
+      { id: 'overlay', points: toChartSeries(hist.data.overlay, (r) => r.close), color: '#8e95a3', scale: 'left', title: t('si.sentiment.indexOverlay') },
+    ]
+  }, [hist?.data, t])
   return (
     <CardShell
       t={t}
@@ -348,13 +401,13 @@ function BasisCard({ t, snap, hist, loading }: {
   loading: boolean
 }) {
   const s = snap?.data
-  const series: LineChartSeries[] = []
-  if (hist?.data !== undefined) {
-    const ifPts = toChartSeries(hist.data.basis.IF ?? [], (r) => r.pct)
-    const imPts = toChartSeries(hist.data.basis.IM ?? [], (r) => r.pct)
-    series.push({ id: 'IF', points: ifPts, color: '#5b8def', title: 'IF' })
-    series.push({ id: 'IM', points: imPts, color: '#d4a017', title: 'IM' })
-  }
+  const series = useMemo<LineChartSeries[]>(() => {
+    if (hist?.data === undefined) return []
+    return [
+      { id: 'IF', points: toChartSeries(hist.data.basis.IF ?? [], (r) => r.pct), color: '#5b8def', title: 'IF' },
+      { id: 'IM', points: toChartSeries(hist.data.basis.IM ?? [], (r) => r.pct), color: '#d4a017', title: 'IM' },
+    ]
+  }, [hist?.data])
   return (
     <CardShell
       t={t}
@@ -408,11 +461,13 @@ function HkShortCard({ t, snap, chart, loading }: {
 }) {
   const s = snap?.data
   const c = chart?.data
-  const series: LineChartSeries[] = []
-  if (c !== undefined) {
-    series.push({ id: 'ratio', points: toChartSeries(c.short_ratio, (r) => r.pct_turnover), color: '#5b8def', area: true })
-    series.push({ id: 'index', points: toChartSeries(c.index, (r) => r.close), color: '#8e95a3', scale: 'left' })
-  }
+  const series = useMemo<LineChartSeries[]>(() => {
+    if (c === undefined) return []
+    return [
+      { id: 'ratio', points: toChartSeries(c.short_ratio, (r) => r.pct_turnover), color: '#5b8def', area: true },
+      { id: 'index', points: toChartSeries(c.index, (r) => r.close), color: '#8e95a3', scale: 'left' },
+    ]
+  }, [c])
   return (
     <CardShell
       t={t}
@@ -495,12 +550,12 @@ function SectorsCard({ t, snap, ranking, loading }: {
   }, [activeCode])
 
   const d = detail.data
-  const marginSeries = toChartSeries(d?.margin ?? [], (r) => (r.rzye === null ? null : r.rzye / 1e8))
-  const indexSeries = toChartSeries(d?.index ?? [], (r) => r.close)
-  const series: LineChartSeries[] = [
-    { id: 'margin', points: marginSeries, color: '#5b8def', area: true, title: t('si.sectors.marginLine') },
-    { id: 'index', points: indexSeries, color: '#d4a017', scale: 'left', title: t('si.sectors.indexLine') },
-  ]
+  // 行点击只换 activeCode 时 detail.data 未变：useMemo 保住 series 引用，
+  // 明细图不随行选中态重渲染而销毁重建（300 点 × 2 序列 + fitContent）。
+  const series = useMemo<LineChartSeries[]>(() => [
+    { id: 'margin', points: toChartSeries(d?.margin ?? [], (r) => (r.rzye === null ? null : r.rzye / 1e8)), color: '#5b8def', area: true, title: t('si.sectors.marginLine') },
+    { id: 'index', points: toChartSeries(d?.index ?? [], (r) => r.close), color: '#d4a017', scale: 'left', title: t('si.sectors.indexLine') },
+  ], [d, t])
   const lastDate = d?.margin[d.margin.length - 1]?.date
 
   return (

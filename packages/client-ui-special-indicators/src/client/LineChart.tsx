@@ -1,8 +1,9 @@
 /**
  * 多序列小线图（lightweight-charts v5 薄封装）：
  * - 1–2 条日频序列，支持左/右双价格轴（score 0–100 与指数点位不同量纲）。
- * - series 引用变化即整体重建（数据每次刷新整体到达，重建成本 < 一帧；
- *   与 StrategyView 权益曲线同款生命周期纪律：卸载即 chart.remove()）。
+ * - series 引用变化即整体重建（重建成本 < 一帧；生产方须用 useMemo 把
+ *   引用稳定到数据真正更新时，否则行选中等无数据变化的重渲染会整图
+ *   销毁重建。与 StrategyView 权益曲线同款生命周期纪律：卸载即 chart.remove()）。
  */
 import { useEffect, useRef } from 'react'
 import {

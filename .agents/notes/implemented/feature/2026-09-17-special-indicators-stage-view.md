@@ -40,8 +40,23 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
   成分股表）、板块融资（20 日变化率排行表 + **选中板块双轴历史图**）。
   页签选择持久化 localStorage（`dshtrading.special-indicators.tab.v1`，与
   MiddleStage 同款契约；jsdom 无 Storage 面时 try/catch 静默降级）。
-  数据一次全量加载（allSettled 面板隔离），页签切换零网络。上游
-  null/滞后如实呈现不补零（docs/api.md「错误处理」纪律）。
+  数据**页签按需加载**（2026-09-17 优化）：status 握手后只拉当前页签的
+  两个端点（首屏数据请求 8→2），页签首访拉取、回访命中已加载集零网络，
+  手动刷新重拉全部已加载页签（未访问页签不预拉）；allSettled 面板隔离
+  不变。上游 null/滞后如实呈现不补零（docs/api.md「错误处理」纪律）。
+  - **代码面懒加载**（2026-09-17 优化）：tradingStageViews 注册的 render
+    经 `LazySpecialIndicatorsView`（React.lazy + 自带 Suspense 边界，
+    MiddleStage 上方无边界）动态 import 视图本体——视图 +
+    lightweight-charts（bundle 源体积 ~65%，sourcemap 实测 189KB/248KB）
+    推迟到 tab 首访才执行。tsdown client 配置加 `inlineDynamicImports`：
+    rolldown 把动态 chunk 折叠为 init_* 惰性函数留在单文件内（ModuleLoader
+    只认识单文件 client.js，分 chunk 的相对 require 无法解析）。实测
+    factory 热身执行 0.13ms→0.02ms（node 模拟面；lwc 模块体以声明为主，
+    激活期绝对收益小，价值在结构上与首访前的零图表代码执行）。
+  - **图表重建治理**（2026-09-17 优化）：四张卡片 series 数组改 useMemo
+    （deps=数据引用+t）——LineChart 以 series 引用变化为整图重建信号，
+    此前板块行点击（setSelected 重渲染）会让 300 点×2 序列的明细图无数据
+    变化销毁重建；memo 后重建收敛到数据真正更新时。
   - **板块明细图**（2026-09-17 追加，对齐 finance 页面布局）：左排行表、
     右侧选中板块的融资余额面积（亿元，rzye/1e8）+ 板块指数双轴折线
     （/sectors/detail → /api/v2/sectors/{code}，days=300）；缺省选中排行
@@ -77,8 +92,9 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
   node_modules/@dshtrading/* 全体同版本（fixed 族防局部刷新残留）；本包
   private 且版本独立演进，已加入具名豁免（DRIFT_EXEMPT）——否则每次
   版本联动后本地刷新都会假阳性 FAIL。
-- 测试 30 例（+6 例 jsdom 视图冒烟：二级页签切换/持久化/未配置引导/
-  状态桥故障/面板隔离），覆盖率棘轮因视图冒烟回到基线之上（纯 host 测试
+- 测试 34 例（jsdom 冒烟 10 例：二级页签切换/持久化/按需加载请求面/
+  回访零网络+刷新只重拉已加载页签/未配置引导/状态桥故障/面板隔离/
+  懒加载入口接管），覆盖率棘轮因视图冒烟回到基线之上（纯 host 测试
   时曾掉 0.27pp）；jsdom 的 localStorage 是空壳，持久化断言用
   defineProperty 内存 Storage 契约假件（repo 既有同口径实证）。
 - typecheck 棘轮新增三个 tsconfig 基线（client=3 / host=0 / root=0）：
@@ -86,6 +102,6 @@ finance 自带的看盘网页查看，交易终端（中栏）没有入口；用
   tsc bundler 解析下 TS2664，连带 ctx.locale TS2339×2；knowledge/strategies/
   settings 均带同款），包自身类型面零债。
 - 单测构成：finance-client 8 / route-handler 9 / wire 5 / locale-contract 2 /
-  view.smoke 6，BDD 合规零新债。
+  view.smoke 9 / lazy-entry.smoke 1，BDD 合规零新债。
 - 桌面壳（desktop profile-trading 的 vendor tgz 闭包）本次不接线——私有插件
   若未来要进桌面版，须走 vendor tgz 而非 npm 发布，另案处理。

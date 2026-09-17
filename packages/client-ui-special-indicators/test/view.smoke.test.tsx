@@ -7,7 +7,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SpecialIndicatorsView } from '../src/client/SpecialIndicatorsView.tsx'
 import { zh } from '../src/client/locales.ts'
 import type { SpecialIndicatorsLocaleKey } from '../src/client/contract.ts'
@@ -174,6 +174,43 @@ describe('特殊指标二级页签', () => {
     expect(await screen.findByText('IF 沪深300')).toBeTruthy()
     expect(screen.queryByText('分项（1/7 有效）')).toBeNull()
     expect(storage.store.get('dshtrading.special-indicators.tab.v1')).toBe('"basis"')
+  })
+
+  it('用户打开视图时只拉取默认页签的数据端点，未访问页签不预拉', async () => {
+    // Given: 桥全量可用
+    const fake = installFakeFetch()
+    restoreFetch = fake.restore
+    // When: 用户打开视图（默认恐慌指数页签）并等数据落地
+    render(<SpecialIndicatorsView t={t} view="special-indicators" />)
+    await screen.findByText('42.6')
+    // Then: 数据请求面 = 恐慌指数快照+历史两个端点，其余三组页签端点零请求
+    const dataCalls = fake.calls.filter((u) => !u.endsWith(MOUNT + '/status'))
+    expect(dataCalls.some((u) => u.includes('/sentiment/snapshot'))).toBe(true)
+    expect(dataCalls.some((u) => u.includes('/sentiment/history'))).toBe(true)
+    expect(dataCalls.length).toBe(2)
+  })
+
+  it('用户回访已加载页签时零网络，手动刷新只重拉已加载页签', async () => {
+    // Given: 视图已在默认页签落地，且用户随后访问过基差页签
+    const fake = installFakeFetch()
+    restoreFetch = fake.restore
+    render(<SpecialIndicatorsView t={t} view="special-indicators" />)
+    await screen.findByText('42.6')
+    fireEvent.click(screen.getByRole('tab', { name: 'IF / IM 期现基差' }))
+    await screen.findByText('IF 沪深300')
+    const countOf = (frag: string) => fake.calls.filter((u) => u.includes(frag)).length
+    // When: 用户切回恐慌指数页签
+    fireEvent.click(screen.getByRole('tab', { name: 'A 股恐慌指数' }))
+    await screen.findByText('42.6')
+    // Then: 恐慌端点未重拉（回访命中已加载集，零网络）
+    expect(countOf('/sentiment/')).toBe(2)
+    // When: 用户点击刷新
+    fireEvent.click(screen.getByRole('button', { name: '刷新' }))
+    // Then: 已加载的恐慌+基差页签各重拉一次，未访问的恒科/板块页签仍零请求
+    await waitFor(() => expect(countOf('/sentiment/')).toBe(4))
+    await waitFor(() => expect(countOf('/basis/')).toBe(4))
+    expect(countOf('/hk-short/')).toBe(0)
+    expect(countOf('/sectors/')).toBe(0)
   })
 
   it('用户重开视图时回落到上次选择的二级页签', async () => {
