@@ -12,6 +12,7 @@ import type {
   Disposable,
   Interval,
   Kline,
+  KlineQuery,
   MarketDataService,
   Order,
   OrderRequest,
@@ -66,8 +67,9 @@ export class CcxtMarketDataService extends Service implements MarketDataService 
     return this.client.getTicker(symbol, exchange)
   }
 
-  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, exchange?: string): Promise<Kline[]> {
-    return this.client.getKlines(symbol, interval, limit, exchange)
+  // 第 4 参对齐 `MarketDataService.getKlines` 的 `query?: KlineQuery`；`exchange` 顺延第 5 参。
+  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, query?: KlineQuery, exchange?: string): Promise<Kline[]> {
+    return this.client.getKlines(symbol, interval, limit, query, exchange)
   }
 
   subscribeTicker(symbol: string, cb: (ticker: Ticker) => void, options?: { intervalMs?: number }): Disposable {
@@ -196,7 +198,8 @@ export function apply(ctx: Context, config: Config): void {
       },
       output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
       async execute(args) {
-        const klines = await marketData.getKlines(args.symbol, (args.interval ?? '1d') as Interval, args.limit, args.exchange)
+        // `query` 占第 4 参（本连接器不支持往早，恒 undefined）；`exchange` 顺延第 5 参。
+        const klines = await marketData.getKlines(args.symbol, (args.interval ?? '1d') as Interval, args.limit, undefined, args.exchange)
         return JSON.stringify(klines)
       },
     }))

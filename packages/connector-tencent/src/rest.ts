@@ -24,7 +24,7 @@
  * @module @dshtrading/connector-tencent/rest
  */
 
-import type { Interval, Kline, Orderbook, OrderbookLevel, StockFundamentals, Ticker, TradingErrorCode } from '@dshtrading/api'
+import type { Interval, Kline, KlineQuery, Orderbook, OrderbookLevel, StockFundamentals, Ticker, TradingErrorCode } from '@dshtrading/api'
 
 /* ------------------------------------------------------------------ */
 /* 错误载体（api 包词汇的运行时映射，与 connector-stooq 同构）               */
@@ -188,6 +188,49 @@ export function klineDateToEpochMs(date: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
   if (!m) throw new TradingServiceError('TRADING_EXCHANGE_ERROR', `invalid tencent kline date ${JSON.stringify(date)}`)
   return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+}
+
+const DAY_MS = 86_400_000
+
+/** epoch ms → `YYYY-MM-DD`（UTC 字段；与 klineDateToEpochMs 同一日界口径）。 */
+function utcDayLabel(ms: number): string {
+  const dt = new Date(ms)
+  const y = String(dt.getUTCFullYear()).padStart(4, '0')
+  const mo = String(dt.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(dt.getUTCDate()).padStart(2, '0')
+  return `${y}-${mo}-${d}`
+}
+
+/**
+ * `before`(epoch ms) → 腾讯 fqkline `param` 的 `end` 槽位值（`YYYY-MM-DD`，纯函数，供单测）。
+ *
+ * **边界口径（2026-09-19 真实网络实证，spikes/impl-tv-history-paging/）**：日/周/月 K 的
+ * openTime 以 **UTC 当日零点**锚定（见 klineDateToEpochMs），`end` 为**闭区间**上界
+ * （实证：`end=2024-01-10` 时返回末行恰为 `2024-01-10`）。因此要取「openTime **严格早于**
+ * before」的一页，须回退到「最后一个 openTime 严格早于 before 的日期」：
+ * - `before` 恰为某根日 K 的 openTime（UTC 零点）→ 返回**前一自然日**；
+ * - `before` 落在日界之内（非日 K openTime）→ 返回**当日**（当日那根日 K 的 openTime 确实更早）。
+ *
+ * 注意 `end` 是**日期**而非交易日：跨周末/节假日时只是一个更早的日期上界，由上游自行回落到
+ * 该日或之前的最近交易日，无需本函数感知交易日历。
+ */
+export function tencentEndDateForBefore(before: number): string {
+  const dayStart = Math.floor(before / DAY_MS) * DAY_MS
+  const endMs = dayStart < before ? dayStart : dayStart - DAY_MS
+  return utcDayLabel(endMs)
+}
+
+/** 校验可选往早游标 `KlineQuery.before`：缺席 undefined；非正整数则结构化拒绝（连接器侧兜底）。 */
+export function parseTencentBefore(query: KlineQuery | undefined): number | undefined {
+  const before = query?.before
+  if (before === undefined) return undefined
+  if (!Number.isInteger(before) || before <= 0) {
+    throw new TradingServiceError(
+      'TRADING_EXCHANGE_ERROR',
+      `Tencent klines: before must be a positive integer (epoch ms), got ${String(before)}`,
+    )
+  }
+  return before
 }
 
 /**
@@ -580,7 +623,7 @@ export class TencentRestClient {
    * K 线（日/周/月走 fqkline 前权 qfq；5m/30m 分钟线走 mkline 端点）。
    * 港股 mkline 端点不支持分钟线，请求 5m/30m 会抛出 TRADING_UNSUPPORTED_INTERVAL。
    */
-  async getKlines(symbol: string, interval: Interval, limit?: number): Promise<Kline[]> {
+  async getKlines(symbol: string, interval: Interval, limit?: number, query?: KlineQuery): Promise<Kline[]> {
     const sym = normalizeSymbol(this.#market, symbol)
     const mapping = INTERVAL_TO_TENCENT.get(interval)
     if (!mapping) {
@@ -598,9 +641,26 @@ export class TencentRestClient {
     const count = typeof limit === 'number' && Number.isInteger(limit) && limit > 0 ? Math.min(limit, 800) : 100
     const wire = this.#klineWireCode(sym)
     const isMinute = mapping.type === 'mkline'
+    const before = parseTencentBefore(query)
+    // 往更早翻页（2026-09-19 图表左缘惰性分页）：只在 fqkline（日/周/月）上实现——日期槽语义
+    // 已真实网络实证（`end` 为**闭区间**，见 tencentEndDateForBefore）。分钟线走另一端点
+    // `mkline`，其 `param` 无日期槽位、语义**未实证**，按契约纪律**抛 TRADING_NOT_IMPLEMENTED**
+    // （绝不忽略参数返回最新页——那会让调用方把重复数据当成更早历史）。
+    //
+    // 槽位顺序：`param=<wire>,<tf>,<start>,<end>,<count>,qfq`。翻页只填 `end`、`start` 留空
+    // （下界开放）；`count` 保留窗口内**最新**的 count 根（实证），正是分页所需语义。
+    // 无 before 时 end 槽为空 → URL 与既有模板逐字一致（零回归）。
+    if (before !== undefined && isMinute) {
+      throw new TradingServiceError(
+        'TRADING_NOT_IMPLEMENTED',
+        `Tencent klines for ${sym}: earlier-page cursor (before) is not implemented for minute interval ${String(interval)} — `
+          + 'the minute endpoint (kline/mkline) has no date-window slot and its pagination semantics are unverified; only day/week/month (fqkline) support it',
+      )
+    }
+    const endSlot = before === undefined ? '' : tencentEndDateForBefore(before)
     const url = isMinute
       ? `${this.#mklineBaseUrl}/appstock/app/kline/mkline?param=${wire},${mapping.tf},,${count}`
-      : `${this.#klineBaseUrl}/${this.#market === 'hk' ? 'appstock/app/hkfqkline/get' : 'appstock/app/fqkline/get'}?param=${wire},${mapping.tf},,,${count},qfq`
+      : `${this.#klineBaseUrl}/${this.#market === 'hk' ? 'appstock/app/hkfqkline/get' : 'appstock/app/fqkline/get'}?param=${wire},${mapping.tf},,${endSlot},${count},qfq`
 
     const bytes = await this.#requestArrayBuffer(url)
     let payload: { code?: number; msg?: string; data?: Record<string, Record<string, unknown>> }

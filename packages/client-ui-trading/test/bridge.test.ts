@@ -82,14 +82,140 @@ describe('TradingBridge.klines', () => {
   it('透传 interval 与 limit，返回服务结果', async () => {
     const service = fakeService()
     const bridge = new TradingBridge(fakeHost({ tradingHkMarketData: service }))
-    const wire = await bridge.klines('hk', '00700', '1w', '40')
+    const wire = await bridge.klines('hk', '00700', '1w', '40', null)
     expect(wire.klines).toHaveLength(1)
   })
 
   it('非法 limit → 400；未安装市场 → 400', async () => {
     const bridge = new TradingBridge(fakeHost({ tradingHkMarketData: fakeService() }))
-    await expect(bridge.klines('hk', '00700', '1w', '0')).rejects.toThrowError(/limit/)
-    await expect(bridge.klines('us', 'AAPL', '1d')).rejects.toThrowError(/not installed/)
+    await expect(bridge.klines('hk', '00700', '1w', '0', null)).rejects.toThrowError(/limit/)
+    await expect(bridge.klines('us', 'AAPL', '1d', null, null)).rejects.toThrowError(/not installed/)
+  })
+})
+
+/**
+ * 往早分页与能力闸（2026-09-19）。
+ * 关键安全断言：拒绝时**上游 getKlines 调用次数严格为 0**（防止把 before 透给
+ * 忽略参数的实现方 → 客户端把最新页当更早历史，静默重复堆叠）。
+ * 「调用次数为 0」用手写记录器假件实现（本项目测试棘轮禁用通用 mock 工具）。
+ */
+describe('TradingBridge.klines 往早分页与能力闸（2026-09-19）', () => {
+  it('用户 未声明往早能力的源带 before 取数时被拒绝且上游调用次数为 0', async () => {
+    // Given 一个未实现 getKlineHistoryCapability 的假服务（手写记录器记上游调用次数）
+    let upstreamCalls = 0
+    const service = fakeService({
+      getKlines: async () => {
+        upstreamCalls += 1
+        return []
+      },
+    })
+    const bridge = new TradingBridge(fakeHost({ tradingHkMarketData: service }))
+    // When 带 before 请求更早一页
+    // Then 能力闸拒绝（TRADING_KLINE_HISTORY_UNSUPPORTED）且一次上游调用都未发生
+    await expect(bridge.klines('hk', '00700', '1d', '40', '1700000000000'))
+      .rejects.toMatchObject({ code: 'TRADING_KLINE_HISTORY_UNSUPPORTED' })
+    expect(upstreamCalls).toBe(0)
+  })
+
+  it('客户 声明 supportsEarlier=false 的源带 before 取数时被拒绝且上游调用次数为 0', async () => {
+    // Given 显式声明「不支持往早」的假服务
+    let upstreamCalls = 0
+    const service = fakeService({
+      getKlines: async () => {
+        upstreamCalls += 1
+        return []
+      },
+      getKlineHistoryCapability: () => ({ supportsEarlier: false, note: 'no absolute-time param upstream' }),
+    })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }))
+    // When 带 before 请求
+    // Then 同样 fail-closed 拒绝，且不触达上游
+    await expect(bridge.klines('crypto', 'BTCUSDT', '1d', '300', '1700000000000'))
+      .rejects.toMatchObject({ code: 'TRADING_KLINE_HISTORY_UNSUPPORTED' })
+    expect(upstreamCalls).toBe(0)
+  })
+
+  it('管理员 能力声明抛异常时 fail-closed 视为不支持且不把异常泄漏成 500', async () => {
+    // Given getKlineHistoryCapability 抛异常的假服务
+    let upstreamCalls = 0
+    const service = fakeService({
+      getKlineHistoryCapability: () => {
+        throw new Error('capability probe exploded')
+      },
+      getKlines: async () => {
+        upstreamCalls += 1
+        return []
+      },
+    })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }))
+    // When 带 before 取数
+    // Then 走能力闸拒绝（而非宿主异常 500），且不触达上游
+    await expect(bridge.klines('crypto', 'BTCUSDT', '1d', '10', '1700000000000'))
+      .rejects.toMatchObject({ code: 'TRADING_KLINE_HISTORY_UNSUPPORTED' })
+    expect(upstreamCalls).toBe(0)
+  })
+
+  it('访客 before 非正整数（0/负/小数/非数字）时协议错误 400', async () => {
+    // Given 声明支持往早的源（校验应早于能力闸执行）
+    const service = fakeService({ getKlineHistoryCapability: () => ({ supportsEarlier: true }) })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }))
+    // When / Then 传入四种非法 before 一律 400 协议错误
+    for (const bad of ['0', '-1', '1.5', 'abc']) {
+      await expect(bridge.klines('crypto', 'BTCUSDT', '1d', '10', bad)).rejects.toBeInstanceOf(BridgeProtocolError)
+    }
+  })
+
+  it('管理员 已声明支持时 before 作为第 4 参 { before } 原样透传给上游', async () => {
+    // Given 声明支持且记录第四参的假服务
+    const seen: Array<{ limit?: number; query?: { before?: number } }> = []
+    const service = fakeService({
+      getKlineHistoryCapability: () => ({ supportsEarlier: true, maxPageSize: 300 }),
+      getKlines: async (_symbol: string, _interval: unknown, limit?: number, query?: { before?: number }) => {
+        seen.push({ ...(limit === undefined ? {} : { limit }), ...(query === undefined ? {} : { query }) })
+        return []
+      },
+    })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }, { crypto: 'okx' }))
+    // When 带 before 取数
+    const wire = await bridge.klines('crypto', 'BTCUSDT', '1d', '300', '1700000000000')
+    // Then 上游收到毫秒原样的 { before }，且响应回带 history（supportsEarlier/provider/maxPageSize）
+    expect(seen).toEqual([{ limit: 300, query: { before: 1_700_000_000_000 } }])
+    expect(wire.history).toEqual({ supportsEarlier: true, provider: 'okx', maxPageSize: 300 })
+  })
+
+  it('运营 无 before 的正常取数响应恒带 history（声明支持时为 true）', async () => {
+    // Given 声明支持往早的假服务
+    const service = fakeService({ getKlineHistoryCapability: () => ({ supportsEarlier: true, maxPageSize: 300 }) })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }, { crypto: 'okx' }))
+    // When 不带 before 取最新一页
+    const wire = await bridge.klines('crypto', 'BTCUSDT', '1d', '300', null)
+    // Then history 恒存在且反映当前 provider 的能力
+    expect(wire.history.supportsEarlier).toBe(true)
+    expect(wire.history.provider).toBe('okx')
+    expect(wire.history.maxPageSize).toBe(300)
+  })
+
+  it('访客 未声明能力的源无 before 取数时 history 恒存在且 supportsEarlier=false', async () => {
+    // Given 未声明往早能力的假服务
+    const bridge = new TradingBridge(fakeHost({ tradingUsMarketData: fakeService() }))
+    // When 不带 before 正常取数
+    const wire = await bridge.klines('us', 'AAPL', '1d', '100', null)
+    // Then history 恒存在（缺省 = 不支持），无 provider 时不含 provider 字段
+    expect(wire.history).toEqual({ supportsEarlier: false })
+  })
+
+  it('用户 /klines 路由把 before 原样透传（经 dispatchBridgeRequest 全链路）', async () => {
+    // Given 声明支持往早的假服务
+    const service = fakeService({ getKlineHistoryCapability: () => ({ supportsEarlier: true }) })
+    const bridge = new TradingBridge(fakeHost({ tradingCryptoMarketData: service }))
+    const search = new URLSearchParams({
+      market: 'crypto', symbol: 'BTCUSDT', interval: '1d', limit: '10', before: '1700000000000',
+    })
+    // When 经 dispatchBridgeRequest 走 GET /klines
+    const { status, payload } = await dispatchBridgeRequest(bridge, 'GET', '/klines', search)
+    // Then 200 且回带 history（说明 before 已透传、能力闸放行）
+    expect(status).toBe(200)
+    expect(payload).toMatchObject({ klines: [{ openTime: 1 }], history: { supportsEarlier: true } })
   })
 })
 

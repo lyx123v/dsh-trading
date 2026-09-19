@@ -7,6 +7,7 @@ import type {
   AccountBalance,
   Interval,
   Kline,
+  KlineQuery,
   Order,
   OrderRequest,
   Position,
@@ -122,7 +123,16 @@ export class CcxtRestClient {
     }
   }
 
-  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, exchange: string = this.exchange): Promise<Kline[]> {
+  /**
+   * 第 4 参对齐 `MarketDataService.getKlines` 的 `query?: KlineQuery`（2026-09-19 图表左缘
+   * 惰性分页）；原先占位第 4 参的 `exchange` **顺延为第 5 参**。
+   *
+   * 注意：架构文档「KlineQuery 追加为可选第 4 参 ⇒ 既有实现方零改动」的断言**对 ccxt 不成立**
+   * ——其第 4 参早已被 `exchange` 占用，故此处必须显式挪位（非零改动）。除参数位置外行为逐字
+   * 不变；本连接器**不声明** `getKlineHistoryCapability()`（无往早取证，桥层 fail-closed 判不支持）。
+   */
+  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, query?: KlineQuery, exchange: string = this.exchange): Promise<Kline[]> {
+    void query
     const sym = normalizeSymbol(symbol)
     const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=${limit}`
     const data = await this.requestJson<Array<[number, string, string, string, string, string, number]>>(url)

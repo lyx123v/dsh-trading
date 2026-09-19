@@ -761,3 +761,51 @@
   color: var(--dsw-futu-up, #e64545);
   font-size: 12px;
 }
+
+/* 左缘惰性分页状态元素（2026-09-19）：定位于图表左缘中部，不遮挡 K 线主体与右侧价格轴。 */
+.historyEdge {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 40%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  background: var(--dsw-futu-surface-2, rgba(127, 127, 127, 0.08));
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.historyEdgeLoading {
+  color: var(--dsw-futu-text-muted, #8e95a3);
+}
+
+.historyEdgeTerminated {
+  color: var(--dsw-futu-text-secondary, #5f6672);
+}
+
+.historyEdgeUnsupported {
+  color: var(--dsw-futu-text-muted, #8e95a3);
+  border-color: var(--dsw-futu-border, rgba(127, 127, 127, 0.25));
+}
+
+.historyEdgeError {
+  color: var(--dsw-futu-up, #e64545);
+  border-color: var(--dsw-futu-up, #e64545);
+}
+
+.historyEdgeAction {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 11px;
+  color: var(--dsw-futu-accent, #2563eb);
+  cursor: pointer;
+  text-decoration: underline;
+}

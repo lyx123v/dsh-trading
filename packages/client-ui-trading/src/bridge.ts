@@ -14,7 +14,7 @@
  * - Issue #24：提供 /knowledge/cards 端点（GET），供前端读取沉淀的知识卡片。
  * - Issue #65：提供 /holdings 七个端点 + /fx 端点（统一资产台账，契约 §3/§4）。
  */
-import type { AccountBalance, DerivativesData, DerivativesHistory, FundamentalsPackage, Interval, Kline, MacroCalendarEntry, MacroRateEntry, MarketDataService, NewsAggregator, NewsItem, Order, Orderbook, Position, StockFundamentals, Ticker, TradeFill, TradeService, TradeTick } from '@dshtrading/api'
+import type { AccountBalance, DerivativesData, DerivativesHistory, FundamentalsPackage, Interval, Kline, KlineHistoryCapability, MacroCalendarEntry, MacroRateEntry, MarketDataService, NewsAggregator, NewsItem, Order, Orderbook, Position, StockFundamentals, Ticker, TradeFill, TradeService, TradeTick } from '@dshtrading/api'
 import { aggregateNews as aggregateCnNews, fetchCnFundamentalsPackage } from '@dshtrading/kit-cn'
 import { aggregateNews as aggregateHkNews, fetchHkFundamentalsPackage } from '@dshtrading/kit-hk'
 import { aggregateNews as aggregateUsNews, fetchUsFundamentalsPackage } from '@dshtrading/kit-us'
@@ -250,8 +250,18 @@ export interface TickersWire {
   tickers: Record<string, TickerOutcome>
 }
 
+/** 往早翻页能力（随 /klines 响应**始终**回带；provider 切换后下一次取数即刷新）。 */
+export interface KlineHistoryWire {
+  supportsEarlier: boolean
+  /** 当前激活 provider slug（undefined = 路由未裁决，客户端按 supportsEarlier=false 处置）。 */
+  provider?: string
+  maxPageSize?: number
+}
+
 export interface KlinesWire {
   klines: Kline[]
+  /** 往早翻页能力（恒存在：客户端首次取数即知能力，无需额外往返）。 */
+  history: KlineHistoryWire
 }
 
 export interface SymbolInfoWire {
@@ -615,6 +625,26 @@ export function errorPayload(error: unknown): { code: string; message: string } 
   return { code: 'TRADING_UNKNOWN', message: String(error) }
 }
 
+/**
+ * 能力读取（鸭式 + fail-closed，2026-09-19 图表左缘惰性分页）：
+ * 非函数 / 调用抛异常 / 返回值非对象 / `supportsEarlier !== true` 一律视作「不支持」，
+ * **任何异常都不得向上抛**——能力闸的错误处置必须是「拒绝透传 before」，而不是把
+ * 宿主异常泄漏成 500。返回对象原样透出（含 provider 无关的 maxPageSize/note）。
+ */
+function readKlineHistoryCapability(service: MarketDataService): KlineHistoryCapability {
+  const fn = service.getKlineHistoryCapability
+  if (typeof fn !== 'function') return { supportsEarlier: false }
+  try {
+    const declared: unknown = fn.call(service)
+    return declared !== null && typeof declared === 'object'
+      && (declared as KlineHistoryCapability).supportsEarlier === true
+      ? (declared as KlineHistoryCapability)
+      : { supportsEarlier: false }
+  } catch {
+    return { supportsEarlier: false }
+  }
+}
+
 export class TradingBridge {
   private readonly symbolsCache = new Map<string, { list: SymbolInfoWire[]; fetchedAt: number }>()
   private readonly fundamentalsCache = new TtlCache<StockFundamentals>(FUNDAMENTALS_CACHE_TTL_MS, FUNDAMENTALS_CACHE_MAX)
@@ -657,8 +687,20 @@ export class TradingBridge {
     return { tickers }
   }
 
-  /** K 线：透传 interval（连接器自行校验各自支持集）。 */
-  async klines(market: string, symbol: string, interval: string, rawLimit: string | null): Promise<KlinesWire> {
+  /**
+   * K 线：透传 interval（连接器自行校验各自支持集）。
+   *
+   * `rawBefore` 为往早游标（协议态字符串，epoch ms；语义「openTime 严格早于」）。
+   * 处理顺序即安全语义：
+   *   ① 沿用现有 market/symbol/limit 校验（limit ∈ 1..MAX_KLINE_LIMIT）；
+   *   ② `before` 协议校验（非 null 时必须为正整数，否则 400）；
+   *   ③ 能力解析（fail-closed，见 readKlineHistoryCapability）；
+   *   ④ 能力闸：未声明支持即拒绝（带 code = TRADING_KLINE_HISTORY_UNSUPPORTED），
+   *      **且不得调用上游 getKlines**——防静默假装支持（那会让客户端把最新页当更早历史）；
+   *   ⑤ 取数：无 before 时第 4 参传 undefined（保持既有「取最新一页」语义）。
+   * 响应**恒带** `history`（provider 切换后下一次取数即刷新），供客户端首次取数即知能力。
+   */
+  async klines(market: string, symbol: string, interval: string, rawLimit: string | null, rawBefore: string | null): Promise<KlinesWire> {
     if (!isMarketId(market)) throw new BridgeProtocolError(400, `unknown market ${JSON.stringify(market)}`)
     const trimmed = symbol.trim()
     if (trimmed === '') throw new BridgeProtocolError(400, 'klines: symbol is required')
@@ -666,10 +708,33 @@ export class TradingBridge {
     if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0 || limit > MAX_KLINE_LIMIT)) {
       throw new BridgeProtocolError(400, `klines: limit must be an integer in 1..${MAX_KLINE_LIMIT}`)
     }
+    // ② before 协议校验：非 null 时必须为正整数（epoch ms）；0 / 负数 / 小数 / 非数字 → 400。
+    const before = rawBefore === null || rawBefore === undefined ? undefined : Number(rawBefore)
+    if (before !== undefined && (!Number.isInteger(before) || before <= 0)) {
+      throw new BridgeProtocolError(400, 'klines: before must be a positive integer (epoch ms)')
+    }
     const service = this.host.getMarketService(market)
     if (service === undefined) throw new BridgeProtocolError(400, `market ${market} is not installed`)
-    const klines = await service.getKlines(trimmed, interval as Interval, limit)
-    return { klines }
+    // ③ 能力解析（fail-closed：异常 / 非对象 / 未声明 → 不支持）。
+    const capability = readKlineHistoryCapability(service)
+    const provider = this.host.activeProvider(market)
+    // ④ 能力闸：绝不允许把 before 透给未声明支持的实现方（否则会拿到重复数据）。
+    if (before !== undefined && !capability.supportsEarlier) {
+      throw Object.assign(
+        new Error(`kline history paging unsupported by ${provider ?? market}`),
+        { code: 'TRADING_KLINE_HISTORY_UNSUPPORTED' },
+      )
+    }
+    // ⑤ 取数：无 before 时第 4 参传 undefined。
+    const klines = await service.getKlines(trimmed, interval as Interval, limit, before === undefined ? undefined : { before })
+    return {
+      klines,
+      history: {
+        supportsEarlier: capability.supportsEarlier,
+        ...(provider !== undefined ? { provider } : {}),
+        ...(capability.maxPageSize !== undefined ? { maxPageSize: capability.maxPageSize } : {}),
+      },
+    }
   }
 
   /** 动态标的全集（带 30min 进程内缓存；未实现或异常静默回落空列表）。 */
@@ -1910,7 +1975,8 @@ export async function dispatchBridgeRequest(
         const symbol = search.get('symbol') ?? ''
         const interval = search.get('interval') ?? '1d'
         const limit = search.get('limit')
-        return { status: 200, payload: await bridge.klines(market, symbol, interval, limit) }
+        const before = search.get('before')
+        return { status: 200, payload: await bridge.klines(market, symbol, interval, limit, before) }
       }
       case '/symbols': {
         const market = search.get('market') ?? ''

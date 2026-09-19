@@ -25,7 +25,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import Schema from '@deepseek-ai/schemastery'
-import type { Disposable, Interval, Kline, MarketDataService, Orderbook, StockFundamentals, Ticker } from '@dshtrading/api'
+import type { Disposable, Interval, Kline, KlineHistoryCapability, KlineQuery, MarketDataService, Orderbook, StockFundamentals, Ticker } from '@dshtrading/api'
 import {
   INTERVAL_VOCABULARY,
   type TencentMarket,
@@ -115,8 +115,28 @@ export class TencentMarketDataService extends Service implements MarketDataServi
     return this.client.getOrderbook(symbol)
   }
 
-  getKlines(symbol: string, interval: Interval, limit?: number): Promise<Kline[]> {
-    return this.client.getKlines(symbol, interval, limit)
+  getKlines(symbol: string, interval: Interval, limit?: number, query?: KlineQuery): Promise<Kline[]> {
+    return this.client.getKlines(symbol, interval, limit, query)
+  }
+
+  /**
+   * 往更早时间翻页能力声明（api 可选契约 getKlineHistoryCapability，2026-09-19 图表左缘惰性分页）。
+   *
+   * 依据：`fqkline`/`hkfqkline` 的 `param` 日期槽 `end`（`YYYY-MM-DD`，**闭区间**）真实网络实证
+   * 可用（spikes/impl-tv-history-paging/，沪深 + 港股两页衔接无重叠无缺口），游标换算见 rest.ts 的
+   * `tencentEndDateForBefore`。maxPageSize=800 与 rest.ts 的 count 帽 `Math.min(limit, 800)` 同源。
+   *
+   * **周期范围（宁窄勿错）**：仅 **日/周/月（fqkline）** 支持往更早翻页；**分钟线走另一端点
+   * `kline/mkline`，其 param 无日期槽、语义未实证 → 不实现**（连接器对带 before 的分钟请求抛
+   * `TRADING_NOT_IMPLEMENTED`，绝不忽略参数返回最新页）。本声明是 provider 级布尔（契约形状如此），
+   * 故周期限制写在此 note 与连接器运行时拒绝上。
+   */
+  getKlineHistoryCapability(): KlineHistoryCapability {
+    return {
+      supportsEarlier: true,
+      maxPageSize: 800,
+      note: 'fqkline/hkfqkline 的 end 日期槽（YYYY-MM-DD，闭区间；游标换算 end = before 所在日 − 1 自然日，2026-09-19 spikes/impl-tv-history-paging 沪深+港股实证）；单请求上限 800（count 帽）。仅日/周/月支持：分钟线走 mkline 端点、语义未实证，带 before 的分钟请求抛 TRADING_NOT_IMPLEMENTED',
+    }
   }
 
   listInstruments(query?: string): Promise<Array<{ symbol: string; name: string; pinyin?: string }>> {

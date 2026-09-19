@@ -43,6 +43,8 @@ import { colorModeStore, type ColorMode } from './color-mode.ts'
 import { MARKET_INDICES, getMarketSessionStatus, type MarketIndexDef } from './market-status.ts'
 import type { Kline, MarketId, Ticker } from './types.ts'
 import { usePoll } from './usePoll.ts'
+import { klinePageSize } from './kline-history.ts'
+import { useKlineHistory } from './useKlineHistory.ts'
 import { fetchNews, fetchFundamentals } from './api.ts'
 import { composeResearchSection } from './compose-research.ts'
 import type { ClientNewsItem } from './api.ts'
@@ -58,7 +60,6 @@ const INTERVAL_KEY_PREFIX = 'dshtrading.interval.'
 const ORDERBOOK_OPEN_KEY = 'dshtrading.orderbook.open'
 const TRADE_DESK_OPEN_KEY = 'dshtrading.tradeDesk.open'
 const TICKER_POLL_MS = 5000
-const KLINE_RESYNC_MS = 30000
 // 衍生品指标快照轮询（issue #38）：一次刷新 = 2~5 个上游公共端点调用，取 30s
 // 对齐 K 线 resync 节奏，避免放大限频消耗（funding 8h 才变，OI 30s 粒度够看）。
 const DERIVATIVES_POLL_MS = 30000
@@ -70,14 +71,9 @@ const DERIVATIVES_HISTORY_POLL_MS = 300000
 const ORDERBOOK_POLL_MS = 4000
 // 交易台只读轮询（issue #40）：15s 慢节奏（签名端点 + 个人账户面，无盯盘时效要求）。
 const TRADE_DESK_POLL_MS = 15000
-// 盘中周期 K 线根数按市场区分：crypto 取 300——OKX 单请求上限 300，图表每 30s
-// resync 一次，不触发游标翻页、不放大限频消耗；其余市场取 500。日 K 深度需求由
-// 1d 分支单独走 DAILY_LIMIT。
-const KLINE_LIMIT_DEFAULT = 500
-const KLINE_LIMIT_BY_MARKET: Partial<Record<MarketId, number>> = { crypto: 300 }
-const klineLimit = (market: MarketId): number => KLINE_LIMIT_BY_MARKET[market] ?? KLINE_LIMIT_DEFAULT
-// 日 K（头部参考 + 日线图表）：750 根 ≈ 三年交易日；OKX 超出单请求 300 的部分由连接器 after 游标翻页补足。
-const DAILY_LIMIT = 750
+// 盘中周期 K 线根数与日 K 深度的**唯一家**在 kline-history.ts（KLINE_PAGE_SIZE_*）；
+// 30s resync（尾部窗口）与左缘分页（更早一页）共用 klinePageSize(market, interval)
+// —— Q10 同一口径，杜绝两套数字漂移。
 
 const INTERVAL_KEY: Record<string, MarketLocaleKey> = {
   '1m': 'interval.1m',
@@ -174,8 +170,7 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
     return readInterval(market)
   })
   const [daily, setDaily] = useState<Kline[] | null>(null)
-  const [klines, setKlines] = useState<Kline[] | null>(null)
-  const [kError, setKError] = useState<string | null>(null)
+  // 图表 K 线序列（含左缘惰性历史分页）由 useKlineHistory 持有；此处不再自带 klines/kError。
   const [ticker, setTicker] = useState<Ticker | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -284,6 +279,16 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
     captureRef.current = capture
   }, [])
   const markerTexts = useMemo(() => ({ entry: t('trade.buy'), exit: t('trade.sell') }), [t])
+  /** 左缘惰性分页状态文案（中英双语，词典驱动注入 TvChart）。 */
+  const historyTexts = useMemo(() => ({
+    loading: t('quote.history.loading'),
+    earliest: t('quote.history.earliest'),
+    unsupported: t('quote.history.unsupported'),
+    failed: t('quote.history.failed'),
+    capped: t('quote.history.capped'),
+    recheck: t('quote.history.recheck'),
+    aria: t('quote.history.aria'),
+  }), [t])
 
   // ── 新闻与公告（issue #37）────────────────────────────────────
   const [newsItems, setNewsItems] = useState<ClientNewsItem[] | null>(null)
@@ -320,28 +325,22 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
     if (market !== undefined) setIntervalFor(readInterval(market))
   }, [market])
 
-  // K线取数 = poll：挂载/换标的/换周期立即触发，此后 30s resync。
-  const requestRef = useRef('')
-  usePoll(async () => {
-    if (!market || !symbol) return
-    const request = `${market}:${symbol}:${chartInterval}`
-    requestRef.current = request
-    try {
-      const rows = await fetchKlines(market, symbol, chartInterval, chartInterval === '1d' ? DAILY_LIMIT : klineLimit(market))
-      if (requestRef.current !== request) return
-      setKlines(rows)
-      setKError(null)
-    } catch (error) {
-      if (requestRef.current !== request) return
-      setKError(String((error as { message?: string })?.message ?? error))
-    }
-  }, KLINE_RESYNC_MS, [market, symbol, chartInterval])
+  // 图表 K 线（初始 / 30s resync / 左缘更早一页）交由 useKlineHistory：内部自带竞态守卫、
+  // 能力闸降级与左缘状态机。onPrepend 与 setKlines 在同一 React 批次内位移逻辑下标（R-3/P3）。
+  const handleKlinePrepend = useCallback((count: number): void => {
+    if (count <= 0) return
+    setHoverIndex(index => (index === null ? null : index + count))
+    setRangeSelection(selection => (selection === null ? null : { start: selection.start + count, end: selection.end + count }))
+  }, [])
+  const klineHistory = useKlineHistory({ market, symbol, interval: chartInterval, onPrepend: handleKlinePrepend })
+  const klines = klineHistory.klines
+  const kError = klineHistory.error
 
-  // 日K参考（头部涨跌/昨收）：每标的只拉一次。
+  // 日K参考（头部涨跌/昨收）：每标的只拉一次；页大小与图表口径同一出口（klinePageSize，Q10）。
   useEffect(() => {
     if (!market || !symbol) return
     let cancelled = false
-    fetchKlines(market, symbol, '1d', DAILY_LIMIT)
+    fetchKlines(market, symbol, '1d', klinePageSize(market, '1d'))
       .then((rows) => { if (!cancelled) setDaily(rows) })
       .catch(() => { /* 头部统计缺省 */ })
     return () => { cancelled = true }
@@ -521,13 +520,11 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
     return ok
   }
 
-  // 换标的：立即清场
+  // 换标的：立即清场（图表 K 线由 useKlineHistory 按 dataKey 自行 reset，此处不重复）
   useEffect(() => {
-    setKlines(null)
     setDaily(null)
     setTicker(null)
     setHoverIndex(null)
-    setKError(null)
     setDerivatives(null)
     setDerivativesHistory(null)
     setDerivativesHistoryLoaded(false)
@@ -546,7 +543,8 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
       const result = outcome[symbol]
       if (result?.ok) {
         setTicker(result.ticker)
-        setKlines(prev => prev === null ? prev : withTickerBar(prev, result.ticker))
+        // 尾随合并最后一根收敛到 hook（与初始/resync 合并同口径）。
+        klineHistory.applyTailTicker(result.ticker)
       }
     } catch { /* 下轮再试 */ }
   }, TICKER_POLL_MS, [market, symbol])
@@ -1188,6 +1186,10 @@ export function QuoteStage({ t, useSelection, useChart, toggleIndicator, setIndi
                 onMarkerHover={setMarkerHover}
                 markerTexts={markerTexts}
                 numLocale={numLocale}
+                onReachLeftEdge={klineHistory.onReachLeftEdge}
+                historyEdge={klineHistory.edge}
+                onHistoryEdgeAction={klineHistory.onHistoryEdgeAction}
+                historyTexts={historyTexts}
               />
             )}
             {rangeMode && rangeStats !== null && (
@@ -1628,21 +1630,6 @@ function IndicatorParamEditor(props: {
       </div>
     </div>
   )
-}
-
-function withTickerBar(prev: Kline[], ticker: Ticker): Kline[] {
-  const last = prev[prev.length - 1]
-  if (last === undefined) return prev
-  const price = ticker.price
-  if (!Number.isFinite(price) || price <= 0) return prev
-  if (last.close === price && last.high >= price && last.low <= price) return prev
-  const merged: Kline = {
-    ...last,
-    close: price,
-    high: Math.max(last.high, price),
-    low: Math.min(last.low, price),
-  }
-  return [...prev.slice(0, -1), merged]
 }
 
 function formatStatusBarClock(ms: number): string {

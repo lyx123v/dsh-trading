@@ -546,13 +546,55 @@ export interface Disposable {
 }
 
 /**
+ * K 线查询选项（可选第 4 参）。缺席 = 现有「取最新一页」语义——旧调用与旧实现方
+ * 零改动（TS 允许实现方形参少于接口）。
+ */
+export interface KlineQuery {
+  /**
+   * 取「openTime **严格早于** before」的 K 线（epoch ms，与 Kline.openTime 同口径，
+   * 不做秒/毫秒换算），返回仍为**时间升序、最多 limit 根**。用于图表左缘往更早翻页。
+   *
+   * 契约纪律（防静默假装支持）：**不支持该语义的实现方必须抛
+   * `TRADING_NOT_IMPLEMENTED`**，不得忽略该参数返回最新页——否则调用方会把重复
+   * 数据当成更早历史。此纪律由桥层能力闸二次加固（见客户端桥 `/klines` 的
+   * fail-closed 闸），连接器侧是兜底。
+   */
+  readonly before?: number
+}
+
+/**
+ * 往更早时间翻页的能力声明（可选方法；**缺席 = 未声明 = 消费方按「不支持」处置**）。
+ *
+ * 双轨分工（避免能力表与上游真实行为漂移）：
+ * - 本声明用于 UI **提前** 示明「该源不支持更早历史」，省掉一次注定失败的上游往返；
+ * - **耗尽（已到最早）** 一律由**运行时探测**裁决：请求更早一页返回空 / 不足一页，
+ *   即判定该源窗口耗尽。运行时是终止态的**最终真相源**。
+ */
+export interface KlineHistoryCapability {
+  /** 是否具备「按时间游标往更早翻页」能力。 */
+  readonly supportsEarlier: boolean
+  /** 单请求最大条数（分页页大小上限）；缺省 = 由桥 MAX_KLINE_LIMIT 约束。 */
+  readonly maxPageSize?: number
+  /** 能力依据（人类可读，供日志/Agent 排查；UI 不展示）。 */
+  readonly note?: string
+}
+
+/**
  * 行情服务契约：由市场连接器实现，注册到按市场命名空间的 ctx 键（如 ctx.tradingCrypto）。
  * 符号词汇（2026-08-31 规范，docs/symbol-vocabulary.md）：入参接受市场规范形与连接器原生形，
  * 输出 `symbol` 一律市场规范形——消费方（GUI/Agent/工作流）与数据源方言解耦。
  */
 export interface MarketDataService {
   getTicker(symbol: string): Promise<Ticker>
-  getKlines(symbol: string, interval: Interval, limit?: number): Promise<Kline[]>
+  /**
+   * 取 K 线，**时间升序**（旧→新）。`limit` 缺省由连接器自定（通常 100~500）。
+   *
+   * `query` 为可选第 4 参（2026-09-19 图表左缘惰性分页）：缺省 = 现有「取最新一页」
+   * 语义；给定时取「`openTime` 严格早于 `query.before`」的一页（epoch ms，同口径），
+   * 最多 `limit` 根，仍升序。**不支持该语义的实现方必须抛 `TRADING_NOT_IMPLEMENTED`，
+   * 不得忽略参数返回最新页**（静默假装支持会让调用方把重复数据当成更早历史）。
+   */
+  getKlines(symbol: string, interval: Interval, limit?: number, query?: KlineQuery): Promise<Kline[]>
   subscribeTicker(symbol: string, cb: (ticker: Ticker) => void): Disposable
   /**
    * 查询本市场/交易所支持的全部标的名册（动态全集，Issue #15）。
@@ -593,6 +635,13 @@ export interface MarketDataService {
    * 可选方法：无公共逐笔端点的数据源（腾讯沪深行情行）不实现。
    */
   getRecentTrades?(symbol: string, limit?: number): Promise<TradeTick[]>
+  /**
+   * 往更早时间翻页的能力声明（2026-09-19 图表左缘惰性分页）。
+   * 可选方法：未实现 / 未声明 = 消费方按「不支持」处置（桥层 fail-closed）。
+   * 声明只用于 UI 提前示明；**耗尽（已到最早）由运行时短页探测裁决**，
+   * 见 KlineHistoryCapability 与 KlineQuery 的契约纪律。
+   */
+  getKlineHistoryCapability?(): KlineHistoryCapability
 }
 
 /**

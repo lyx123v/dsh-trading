@@ -38,6 +38,8 @@ import type {
   Disposable,
   Interval,
   Kline,
+  KlineHistoryCapability,
+  KlineQuery,
   MarketDataService,
   Order,
   OrderRequest,
@@ -227,8 +229,23 @@ export class OkxMarketDataService extends Service implements MarketDataService {
     return this.client.getTicker(instId)
   }
 
-  getKlines(instId: string, interval: Interval, limit?: number): Promise<Kline[]> {
-    return this.client.getKlines(instId, interval, limit)
+  getKlines(instId: string, interval: Interval, limit?: number, query?: KlineQuery): Promise<Kline[]> {
+    return this.client.getKlines(instId, interval, limit, query)
+  }
+
+  /**
+   * 往更早时间翻页能力声明（api 可选契约 getKlineHistoryCapability，2026-09-19 图表左缘惰性分页）。
+   *
+   * OKX candles 的 `after` 游标已在 rest.ts 的分页循环中实际使用，其语义（严格早于所请求 ts）
+   * 与 `KlineQuery.before` 逐字同构，故声明支持且**无需换算**。maxPageSize=300 与 rest.ts 的
+   * 单请求帽 `Math.min(剩余, 300)` 同源。耗尽（已到最早）不在此声明——由运行时短页探测裁决。
+   */
+  getKlineHistoryCapability(): KlineHistoryCapability {
+    return {
+      supportsEarlier: true,
+      maxPageSize: 300,
+      note: 'GET /api/v5/market/candles 的 after 游标（返回严格早于该 ts 的记录，与 before 同构，无需换算）；单请求上限 300；回看深度随 bar 档位（日线约 1440 根），耗尽由运行时短页探测裁决',
+    }
   }
 
   listInstruments(): Promise<Array<{ symbol: string; name?: string }>> {

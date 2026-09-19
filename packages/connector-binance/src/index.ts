@@ -17,7 +17,7 @@ import { Service } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import Schema from '@deepseek-ai/schemastery'
 import { createGetIndicatorsTool } from '@dshtrading/indicators/tool'
-import type { DerivativesData, DerivativesHistory, Disposable, Interval, Kline, MarketDataService, Orderbook, Ticker, TradeTick } from '@dshtrading/api'
+import type { DerivativesData, DerivativesHistory, Disposable, Interval, Kline, KlineHistoryCapability, KlineQuery, MarketDataService, Orderbook, Ticker, TradeTick } from '@dshtrading/api'
 import { BinanceRestClient, INTERVAL_VOCABULARY, TradingServiceError, normalizeBinanceFuturesSymbol } from './rest.js'
 import type { BinanceRestOptions } from './rest.js'
 
@@ -100,8 +100,23 @@ export class BinanceMarketDataService extends Service implements MarketDataServi
     return this.client.getTicker(symbol)
   }
 
-  getKlines(symbol: string, interval: Interval, limit?: number): Promise<Kline[]> {
-    return this.client.getKlines(symbol, interval, limit)
+  getKlines(symbol: string, interval: Interval, limit?: number, query?: KlineQuery): Promise<Kline[]> {
+    return this.client.getKlines(symbol, interval, limit, query)
+  }
+
+  /**
+   * 往更早时间翻页能力声明（api 可选契约 getKlineHistoryCapability，2026-09-19 图表左缘惰性分页）。
+   *
+   * 依据：`/api/v3/klines` 的 `endTime`（epoch ms，**闭区间**）真实网络实证可用
+   * （spikes/impl-tv-history-paging/，两页衔接无重叠无缺口），游标换算见 rest.ts 的
+   * `binanceEndTimeForBefore`。maxPageSize=1000 与 rest.ts 的 limit 校验上界同源。
+   */
+  getKlineHistoryCapability(): KlineHistoryCapability {
+    return {
+      supportsEarlier: true,
+      maxPageSize: 1000,
+      note: 'GET /api/v3/klines 的 endTime（epoch ms，闭区间；游标换算 endTime = before − 1，2026-09-19 spikes/impl-tv-history-paging 实证）；单请求上限 1000（limit 校验上界）',
+    }
   }
 
   listInstruments(): Promise<Array<{ symbol: string; name?: string }>> {

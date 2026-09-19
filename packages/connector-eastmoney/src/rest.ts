@@ -6,6 +6,7 @@
 import type {
   Interval,
   Kline,
+  KlineQuery,
   Ticker,
   TradingErrorCode,
 } from '@dshtrading/api'
@@ -89,6 +90,43 @@ export function utc8WallTimeToEpochMs(value: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(value)
   if (!m) throw new TradingServiceError('TRADING_EXCHANGE_ERROR', `invalid eastmoney wall time ${JSON.stringify(value)}`)
   return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0)) - UTC8_MS
+}
+
+const DAY_MS = 86_400_000
+
+/**
+ * `before`(epoch ms) → eastmoney `kline/get` 的 `end` 日期参数（`YYYYMMDD`，纯函数，供单测）。
+ *
+ * **边界口径（2026-09-19 实证）**：日/周/月 K 的 openTime 以 **UTC+8 墙钟当日零点**锚定
+ * （见 utc8WallTimeToEpochMs），`end` 为**闭区间**日期上界（实证：`end=20200102` 时返回末根
+ * 恰为 `2020-01-02`）。故返回「最后一个 openTime **严格早于** before 的日期上界」：
+ * - `before` 恰为某根日 K 的 openTime（UTC+8 零点）→ 返回**前一自然日**；
+ * - `before` 落在日界之内 → 返回**当日**（当日那根日 K 的 openTime 确实更早）。
+ *
+ * 跨周末/节假日无需感知交易日历：`end` 只是日期上界，上游会回落到该日或之前的最近交易日。
+ */
+export function eastmoneyEndDateForBefore(before: number): string {
+  const wall = before + UTC8_MS
+  const dayStartWall = Math.floor(wall / DAY_MS) * DAY_MS
+  const endWall = dayStartWall < wall ? dayStartWall : dayStartWall - DAY_MS
+  const dt = new Date(endWall)
+  const y = String(dt.getUTCFullYear()).padStart(4, '0')
+  const mo = String(dt.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(dt.getUTCDate()).padStart(2, '0')
+  return `${y}${mo}${d}`
+}
+
+/** 校验可选往早游标 `KlineQuery.before`：缺席 undefined；非正整数则结构化拒绝（连接器侧兜底）。 */
+export function parseEastmoneyBefore(query: KlineQuery | undefined): number | undefined {
+  const before = query?.before
+  if (before === undefined) return undefined
+  if (!Number.isInteger(before) || before <= 0) {
+    throw new TradingServiceError(
+      'TRADING_EXCHANGE_ERROR',
+      `Eastmoney klines: before must be a positive integer (epoch ms), got ${String(before)}`,
+    )
+  }
+  return before
 }
 
 /** 东财价格字段的分精度倍率：cn ×100（2 位小数），hk ×1000（3 位小数，响应 decimal=3）。 */
@@ -241,16 +279,29 @@ export class EastmoneyRestClient {
     }
   }
 
-  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100): Promise<Kline[]> {
+  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, query?: KlineQuery): Promise<Kline[]> {
     const { secid, market } = toEastmoneySecid(symbol, this.market)
+    const before = parseEastmoneyBefore(query)
+    const klt = mapIntervalToKlt(interval)
+    // 往更早翻页（2026-09-19 图表左缘惰性分页）：只在日/周/月（klt ≥ 101，日期上界语义已实证，
+    // 见 eastmoneyEndDateForBefore）上实现。盘中周期（klt < 101）的 end 日期语义**未实证**，
+    // 按契约纪律**抛 TRADING_NOT_IMPLEMENTED**（绝不忽略参数返回最新页）。
+    if (before !== undefined && Number(klt) < 101) {
+      throw new TradingServiceError(
+        'TRADING_NOT_IMPLEMENTED',
+        `Eastmoney klines: earlier-page cursor (before) is not implemented for intraday interval ${String(interval)} (klt=${klt}) — `
+          + 'kline/get end-date semantics below klt=101 are unverified; only day/week/month support it',
+      )
+    }
     // 港股 1m 走 trends2 分时端点（当日完整分钟序列；kline/get 的 klt=1 对 hk 未实证，
     // 5m/日 K 已实证可用，spikes/impl-eastmoney-hk/）。
     if (market === 'hk' && interval === '1m') {
       return this.getHkIntradayTrends(secid, limit)
     }
-    const klt = mapIntervalToKlt(interval)
     const stepMs = parseIntervalMs(interval)
-    const url = `${this.historyBaseUrl}/api/qt/stock/kline/get?secid=${secid}&klt=${klt}&fqt=1&lmt=${limit}&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58`
+    // 无 before 时 end 保持既有硬编码 20500101（「未来」上界 = 取最新一页），URL 逐字不变（零回归）。
+    const end = before === undefined ? '20500101' : eastmoneyEndDateForBefore(before)
+    const url = `${this.historyBaseUrl}/api/qt/stock/kline/get?secid=${secid}&klt=${klt}&fqt=1&lmt=${limit}&end=${end}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58`
     
     const res = await this.requestJson<{ data?: { klines?: string[] } }>(url)
     if (!res.data || !Array.isArray(res.data.klines)) {

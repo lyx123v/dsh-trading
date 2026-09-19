@@ -25,6 +25,7 @@ import type {
   DerivativesPoint,
   Interval,
   Kline,
+  KlineQuery,
   Orderbook,
   OrderbookLevel,
   Ticker,
@@ -46,6 +47,22 @@ export class TradingServiceError extends Error {
     this.code = code
     if (cause !== undefined) this.cause = cause
   }
+}
+
+/**
+ * 校验可选往早游标 `KlineQuery.before`：缺席返回 undefined；给了但非正整数（epoch ms）
+ * 则结构化拒绝。桥层已做协议校验（正整数），这里是**连接器侧兜底**——防直调服务绕过桥。
+ */
+export function parseOkxBefore(query: KlineQuery | undefined): number | undefined {
+  const before = query?.before
+  if (before === undefined) return undefined
+  if (!Number.isInteger(before) || before <= 0) {
+    throw new TradingServiceError(
+      'TRADING_EXCHANGE_ERROR',
+      `OKX klines: before must be a positive integer (epoch ms), got ${String(before)}`,
+    )
+  }
+  return before
 }
 
 /* ------------------------------------------------------------------ */
@@ -536,7 +553,7 @@ export class OkxRestClient {
   }
 
   /** K 线：GET /api/v5/market/candles（单请求上限 300，超出走 after 游标翻页；响应新→旧，翻转为旧→新）。 */
-  async getKlines(instId: string, interval: Interval, limit = 100): Promise<Kline[]> {
+  async getKlines(instId: string, interval: Interval, limit = 100, query?: KlineQuery): Promise<Kline[]> {
     const id = normalizeOkxSymbol(instId)
     const bar = toBar(interval)
     if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
@@ -546,9 +563,14 @@ export class OkxRestClient {
     // 根，游标 = 已收最旧一根的 openTime，OKX 返回严格早于该 ts 的记录），直到
     // 取满、上游返回不足一页（窗口耗尽）或空页。candles 端点可回看深度随 bar
     // 档位而定（日线约 1440 根），近三年日 K（~750 根）在该窗口内。
+    //
+    // 往更早翻页（2026-09-19 图表左缘惰性分页）：OKX `after` 的语义 = 「返回**严格早于**
+    // 所请求 ts 的记录」，与 api KlineQuery.before 的契约逐字同构，故游标种子直接取
+    // `before`，**无需任何单位/边界换算**（这是 okx 零摩擦落地的依据）。缺席 before 时
+    // 种子为 undefined → 首个请求即「取最新一页」，既有行为逐字不变。
+    let cursor: number | undefined = parseOkxBefore(query)
     const collected: Kline[] = []
     const seenOpenTimes = new Set<number>()
-    let cursor: number | undefined
     while (collected.length < limit) {
       const pageSize = Math.min(limit - collected.length, 300)
       const query: Record<string, string> = { instId: id, bar, limit: String(pageSize) }

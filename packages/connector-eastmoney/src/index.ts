@@ -11,6 +11,8 @@ import type {
   Disposable,
   Interval,
   Kline,
+  KlineHistoryCapability,
+  KlineQuery,
   MarketDataService,
   Ticker,
 } from '@dshtrading/api'
@@ -58,8 +60,27 @@ export class EastmoneyMarketDataService extends Service implements MarketDataSer
     return this.client.getTicker(symbol)
   }
 
-  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100): Promise<Kline[]> {
-    return this.client.getKlines(symbol, interval, limit)
+  async getKlines(symbol: string, interval: Interval = '1d', limit: number = 100, query?: KlineQuery): Promise<Kline[]> {
+    return this.client.getKlines(symbol, interval, limit, query)
+  }
+
+  /**
+   * 往更早时间翻页能力声明（api 可选契约 getKlineHistoryCapability，2026-09-19 图表左缘惰性分页）。
+   *
+   * 依据：`kline/get` 的 `end`（`YYYYMMDD`，**闭区间**日期上界）已实证（主理人 WebFetch 补证，
+   * 转录 spikes/impl-tv-history-paging/raw/12-eastmoney-teamlead-supplement.md；本沙箱出口对该端点
+   * 不可达），游标换算见 rest.ts 的 `eastmoneyEndDateForBefore`。
+   *
+   * **周期范围（宁窄勿错）**：仅 **日/周/月（klt ≥ 101）** 支持往更早翻页；**盘中周期（klt < 101）
+   * 的 end 日期语义未实证 → 不实现**（连接器对带 before 的盘中请求抛 `TRADING_NOT_IMPLEMENTED`，
+   * 绝不忽略参数返回最新页）。**maxPageSize 故意缺省**：`lmt` 的大值上界未实证，交由桥层
+   * MAX_KLINE_LIMIT 约束，不臆断声明。
+   */
+  getKlineHistoryCapability(): KlineHistoryCapability {
+    return {
+      supportsEarlier: true,
+      note: 'kline/get 的 end 日期上界（YYYYMMDD，闭区间；游标换算 end = before 所在日 − 1 自然日，2026-09-19 主理人 WebFetch 补证实证）。仅日/周/月（klt≥101）支持：盘中周期（klt<101）end 语义未实证，带 before 的盘中请求抛 TRADING_NOT_IMPLEMENTED。lmt 大值上界未实证，故不声明 maxPageSize',
+    }
   }
 
   async listInstruments(query?: string): Promise<Array<{ symbol: string; name: string }>> {

@@ -50,10 +50,45 @@ export async function fetchTickers(market: MarketId, symbols: string[]): Promise
   return wire.tickers ?? {}
 }
 
-export async function fetchKlines(market: MarketId, symbol: string, interval: string, limit: number): Promise<Kline[]> {
+/** 往早翻页能力（镜像桥 /klines 回带的 history；provider 切换后下一次取数即刷新）。 */
+export interface KlineHistory {
+  supportsEarlier: boolean
+  provider?: string
+  maxPageSize?: number
+}
+
+/** 一页 K 线 + 能力元数据（fetchKlinesPage 的返回；本包内部使用）。 */
+export interface KlinePage {
+  klines: Kline[]
+  history: KlineHistory
+}
+
+/**
+ * 带往早游标与能力元数据的取数（**本包内部使用**，不进 TradingBridgeService 面）。
+ * `before` 缺省 = 取最新一页；给定时取「openTime **严格早于** before」的一页（epoch ms）。
+ * 未声明往早能力的实现方由桥层 fail-closed 拒绝
+ * （`BridgeError.code = 'TRADING_KLINE_HISTORY_UNSUPPORTED'`），客户端据此进 unsupported 态。
+ */
+export async function fetchKlinesPage(
+  market: MarketId, symbol: string, interval: string, limit: number, before?: number,
+): Promise<KlinePage> {
   const query = new URLSearchParams({ market, symbol, interval, limit: String(limit) })
-  const wire = await getJson<{ klines: Kline[] }>(`/dshtrading/api/klines?${query.toString()}`)
-  return Array.isArray(wire.klines) ? wire.klines : []
+  if (before !== undefined) query.set('before', String(before))
+  const wire = await getJson<{ klines: Kline[]; history?: KlineHistory }>(`/dshtrading/api/klines?${query.toString()}`)
+  return {
+    klines: Array.isArray(wire.klines) ? wire.klines : [],
+    // 桥恒回带 history；对更老版本桥缺席时 fail-closed 按「不支持」处置。
+    history: wire.history ?? { supportsEarlier: false },
+  }
+}
+
+/**
+ * **签名与返回类型逐字保持不变**（跨包 face 契约，api.ts:1054 的 TradingBridgeService）：
+ * 尾部窗口 K 线。改为 fetchKlinesPage(...).klines 的薄包装——新增能力只走新函数，
+ * 避免连带改独立 bundle 包 client-ui-strategies 等 6 个外部调用点。
+ */
+export async function fetchKlines(market: MarketId, symbol: string, interval: string, limit: number): Promise<Kline[]> {
+  return (await fetchKlinesPage(market, symbol, interval, limit)).klines
 }
 
 /**

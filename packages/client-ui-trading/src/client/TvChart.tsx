@@ -27,6 +27,11 @@ import { AXIS_FONT_FAMILY, AXIS_FONT_SIZE, AXIS_SCALE_MARGIN, axisMinimumWidth, 
 import { getColorPalette, type ColorMode } from './color-mode.ts'
 import type { IndicatorOutput } from '@dshtrading/indicators'
 import type { Kline } from './types.ts'
+import { compensateViewport, detectHeadChange, reachesLeftEdge } from './chart-viewport.ts'
+import type { LogicalRangeLike } from './chart-viewport.ts'
+import { LEFT_EDGE_TRIGGER_BARS } from './kline-history.ts'
+import type { KlineHistoryEdge } from './kline-history.ts'
+import css from './quote-stage.module.css'
 
 export interface TvBar {
   time: UTCTimestamp
@@ -112,6 +117,22 @@ export interface TvChartProps {
   markerTexts?: { entry: string; exit: string } | undefined
   /** 数值紧凑单位 locale（zh = 亿/万，en = K/M/B；缺省 zh 现网口径）。 */
   numLocale?: 'zh' | 'en' | undefined
+  /** 左缘惰性分页（2026-09-19）：视窗进入左缘阈值区时回调（分页触发源，不新引入订阅）。 */
+  onReachLeftEdge?: (() => void) | undefined
+  /** 左缘惰性分页状态（null/undefined = 无左缘元素）。 */
+  historyEdge?: KlineHistoryEdge | null | undefined
+  /** 用户对左缘状态元素的显式动作（重试 / 重新检查更早历史）。 */
+  onHistoryEdgeAction?: (() => void) | undefined
+  /** 左缘状态文案（词典驱动注入，与 markerTexts 同款；缺省则不渲染状态元素）。 */
+  historyTexts?: {
+    loading: string
+    earliest: string
+    unsupported: string
+    failed: string
+    capped: string
+    recheck: string
+    aria: string
+  } | undefined
 }
 
 /** 一次图表截图（PNG data URL + 像素尺寸，回显/命名用）。 */
@@ -319,6 +340,10 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
   /** 最新 props 快照，供只跑一次的 chart 工厂与事件回调读取。 */
   const propsRef = useRef(props)
   propsRef.current = props
+  /** 待应用的视窗补偿（蜡烛 effect 写入，声明在最末的专用 effect 读取并清空，R-2/P2）。 */
+  const pendingCompensationRef = useRef<LogicalRangeLike | null>(null)
+  /** 补偿自抑制：程序化 setVisibleLogicalRange 会再触发 range 回调，置 true 期间不判左缘（P4）。 */
+  const suppressEdgeRef = useRef(false)
 
   // 监听宿主主题切换（body 属性与 media query）
   useEffect(() => {
@@ -426,7 +451,15 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
       refPriceRef.current = close
       scheduleMirrorFormatRefresh()
     }
-    chart.timeScale().subscribeVisibleLogicalRangeChange(syncRefPrice)
+    // 既有可见区间订阅扩为「参考价同步 + 左缘判定」：零新订阅、零新生命周期（2026-09-19）。
+    const onVisibleRangeChange = (): void => {
+      syncRefPrice()
+      if (suppressEdgeRef.current) return
+      if (reachesLeftEdge(chart.timeScale().getVisibleLogicalRange(), LEFT_EDGE_TRIGGER_BARS)) {
+        propsRef.current.onReachLeftEdge?.()
+      }
+    }
+    chart.timeScale().subscribeVisibleLogicalRangeChange(onVisibleRangeChange)
 
     applyStretch(chart)
 
@@ -516,14 +549,27 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
       priceLineColor: up ? palette.upColor : palette.downColor,
     })
 
-    if (prev === null || prev.key !== dataKey || bars.length < prev.bars.length || firstTimeDiffers(prev.bars, bars)) {
+    // 三分支（§5.2）：reset 走原全量重置；prepend 走全量 setData + 视窗补偿；
+    // append 走尾部增量。补偿量取 detectHeadChange 的 prependCount（**禁止**用长度差，R-1）。
+    const change = prev === null || prev.key !== dataKey
+      ? ({ kind: 'reset' } as const)
+      : detectHeadChange(prev.bars, bars)
+    if (change.kind === 'reset') {
       candles.setData(bars as TvBar[])
       volume.setData(volumes as TvVolume[])
       chart.timeScale().resetTimeScale()
       chart.timeScale().scrollToRealTime()
       return
     }
-    for (let index = Math.max(prev.bars.length - 1, 0); index < bars.length; index++) {
+    if (change.kind === 'prepend') {
+      // 捕获必须在 setData **之前**（setData 会重算时间轴）。补偿在末尾专用 effect 应用。
+      const range = chart.timeScale().getVisibleLogicalRange()
+      candles.setData(bars as TvBar[])
+      volume.setData(volumes as TvVolume[])
+      if (range !== null) pendingCompensationRef.current = compensateViewport(range, change.prependCount)
+      return
+    }
+    for (let index = change.appendedFrom; index < bars.length; index++) {
       candles.update(bars[index] as TvBar)
       volume.update(volumes[index] as TvVolume)
     }
@@ -785,8 +831,34 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
     return null
   })()
 
+  // ---- 视窗保持：补偿的**唯一应用点**（声明在最末，位于所有 setData effect 之后，R-2/P2）----
+  // 无依赖数组：每次提交末位执行一次；蜡烛 effect 写入 pendingCompensationRef，本 effect
+  // 读取并清空。镜像序列（:597+）与指标（:657+）的 setData 都在此之前跑完，补偿不被吃掉。
+  // 绝不调用 resetTimeScale / scrollToRealTime / fitContent。
+  useEffect(() => {
+    const compensation = pendingCompensationRef.current
+    if (compensation === null) return
+    pendingCompensationRef.current = null
+    const chart = chartRef.current
+    if (chart === null) return
+    suppressEdgeRef.current = true
+    chart.timeScale().setVisibleLogicalRange(compensation)
+    suppressEdgeRef.current = false
+  })
+
   const monoFont = AXIS_FONT_FAMILY
   const volumeReadout = readoutIndex !== null ? volumes[readoutIndex] : undefined
+  // 左缘状态元素（四态 + 上限态；null = 不渲染）。文案由父级词典注入。
+  const historyEdge = props.historyEdge ?? null
+  const historyTexts = props.historyTexts
+  const historyEdgeView = ((): { label: string; action: string | null; variant: string | undefined } | null => {
+    if (historyEdge === null || historyTexts === undefined) return null
+    if (historyEdge.phase === 'loading') return { label: historyTexts.loading, action: null, variant: css.historyEdgeLoading }
+    if (historyEdge.phase === 'unsupported') return { label: historyTexts.unsupported, action: null, variant: css.historyEdgeUnsupported }
+    if (historyEdge.phase === 'error') return { label: historyTexts.failed, action: historyTexts.recheck, variant: css.historyEdgeError }
+    if (historyEdge.terminalReason === 'cap') return { label: historyTexts.capped, action: historyTexts.recheck, variant: css.historyEdgeTerminated }
+    return { label: historyTexts.earliest, action: historyTexts.recheck, variant: css.historyEdgeTerminated }
+  })()
 
   return (
     <div
@@ -845,6 +917,21 @@ function TvChartImpl(props: TvChartProps): React.JSX.Element {
           </div>
         )
       })}
+      {/* 左缘惰性分页状态元素：绝对定位于左缘中部，不遮挡 K 线主体与右侧价格轴 */}
+      {historyEdgeView !== null && (
+        <div
+          className={`${css.historyEdge ?? ''} ${historyEdgeView.variant ?? ''}`}
+          role="status"
+          aria-label={historyTexts?.aria ?? 'chart history status'}
+        >
+          <span>{historyEdgeView.label}</span>
+          {historyEdgeView.action !== null && (
+            <button type="button" className={css.historyEdgeAction} onClick={() => props.onHistoryEdgeAction?.()}>
+              {historyEdgeView.action}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -1016,14 +1103,6 @@ function applyStretch(chart: IChartApi): void {
   for (let index = 1; index < panes.length; index++) {
     panes[index]?.setStretchFactor(1)
   }
-}
-
-function firstTimeDiffers(prev: readonly TvBar[], next: readonly TvBar[]): boolean {
-  const common = Math.min(prev.length, next.length)
-  for (let index = 0; index < common; index++) {
-    if (prev[index]?.time !== next[index]?.time) return true
-  }
-  return false
 }
 
 /**

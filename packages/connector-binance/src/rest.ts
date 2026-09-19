@@ -12,6 +12,7 @@ import type {
   DerivativesPoint,
   Interval,
   Kline,
+  KlineQuery,
   Orderbook,
   OrderbookLevel,
   Ticker,
@@ -78,6 +79,38 @@ export const INTERVAL_VOCABULARY: readonly string[] = INTERVALS
 
 function isInterval(value: unknown): value is Interval {
   return typeof value === 'string' && (INTERVALS as readonly string[]).includes(value)
+}
+
+/* ------------------------------------------------------------------ */
+/* 往更早翻页游标（2026-09-19 图表左缘惰性分页）                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `before`(epoch ms) → Binance `endTime` 参数值（纯函数，供单测）。
+ *
+ * **边界口径（2026-09-19 真实网络实证，spikes/impl-tv-history-paging/）**：`endTime` 为
+ * **闭区间**上界——`endTime = d0` 时返回的末根 openTime **仍为 `d0`**（含端）。因此取
+ * 「openTime **严格早于** `before`」的一页必须 **`endTime = before − 1`（毫秒）**。
+ * 缺席（无 `before`）→ 返回 undefined，调用方沿用既有「最近 limit 根」语义。
+ */
+export function binanceEndTimeForBefore(before: number | undefined): number | undefined {
+  return before === undefined ? undefined : before - 1
+}
+
+/**
+ * 校验可选往早游标 `KlineQuery.before`：缺席返回 undefined；给了但非正整数（epoch ms）
+ * 则结构化拒绝。桥层已做协议校验，这里是**连接器侧兜底**（防直调服务绕过桥）。
+ */
+export function parseKlineBefore(query: KlineQuery | undefined): number | undefined {
+  const before = query?.before
+  if (before === undefined) return undefined
+  if (!Number.isInteger(before) || before <= 0) {
+    throw new TradingServiceError(
+      'TRADING_EXCHANGE_ERROR',
+      `Binance klines: before must be a positive integer (epoch ms), got ${String(before)}`,
+    )
+  }
+  return before
 }
 
 /** 校验并规范化 symbol（Binance 现货符号为大写无分隔，如 BTCUSDT）。 */
@@ -288,7 +321,7 @@ export class BinanceRestClient {
     }
   }
 
-  async getKlines(symbol: string, interval: Interval, limit = 100): Promise<Kline[]> {
+  async getKlines(symbol: string, interval: Interval, limit = 100, query?: KlineQuery): Promise<Kline[]> {
     const sym = requireSymbol(symbol)
     if (!isInterval(interval)) {
       throw new TradingServiceError('TRADING_UNSUPPORTED_INTERVAL', `Binance klines: unsupported interval ${String(interval)}`)
@@ -296,7 +329,13 @@ export class BinanceRestClient {
     if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
       throw new TradingServiceError('TRADING_EXCHANGE_ERROR', `Binance klines: limit must be an integer within 1..1000, got ${limit}`)
     }
-    const body = await this.#request('/api/v3/klines', { symbol: sym, interval, limit: String(limit) })
+    const params: Record<string, string> = { symbol: sym, interval, limit: String(limit) }
+    // 往更早翻页（2026-09-19）：`before` → `endTime = before − 1`（endTime 是**闭区间**上界，
+    // 实证见 spikes/impl-tv-history-paging/）。无 `before` 时**不附加 endTime**，请求与既有
+    // 「最近 limit 根」逐字一致（零回归）。
+    const endTime = binanceEndTimeForBefore(parseKlineBefore(query))
+    if (endTime !== undefined) params.endTime = String(endTime)
+    const body = await this.#request('/api/v3/klines', params)
     if (!Array.isArray(body)) {
       throw new TradingServiceError('TRADING_EXCHANGE_ERROR', `Binance klines for ${sym}: unexpected response shape`)
     }

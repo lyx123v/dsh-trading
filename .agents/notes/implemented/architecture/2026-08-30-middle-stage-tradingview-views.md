@@ -33,13 +33,18 @@ Status: implemented
   （`chart-state.ts`，`dshtrading.chart.v1`，读回时 sanitize：未知 id 丢弃、
   参数 clamp、按 id 去重）。UI：周期行右侧 preset chips 开关 + `⋯` 参数浮层 +
   图表下方指标读数行（悬停跟随、色同序列）。
-- **实时口径**：K 线取数统一进 `usePoll`（挂载/换标的/换周期立即触发 +
-  30s resync，后台标签页冻结的既有语义保留）；ticker 5s 轮询把价格尾随合并进
-  最后一根 K 线（`withTickerBar`，无变化返回原数组避免无效重算），蜡烛/成交量
-  走 `series.update()` 尾部增量（保留用户视窗），30s resync 兜底校正开高低/量。
-  蜡烛/成交量只在 `dataKey`（market:symbol:interval）变化或头部时间位移时才
-  `setData` + `fitContent`；指标序列主图按组 diff、副图按激活顺序整组重建
-  （pane 索引随数组位置对齐，空 pane 由 v5 自动回收）。
+- **实时口径**：K 线取数（初始 / 30s resync / 左缘更早一页）自 2026-09-19 起由
+  `useKlineHistory` 持有（从 QuoteStage 内联迁出）；resync 与既有 `usePoll` 同礼仪
+  （挂载/换标的/换周期立即触发 + 30s，后台标签页冻结的既有语义保留，且与分页在途
+  **互不并发**）。ticker 5s 轮询（仍走 `usePoll`）把价格尾随合并进最后一根 K 线
+  （`applyTailTicker`，原 `withTickerBar` 收敛到 hook，无变化返回原数组避免无效重算），
+  30s resync 兜底校正开高低/量。蜡烛/成交量按 `detectHeadChange` **三分支**更新：
+  `reset`（换标的 / 头部改写）全量 `setData` + `resetTimeScale` + `scrollToRealTime`；
+  `append`（头部未变）走 `series.update()` 尾部增量；`prepend`（左缘前插）全量
+  `setData` + 逻辑下标视窗补偿（绝不跳视窗）。指标序列主图按组 diff、副图按激活
+  顺序整组重建（pane 索引随数组位置对齐，空 pane 由 v5 自动回收）。分页契约、
+  能力闸、状态机与视窗补偿见
+  [../feature/2026-09-19-kline-history-lazy-paging.md](../feature/2026-09-19-kline-history-lazy-paging.md)。
 - **中栏舞台化**：`QuotePane` 改挂 `MiddleStage`——中栏视图注册表
   （`MIDDLE_VIEWS`：行情 | 量化）+ 顶部切换条，活动视图互斥挂载（切走即卸载，
   视图态由 store/localStorage 承接，`dshtrading.stage.v1`）；`WorkflowView`
@@ -94,9 +99,12 @@ Status: implemented
   核对体积与 purityGate。
 - 指标计算在客户端（160 根 × O(n) 微秒级）；若未来回测需要服务端算力，
   node 半 `/dshtrading/api` 桥是既定扩展位。
-- `usePoll` K 线轮询从「仅切换时拉一次」变为「30s resync 常态轮询」——请求
-  频率增加但仍在公开 REST 礼仪内（后台标签页冻结不放大）；ToS 表无需变更
-  （无缓存、无再分发口径不变）。
+- K 线 30s resync 常态轮询现由 `useKlineHistory` 承担（原在 QuoteStage 的
+  `usePoll`）；请求频率增加但仍在公开 REST 礼仪内（后台标签页冻结不放大）；
+  ToS 表无需变更（无缓存、无再分发口径不变）。
+- 图表数据面接入分页契约（`KlineQuery.before` + `getKlineHistoryCapability()`）：
+  新增「支持更早历史」的源 = 连接器自行声明能力，中栏**零改动**（左缘元素由
+  `KlineHistoryEdge` + 双语词典 `quote.history.*` 驱动）。
 - 已知边界：MA 一组三条线作为一个实例整体开关（富途同款交互）；指标读数行
   跟 `logical` 下标取值，图表视窗外悬停时回落最后一根；副图指标实例上限未设
   （pane 过多会压缩主图高度，交给用户自理，后续可加折叠）。

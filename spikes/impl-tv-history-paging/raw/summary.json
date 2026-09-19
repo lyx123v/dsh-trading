@@ -1,0 +1,153 @@
+[
+  {
+    "source": "binance",
+    "conclusion": "支持",
+    "usedHost": "data-api.binance.vision (官方公开行情镜像)",
+    "reach": [
+      {
+        "host": "api.binance.com (connector 默认主机)",
+        "ok": false,
+        "status": null,
+        "error": "TypeError: fetch failed | cause=UND_ERR_CONNECT_TIMEOUT",
+        "ms": 10757
+      },
+      {
+        "host": "data-api.binance.vision (官方公开行情镜像)",
+        "ok": true,
+        "status": 200,
+        "error": null,
+        "ms": 459
+      }
+    ],
+    "urlPage1": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=5",
+    "urlPage2": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=5&endTime=1789786799999",
+    "urlBoundaryInclusive": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=5&endTime=1789786800000",
+    "page1OpenTimes": [
+      1789786800000,
+      1789790400000,
+      1789794000000,
+      1789797600000,
+      1789801200000
+    ],
+    "page2OpenTimes": [
+      1789768800000,
+      1789772400000,
+      1789776000000,
+      1789779600000,
+      1789783200000
+    ],
+    "firstPageOldest": 1789786800000,
+    "secondPageNewest": 1789783200000,
+    "secondPageOldest": 1789768800000,
+    "noOverlap": true,
+    "noGap": true,
+    "endTimeIsInclusive": true,
+    "cursorRule": "endTime = before − 1 (ms)"
+  },
+  {
+    "source": "yahoo",
+    "conclusion": "证据不足",
+    "reason": "HTTP 403（Yahoo 边缘拦截，非端点语义）",
+    "urlPage1": "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&period1=1788939076&period2=1789803076",
+    "status": 403,
+    "error": null,
+    "responseSnippet": "<!DOCTYPE html>\n<html lang=\"zh\">\n<head>\n    <meta charset=\"utf-8\">\n    <title>Yahoo</title>\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale="
+  },
+  {
+    "source": "tencent",
+    "market": "cn",
+    "conclusion": "支持",
+    "urlPage1": "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600519,day,,,6,qfq",
+    "urlPage2": "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600519,day,,2026-09-10,6,qfq",
+    "urlReference": "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600519,day,,,12,qfq",
+    "responseKey": "qfqday",
+    "page1Dates": [
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18"
+    ],
+    "page2Dates": [
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10"
+    ],
+    "referenceDates": [
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18"
+    ],
+    "firstPageOldest": "2026-09-11",
+    "secondPageNewest": "2026-09-10",
+    "noOverlap": true,
+    "seamlessWithReference": true,
+    "cursorRule": "end = (before 日期) − 1 自然日;  start 留空;  end 为闭区间"
+  },
+  {
+    "source": "tencent",
+    "market": "hk",
+    "conclusion": "支持",
+    "urlPage1": "https://web.ifzq.gtimg.cn/appstock/app/hkfqkline/get?param=hk00700,day,,,6,qfq",
+    "urlPage2": "https://web.ifzq.gtimg.cn/appstock/app/hkfqkline/get?param=hk00700,day,,2026-09-10,6,qfq",
+    "urlReference": "https://web.ifzq.gtimg.cn/appstock/app/hkfqkline/get?param=hk00700,day,,,12,qfq",
+    "responseKey": "qfqday",
+    "page1Dates": [
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18"
+    ],
+    "page2Dates": [
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10"
+    ],
+    "referenceDates": [
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18"
+    ],
+    "firstPageOldest": "2026-09-11",
+    "secondPageNewest": "2026-09-10",
+    "noOverlap": true,
+    "seamlessWithReference": true,
+    "cursorRule": "end = (before 日期) − 1 自然日;  start 留空;  end 为闭区间"
+  },
+  {
+    "source": "eastmoney",
+    "conclusion": "证据不足",
+    "reason": "网络错误（TLS/连接被重置，端点不可达）",
+    "urlPage1": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.600519&klt=101&fqt=1&lmt=5&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58",
+    "status": null,
+    "error": "TypeError: fetch failed | cause=UND_ERR_SOCKET",
+    "responseSnippet": ""
+  }
+]
